@@ -8,12 +8,7 @@ each on their own PC with their own full screen, connected through **Radmin VPN*
 The game runs only once, on the host's PC, with the screen split in 4 (AlphaRing). The host mod sends
 each friend only their quarter of the screen plus the game sound, and receives their controls back.
 
-> **Current status (phase 5):** the host (`HaloCoopHost.exe` + `VERSION.dll`) creates the controllers
-> for players 2, 3 and 4, receives their input and sends each one their quadrant as video (NVENC) plus
-> the game sound (Opus). Each friend sees and hears it full screen in `HaloCoopClient.exe`, with every
-> player's name over their character and the armor color each one picks.
->
-> Both apps are in **English** by default; switch to **Español** with the selector at the top right.
+Both apps are in **English** by default; switch to **Español** with the selector at the top right.
 
 ## Download
 

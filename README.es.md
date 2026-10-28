@@ -8,13 +8,8 @@ cada uno en su propio PC y con su propia pantalla completa, conectados por **Rad
 El juego corre una sola vez en el PC del host con la pantalla dividida en 4 (AlphaRing). El mod del host
 envía a cada amigo solo su cuarto de pantalla y su sonido, y recibe sus controles de vuelta.
 
-> **Estado actual (fase 5):** el host (`HaloCoopHost.exe` + `VERSION.dll`) crea los mandos de los
-> jugadores 2, 3 y 4, recibe sus controles y les manda su cuadrante del juego como video (NVENC) y el
-> sonido del juego (Opus). Cada amigo lo ve y escucha a pantalla completa en `HaloCoopClient.exe`, con el
-> nombre de cada jugador sobre su personaje y el color de armadura que elige cada uno.
->
-> Las dos apps vienen en **inglés**. Para usarlas en español elige **Español** en el selector de arriba a
-> la derecha (se guarda). Esta guía usa los textos en español.
+Las dos apps vienen en **inglés**. Para usarlas en español elige **Español** en el selector de arriba a
+la derecha (se guarda). Esta guía usa los textos en español.
 
 ## Descarga
 
