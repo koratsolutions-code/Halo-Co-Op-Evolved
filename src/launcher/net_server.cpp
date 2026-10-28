@@ -9,6 +9,7 @@
 #include <mstcpip.h>
 
 #include <atomic>
+#include <cmath>
 #include <cstring>
 #include <mutex>
 #include <thread>
@@ -25,6 +26,11 @@ struct Slot {
     unsigned inputs_per_second = 0;  // último valor medido
     uint32_t keyframe_requests = 0;
     uint8_t armor_color = 0;  // índice en k_armor_colors (lo manda el cliente)
+    // Mira directa con mouse: último total recibido (el primero de cada conexión solo marca el punto de partida).
+    bool look_started = false;
+    uint32_t look_sequence = 0;
+    double yaw_total = 0, pitch_total = 0;
+    ULONGLONG last_look = 0;
 };
 
 SOCKET g_socket = INVALID_SOCKET;
@@ -141,6 +147,7 @@ void handle_hello(const proto::Hello& hello, const sockaddr_in& from) {
             slot.nickname[sizeof(slot.nickname) - 1] = '\0';
             slot.last_seen = GetTickCount64();
             slot.last_sequence = 0;
+            slot.look_started = false;
             welcome.accepted = 1;
             if (is_new) log_write("Jugador %d conectado: \"%s\" desde %s", hello.player, slot.nickname, ip);
         }
@@ -170,6 +177,34 @@ void handle_input(const proto::Input& input, const sockaddr_in& from) {
     pads_update(index + k_first_remote_player, state);
 }
 
+// Mira directa: lo que el mouse se movió desde el paquete anterior va enseguida al DLL del juego, que lo suma a
+// la cámara de ese jugador. Con g_mutex tomado.
+void handle_mouse_look(const proto::MouseLook& look, const sockaddr_in& from) {
+    int index = slot_of(from);
+    if (index < 0) return;
+    Slot& slot = g_slots[index];
+    slot.last_seen = GetTickCount64();
+    if (slot.look_started && look.sequence <= slot.look_sequence && slot.look_sequence - look.sequence < 1000) return;
+    double yaw = look.yaw_total - slot.yaw_total, pitch = look.pitch_total - slot.pitch_total;
+    bool first = !slot.look_started;
+    slot.look_started = true;
+    slot.look_sequence = look.sequence;
+    slot.yaw_total = look.yaw_total;
+    slot.pitch_total = look.pitch_total;
+    slot.last_look = GetTickCount64();
+    // Un salto enorme solo puede ser un error (o un cliente que reinició sus totales): se descarta.
+    if (first || !(std::fabs(yaw) < 3.0 && std::fabs(pitch) < 3.0) || (yaw == 0 && pitch == 0)) return;
+    proto::Aim aim;
+    aim.yaw[index] = float(yaw);
+    aim.pitch[index] = float(pitch);
+    sockaddr_in game{};
+    game.sin_family = AF_INET;
+    game.sin_port = htons(proto::k_video_control_port);
+    game.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    sendto(g_socket, reinterpret_cast<const char*>(&aim), sizeof(aim), 0, reinterpret_cast<sockaddr*>(&game),
+           sizeof(game));
+}
+
 void server_thread() {
     char buffer[1500];
     ULONGLONG last_rate = GetTickCount64();
@@ -194,8 +229,13 @@ void server_thread() {
                         if (index >= 0) g_slots[index].last_seen = GetTickCount64();
                         proto::Pong pong;
                         pong.client_time_us = m->client_time_us;
+                        pong.direct_aim_ready = g_video_status_time && GetTickCount64() - g_video_status_time < 3000 &&
+                                                g_video_status.aim_ready;
                         send_to(from, pong);
                     }
+                    break;
+                case proto::Type::mouse_look:
+                    if (auto* m = proto::as<proto::MouseLook>(buffer, size)) handle_mouse_look(*m, from);
                     break;
                 case proto::Type::player_options:
                     if (auto* m = proto::as<proto::PlayerOptions>(buffer, size)) {
@@ -310,6 +350,7 @@ PlayerInfo net_server_player(int player) {
     info.ms_since_packet = unsigned(GetTickCount64() - slot.last_seen);
     info.inputs_per_second = slot.inputs_per_second;
     info.armor_color = slot.armor_color;
+    info.direct_aim = slot.last_look && GetTickCount64() - slot.last_look < 2000;
     return info;
 }
 

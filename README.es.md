@@ -229,6 +229,10 @@ Para los jugadores 2, 3 y 4. **No** necesitas Halo, Steam ni MCC: el juego corre
 - Con **mando** no hace falta nada más (se recomienda mando de Xbox).
 - Con **teclado y mouse** haz clic en el video para capturar el mouse. La lista completa de teclas está en
   `cliente/LEEME.txt` y en F2 → *Controles del teclado*.
+- **Mira directa con mouse (beta)** (teclado y mouse, en el menú o en F2): el mouse gira tu cámara directo, como
+  Halo en PC, en vez de mover el stick derecho del mando (sin zona muerta ni aceleración del stick). Al lado,
+  *activa* indica que funciona; si el juego del host todavía no puede usarla, se usa el stick como antes. El panel
+  del host muestra *mira con mouse* en tu tarjeta. Se ajusta con **+ / -**.
 - Si el video se congela un momento al perder paquetes, se recupera solo en menos de medio segundo.
 - El **volumen del juego** se ajusta con la barra del menú principal o de F2 (se guarda); **F3** silencia.
 

@@ -484,6 +484,10 @@ void draw_player_card(int player, float width, float height) {
         else
             ImGui::TextColored(k_muted, T("%u inputs/s  ·  no video yet", "%u controles/s  ·  sin video todavía"),
                                info.inputs_per_second);
+        if (info.direct_aim) {
+            ImGui::SameLine();
+            ImGui::TextColored(k_green, "%s", T("·  mouse aim", "·  mira con mouse"));
+        }
     } else {
         status_dot(k_muted, T("Free", "Libre"));
         ImGui::TextColored(k_muted, "%s", T("Waiting for a friend to connect", "Esperando que se conecte un amigo"));

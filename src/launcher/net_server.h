@@ -10,6 +10,7 @@ struct PlayerInfo {
     unsigned ms_since_packet = 0;
     unsigned inputs_per_second = 0;
     int armor_color = 0;  // índice en k_armor_colors
+    bool direct_aim = false;  // usa la mira directa con mouse
 };
 
 bool net_server_start();   // false si el puerto está ocupado (¿otro Co Op Evolved Host abierto?)

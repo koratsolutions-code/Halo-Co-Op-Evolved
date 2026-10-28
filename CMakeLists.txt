@@ -51,6 +51,7 @@ add_library(CoOpEvolvedGame SHARED
     src/game/armor_colors.cpp
     src/game/name_tags.cpp
     src/game/p1_view.cpp
+    src/game/aim.cpp
     src/game/log.cpp
     src/game/version.def
 )

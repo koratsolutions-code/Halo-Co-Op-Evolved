@@ -94,7 +94,14 @@ static int16_t mouse_to_stick(long delta, float sensitivity, long history[3]) {
     return int16_t(average > 0 ? value : -value);
 }
 
-proto::GamepadState input_read(ControlMode mode, float sensitivity) {
+static double g_aim_yaw = 0, g_aim_pitch = 0;
+
+void input_aim_totals(double* yaw, double* pitch) {
+    *yaw = g_aim_yaw;
+    *pitch = g_aim_pitch;
+}
+
+proto::GamepadState input_read(ControlMode mode, float sensitivity, bool direct_aim) {
     proto::GamepadState pad{};
     if (mode == ControlMode::gamepad) {
         XINPUT_STATE state{};
@@ -122,9 +129,19 @@ proto::GamepadState input_read(ControlMode mode, float sensitivity) {
     int y = (key('W') ? 1 : 0) - (key('S') ? 1 : 0);
     pad.lx = int16_t(x * 32767);
     pad.ly = int16_t(y * 32767);
-    // Mira: mouse (eje Y del mouse invertido respecto al stick)
-    pad.rx = mouse_to_stick(g_mouse_dx.exchange(0), sensitivity, history_x);
-    pad.ry = int16_t(-mouse_to_stick(g_mouse_dy.exchange(0), sensitivity, history_y));
+    if (direct_aim) {
+        // Mira directa: cada cuenta del mouse gira la cámara un ángulo fijo, sin zona muerta ni aceleración.
+        // Mouse a la derecha = giro a la derecha (en Halo el giro crece hacia la izquierda); mouse abajo = mirar abajo.
+        constexpr double k_radians_per_count = 0.0011;  // con sensibilidad 1: ~0,063° por cuenta
+        g_aim_yaw -= g_mouse_dx.exchange(0) * k_radians_per_count * sensitivity;
+        g_aim_pitch -= g_mouse_dy.exchange(0) * k_radians_per_count * sensitivity;
+        std::fill(history_x, history_x + 3, 0);
+        std::fill(history_y, history_y + 3, 0);
+    } else {
+        // Mira: mouse (eje Y del mouse invertido respecto al stick)
+        pad.rx = mouse_to_stick(g_mouse_dx.exchange(0), sensitivity, history_x);
+        pad.ry = int16_t(-mouse_to_stick(g_mouse_dy.exchange(0), sensitivity, history_y));
+    }
     // Gatillos: clic izquierdo dispara, clic derecho lanza granada
     pad.right_trigger = g_left_button ? 255 : 0;
     pad.left_trigger = g_right_button ? 255 : 0;

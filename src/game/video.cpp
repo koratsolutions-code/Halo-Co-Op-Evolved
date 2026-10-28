@@ -1,4 +1,5 @@
 #include "video.h"
+#include "aim.h"
 #include "encoder.h"
 #include "log.h"
 
@@ -136,6 +137,9 @@ void control_thread() {
                 g_config_time = now_us();
                 if (!had_launcher) log_write("Co Op Evolved Host conectado");
                 had_launcher = true;
+            } else if (auto* aim = proto::as<proto::Aim>(buffer, size); aim && aim->header.type == proto::Type::aim) {
+                for (int i = 0; i < k_players; ++i)
+                    if (aim->yaw[i] != 0 || aim->pitch[i] != 0) aim_apply(i + 2, aim->yaw[i], aim->pitch[i]);
             }
         }
         uint64_t now = now_us();
@@ -151,6 +155,7 @@ void control_thread() {
                 status.kbps_sent[i] = uint32_t(g_bytes[i].exchange(0) * 8 / 1000 / seconds);
             }
             status.error = g_error;
+            status.aim_ready = aim_ready() ? 1 : 0;
             sendto(s, reinterpret_cast<const char*>(&status), sizeof(status), 0,
                    reinterpret_cast<sockaddr*>(&launcher), sizeof(launcher));
         }

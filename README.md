@@ -227,6 +227,10 @@ For players 2, 3 and 4. You do **not** need Halo, Steam or MCC: the game runs on
 - With a **controller** nothing else is needed (Xbox controller recommended).
 - With **keyboard and mouse** click the video to capture the mouse. The full key list is in
   `cliente/README.txt` and in F2 → *Keyboard controls*.
+- **Direct mouse aim (beta)** (keyboard and mouse, in the menu or F2): the mouse turns your camera directly,
+  like Halo on PC, instead of moving the controller's right stick (no dead zone or stick acceleration). Next to
+  it, *active* means it is working; if the host's game cannot use it yet, the stick is used as before. The host's
+  panel shows *mouse aim* on your card. Adjust it with **+ / -**.
 - If the video freezes for a moment after packet loss, it recovers by itself in under half a second.
 - **Game volume** is set with the slider in the main menu or in F2 (it is saved); **F3** mutes.
 

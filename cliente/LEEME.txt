@@ -37,6 +37,8 @@ Teclas del cliente
   + y - .......... sensibilidad del mouse (0.1x a 99x)
 
 Con TECLADO Y MOUSE: haz clic en el video para capturar el mouse.
+"Mira directa con mouse (beta)" (menú o F2): el mouse gira la cámara directo, como Halo en
+PC, en vez de mover el stick del mando. Si el host todavía no puede usarla, se usa el stick.
 
   WASD ............ moverse            Mouse ............ apuntar
   Clic izquierdo .. disparar           Clic derecho ..... granada

@@ -37,6 +37,8 @@ Client keys
   + and - ........ mouse sensitivity (0.1x to 99x)
 
 With KEYBOARD AND MOUSE: click the video to capture the mouse.
+"Direct mouse aim (beta)" (menu or F2): the mouse turns the camera directly, like Halo on PC,
+instead of moving the controller's stick. If the host cannot use it yet, the stick is used.
 
   WASD ............ move               Mouse ............ aim
   Left click ...... shoot              Right click ...... grenade

@@ -244,6 +244,7 @@ void run(Settings settings) {
                 if (auto* pong = proto::as<proto::Pong>(buffer, size)) {
                     std::lock_guard lock(g_mutex);
                     g_status.ping_ms = int((now - pong->client_time_us + 500) / 1000);
+                    g_status.host_aim_ready = pong->direct_aim_ready != 0;
                 }
                 break;
             case proto::Type::kicked:
@@ -295,15 +296,25 @@ void run(Settings settings) {
         if (now >= next_send) {
             ControlMode mode;
             float sensitivity;
+            bool direct_aim;
             {
                 std::lock_guard lock(g_mutex);
                 mode = g_settings.control;
                 sensitivity = g_settings.sensitivity;
+                // Solo si el host confirmó que puede mover la cámara; si no, el mouse sigue moviendo el stick.
+                direct_aim = mode == ControlMode::keyboard_mouse && g_settings.direct_aim && g_status.host_aim_ready;
+                g_status.direct_aim = direct_aim;
             }
             proto::Input input;
             input.sequence = ++sequence;
-            input.pad = input_read(mode, sensitivity);
+            input.pad = input_read(mode, sensitivity, direct_aim);
             send_message(input);
+            if (direct_aim) {
+                proto::MouseLook look;  // totales: si se pierde uno, el siguiente trae todo el movimiento
+                look.sequence = sequence;
+                input_aim_totals(&look.yaw_total, &look.pitch_total);
+                send_message(look);
+            }
             ++sent;
             // Ritmo fijo (no "ahora + 4 ms"): si no, el retraso de cada espera se acumula.
             next_send += k_send_interval_ms * 1000;

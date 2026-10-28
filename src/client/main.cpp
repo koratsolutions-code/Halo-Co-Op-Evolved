@@ -220,6 +220,25 @@ void sensitivity_slider() {
     if (ImGui::IsItemDeactivatedAfterEdit()) settings_save(g_settings);
 }
 
+// Mira directa con mouse (beta): solo para teclado y mouse. Si el host no la puede usar, sigue el stick.
+void direct_aim_control(const NetStatus& status) {
+    if (ImGui::Checkbox(T("Direct mouse aim (beta)", "Mira directa con mouse (beta)"), &g_settings.direct_aim)) {
+        net_update_settings(g_settings);
+        settings_save(g_settings);
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("%s", T("The mouse turns your camera directly, like Halo on PC, instead of moving the\n"
+                                  "controller's right stick. If the host's game cannot do it, the stick is used.",
+                                  "El mouse gira tu cámara directo, como Halo en PC, en vez de mover el stick derecho\n"
+                                  "del mando. Si el juego del host no puede, se usa el stick."));
+    if (!g_settings.direct_aim || status.state != NetState::connected) return;
+    ImGui::SameLine();
+    if (status.direct_aim)
+        ImGui::TextColored(k_green, "%s", T("active", "activa"));
+    else
+        ImGui::TextColored(k_orange, "%s", T("not available yet: using the stick", "todavía no disponible: se usa el stick"));
+}
+
 void volume_controls() {
     if (ImGui::Checkbox(T("Mute (F3)", "Silenciar (F3)"), &g_settings.muted)) {
         apply_audio_settings();
@@ -289,7 +308,10 @@ void draw_menu(const NetStatus& status) {
         g_settings.control = ControlMode::keyboard_mouse;
     if (g_settings.control == ControlMode::gamepad && !input_gamepad_connected())
         ImGui::TextColored(k_orange, "%s", T("No controller detected.", "No se detecta ningún mando conectado."));
-    if (g_settings.control == ControlMode::keyboard_mouse) sensitivity_slider();
+    if (g_settings.control == ControlMode::keyboard_mouse) {
+        sensitivity_slider();
+        direct_aim_control(status);
+    }
     volume_controls();
 
     if (status.state == NetState::failed && !status.message.empty()) ImGui::TextColored(k_red, "%s", status.message.c_str());
@@ -338,6 +360,7 @@ void draw_ingame_panel(const NetStatus& status) {
         ImGui::TextDisabled("%s", T("Click the video to capture the mouse · Esc releases it · + / - sensitivity",
                                     "Clic en el video para capturar el mouse · Esc lo suelta · + / - sensibilidad"));
         sensitivity_slider();
+        direct_aim_control(status);
         if (ImGui::CollapsingHeader(T("Keyboard controls", "Controles del teclado"))) {
             ImGui::TextDisabled("%s", T(
                 "WASD move · Mouse aim · Left click shoot · Right click grenade\n"

@@ -14,7 +14,7 @@ constexpr uint16_t k_port = 27960;
 // Puerto local (solo 127.0.0.1) del DLL del juego: ahí el launcher le dice a quién mandar el video.
 constexpr uint16_t k_video_control_port = 27961;
 constexpr uint32_t k_magic = 0x50434F48;  // "HOCP"
-constexpr uint16_t k_version = 3;
+constexpr uint16_t k_version = 4;
 constexpr int k_nickname_size = 24;       // UTF-8 con '\0'
 
 // Si el host no recibe nada de un cliente en este tiempo, libera su lugar y suelta su mando.
@@ -34,6 +34,8 @@ enum class Type : uint8_t {
     video_status = 11,     // DLL -> launcher (local): estado del video para el panel
     audio = 12,            // host -> cliente: 10 ms de audio del juego en Opus
     player_options = 13,   // cliente -> host: color de armadura (con cada ping; un host viejo lo ignora)
+    mouse_look = 14,       // cliente -> host: mira directa con mouse (giro y altura acumulados)
+    aim = 15,              // launcher -> DLL (local): cuánto girar la cámara de J2-J4
 };
 
 // Audio: 48 kHz estéreo, paquetes de 10 ms (480 muestras por canal) comprimidos con Opus.
@@ -101,6 +103,16 @@ struct Ping {
 struct Pong {
     Header header{k_magic, Type::pong};
     uint64_t client_time_us = 0;
+    uint8_t direct_aim_ready = 0;  // 1: el mod del juego puede mover la cámara directo (mira directa con mouse)
+};
+
+// Mira directa con mouse: totales acumulados desde que el cliente se conectó, en radianes (giro: + a la
+// izquierda; altura: + hacia arriba). Al mandar totales, un paquete perdido no pierde movimiento: el siguiente
+// lo trae. Mientras se usa, el stick derecho del mando virtual queda en cero.
+struct MouseLook {
+    Header header{k_magic, Type::mouse_look};
+    uint32_t sequence = 0;  // creciente: el host ignora paquetes viejos
+    double yaw_total = 0, pitch_total = 0;
 };
 
 struct PlayerOptions {
@@ -158,6 +170,12 @@ struct VideoConfig {
     uint8_t p1_fullscreen = 0;            // 1: el host ve solo su cuadrante a pantalla completa (F6 lo cambia)
 };
 
+// El launcher lo manda al DLL apenas llega movimiento de un cliente: radianes a sumar a la cámara.
+struct Aim {
+    Header header{k_magic, Type::aim};
+    float yaw[3] = {}, pitch[3] = {};  // jugadores 2, 3, 4
+};
+
 struct VideoStatus {
     Header header{k_magic, Type::video_status};
     uint8_t encoder_ok = 0;
@@ -165,6 +183,7 @@ struct VideoStatus {
     uint16_t fps_sent[3] = {};       // por jugador 2, 3, 4
     uint32_t kbps_sent[3] = {};
     VideoError error = VideoError::none;  // el panel lo muestra en el idioma elegido
+    uint8_t aim_ready = 0;  // 1: encontró las cámaras de los jugadores (mira directa con mouse disponible)
 };
 #pragma pack(pop)
 

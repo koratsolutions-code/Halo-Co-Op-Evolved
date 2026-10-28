@@ -20,6 +20,8 @@ struct NetStatus {
     unsigned video_fps = 0;        // fotogramas completos recibidos por segundo
     unsigned video_kbps = 0;
     unsigned frames_lost = 0;      // total desde que se conectó
+    bool host_aim_ready = false;   // el host puede mover la cámara directo (mira directa con mouse)
+    bool direct_aim = false;       // la mira directa está en uso ahora
 };
 
 struct VideoFrame {
