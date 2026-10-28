@@ -1,5 +1,5 @@
-HALO1-COOP - CLIENT
-===================
+HALO1 ONLINE CO-OP - CLIENT
+===========================
 
 HaloCoopClient.exe is the app for players 2, 3 and 4: it shows your part of the game full
 screen with the game sound, and sends your controller (or keyboard and mouse) to the host's

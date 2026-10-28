@@ -1,5 +1,5 @@
-HALO1-COOP - HOST
-=================
+HALO1 ONLINE CO-OP - HOST
+=========================
 
 Contents:
   HaloCoopHost.exe  -> creates the controllers for players 2, 3 and 4, receives their input

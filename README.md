@@ -1,4 +1,4 @@
-# halo1-coop
+# Halo1 Online Co-op
 
 [Español](README.es.md) · **English**
 

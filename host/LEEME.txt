@@ -1,5 +1,5 @@
-HALO1-COOP - HOST
-=================
+HALO1 ONLINE CO-OP - HOST
+=========================
 
 Contenido:
   HaloCoopHost.exe  -> crea los mandos de los jugadores 2, 3 y 4, recibe sus controles y
