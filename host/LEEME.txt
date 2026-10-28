@@ -1,0 +1,14 @@
+HALO1-COOP - HOST
+=================
+
+Esta carpeta tendrá el mod del host (lo que va en la carpeta del juego).
+
+Por ahora solo hace falta AlphaRing, que se descarga de su página oficial
+(no se incluye aquí):
+
+  https://github.com/wouter51/AlphaRing/releases  ->  1.3528.0.0  ->  Release1.0.zip
+
+Copia WTSAPI32.dll en:
+  ...\steamapps\common\Halo The Master Chief Collection\mcc\binaries\win64\
+
+Las instrucciones completas de uso están en el README.md del repositorio.

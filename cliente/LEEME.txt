@@ -1,0 +1,13 @@
+HALO1-COOP - CLIENTE
+====================
+
+Aquí irá HaloCoopClient.exe, la app que usan los jugadores 2, 3 y 4 para ver su
+pantalla y mandar sus controles al host.
+
+Todavía no está disponible: el proyecto se reinició desde cero.
+
+Lo que vas a necesitar:
+  - Windows 10/11 con GPU NVIDIA.
+  - Radmin VPN conectado a la misma red que el host.
+  - La IP de Radmin del host (te la da el host; no se publica aquí).
+  - Mando de Xbox, o teclado y mouse.

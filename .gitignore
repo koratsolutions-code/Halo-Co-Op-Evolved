@@ -1,0 +1,16 @@
+# Compilación
+build/
+out/
+.vs/
+*.pdb
+*.ilk
+*.obj
+
+# Datos locales: nunca subir (pueden tener IPs, nombres o rutas personales)
+*.log
+*.ini
+capturas/
+.venv/
+
+# AlphaRing es de su autor: se descarga de su página oficial
+WTSAPI32.dll
