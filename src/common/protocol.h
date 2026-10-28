@@ -155,6 +155,7 @@ struct VideoConfig {
     uint8_t name_fov = 70;    // FOV horizontal del juego en grados, para proyectar los nombres
     char names[4][k_nickname_size] = {};  // jugadores 1..4 (vacío: "Player N")
     uint8_t armor_colors[4] = {};         // jugadores 1..4, índice en k_armor_colors (0: sin cambiar)
+    uint8_t p1_fullscreen = 0;            // 1: el host ve solo su cuadrante a pantalla completa (F6 lo cambia)
 };
 
 struct VideoStatus {

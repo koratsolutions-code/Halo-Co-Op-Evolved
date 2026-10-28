@@ -132,6 +132,17 @@ es el **Nickname** del panel; los jugadores 2-4 usan el nombre que escribieron e
 - Si los nombres no quedan justo sobre los personajes, ajusta **FOV del juego** al campo de visión del juego.
 - Los nombres aparecen unos segundos después de que carga cada nivel.
 
+### Jugador 1 a pantalla completa
+Por defecto ves toda la pantalla dividida. Con **Jugador 1 a pantalla completa (F6 en el juego)** marcado, ves
+solo tu parte (arriba a la izquierda) estirada a todo tu monitor; tus amigos siguen recibiendo la suya.
+- **F6** cambia entre pantalla completa y dividida mientras juegas (el juego tiene que ser la ventana activa).
+  La casilla del panel solo elige cómo empieza.
+- Los menús de pausa de MCC se dibujan para toda la pantalla, así que en pantalla completa se ven cortados:
+  presiona **F6** para usarlos en pantalla dividida.
+- Tu imagen es un cuarto de la resolución del juego estirado, así que con más resolución se ve más nítido
+  (a 2560x1440 tu parte es de 1280x720).
+- Solo cambia lo que muestra tu monitor: no toca el juego, los mandos ni AlphaRing.
+
 ### Colores de armadura
 La personalización de armadura de MCC solo vale en multijugador, así que el mod del juego pinta la armadura
 de cada jugador en la campaña. El jugador 1 la elige en **Armadura** (tarjeta del jugador 1); los jugadores

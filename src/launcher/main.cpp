@@ -47,6 +47,7 @@ struct HostSettings {
     int fov = 70;
     int fps = 60;
     int armor_color = 0;  // jugador 1, índice en k_armor_colors
+    bool p1_fullscreen = false;
 };
 HostSettings g_settings;
 
@@ -72,6 +73,7 @@ void settings_load() {
     if (!valid_fps) g_settings.fps = 60;
     g_settings.armor_color = GetPrivateProfileIntW(L"host", L"armor_color", 0, ini.c_str());
     if (g_settings.armor_color < 0 || g_settings.armor_color >= k_armor_color_count) g_settings.armor_color = 0;
+    g_settings.p1_fullscreen = GetPrivateProfileIntW(L"host", L"p1_fullscreen", 0, ini.c_str()) != 0;
     g_lang = g_settings.lang;
 }
 
@@ -85,6 +87,7 @@ void settings_save() {
     WritePrivateProfileStringW(L"host", L"fov", std::to_wstring(g_settings.fov).c_str(), ini.c_str());
     WritePrivateProfileStringW(L"host", L"fps", std::to_wstring(g_settings.fps).c_str(), ini.c_str());
     WritePrivateProfileStringW(L"host", L"armor_color", std::to_wstring(g_settings.armor_color).c_str(), ini.c_str());
+    WritePrivateProfileStringW(L"host", L"p1_fullscreen", g_settings.p1_fullscreen ? L"1" : L"0", ini.c_str());
 }
 
 void apply_host_options() {
@@ -93,6 +96,7 @@ void apply_host_options() {
     options.fov = g_settings.fov;
     memcpy(options.host_name, g_settings.nickname, sizeof(options.host_name));
     options.host_armor_color = g_settings.armor_color;
+    options.p1_fullscreen = g_settings.p1_fullscreen;
     net_server_set_host_options(options);
 }
 
@@ -396,6 +400,18 @@ void draw_name_tags_card() {
         ImGui::SetTooltip("%s", T("If the names do not sit right over the players, match this to the game's FOV.",
                                   "Si los nombres no quedan justo sobre los jugadores, ajústalo al FOV del juego."));
     ImGui::EndDisabled();
+    if (ImGui::Checkbox(T("Player 1 full screen (F6 in game)", "Jugador 1 a pantalla completa (F6 en el juego)"),
+                        &g_settings.p1_fullscreen)) {
+        apply_host_options();
+        settings_save();
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("%s", T("You see only your part of the screen, stretched to your whole monitor. Your friends\n"
+                                  "still get their own part. F6 switches it on and off while playing (menus are\n"
+                                  "easier to use in split screen). Tip: a higher game resolution looks sharper.",
+                                  "Ves solo tu parte de la pantalla, estirada a todo tu monitor. Tus amigos siguen\n"
+                                  "recibiendo la suya. F6 lo activa y lo desactiva mientras juegas (los menús se usan\n"
+                                  "mejor en pantalla dividida). Consejo: con más resolución en el juego se ve más nítido."));
     ImGui::EndChild();
 }
 

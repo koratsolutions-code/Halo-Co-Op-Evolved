@@ -132,6 +132,17 @@ Names stay visible through walls and get smaller and fainter with distance. Play
 - If the names do not sit right over the characters, set **Game FOV** to the game's field of view.
 - The names show up a few seconds after each level loads.
 
+### Player 1 full screen
+By default you see the whole split screen. With **Player 1 full screen (F6 in game)** ticked, you see only
+your part (top left) stretched to your whole monitor; your friends still get their own part.
+- **F6** switches between full screen and split screen while you play (the game must be the active window).
+  The panel box only chooses how it starts.
+- MCC's pause menus are drawn for the whole screen, so in full screen they look cut off: press **F6** to
+  use them in split screen.
+- Your image is a quarter of the game resolution stretched, so a higher game resolution looks sharper
+  (at 2560x1440 your part is 1280x720).
+- It only changes what your monitor shows: the game, the controllers and AlphaRing are not touched.
+
 ### Armor colors
 MCC's armor customization only applies to multiplayer, so the game mod paints each player's armor in the
 campaign. Player 1 picks it in **Armor** (player 1 card); players 2-4 in **Armor color** in their client

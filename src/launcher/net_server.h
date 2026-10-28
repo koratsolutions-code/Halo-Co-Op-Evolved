@@ -32,5 +32,6 @@ struct HostOptions {
     int fov = 70;         // FOV horizontal del juego (grados), para los nombres
     char host_name[proto::k_nickname_size] = {};  // jugador 1
     int host_armor_color = 0;                     // jugador 1, índice en k_armor_colors
+    bool p1_fullscreen = false;                   // jugador 1 a pantalla completa al abrir el juego
 };
 void net_server_set_host_options(const HostOptions& options);

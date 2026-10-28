@@ -35,6 +35,9 @@ En el panel:
     (unos 10 Mbps por amigo a 60 FPS).
   - "Mostrar nombres sobre los jugadores": activa o desactiva los nombres. Si no quedan justo
     sobre los personajes, ajusta "FOV del juego" al campo de visión del juego.
+  - "Jugador 1 a pantalla completa (F6 en el juego)": ves solo tu parte, estirada a tu monitor.
+    F6 cambia entre pantalla completa y dividida mientras juegas (usa la dividida para los
+    menús de pausa de MCC). Con más resolución en el juego se ve más nítido.
   - Una tarjeta por jugador, ordenadas como la pantalla dividida: nombre, IP, controles por
     segundo y el video que recibe cada amigo.
     "Mover": prueba el mando de ese jugador.  "Expulsar": lo desconecta.

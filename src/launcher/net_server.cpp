@@ -45,6 +45,7 @@ void send_video_config() {
     config.name_fov = uint8_t(g_host_options.fov);
     memcpy(config.names[0], g_host_options.host_name, sizeof(config.names[0]));
     config.armor_colors[0] = uint8_t(g_host_options.host_armor_color);
+    config.p1_fullscreen = g_host_options.p1_fullscreen ? 1 : 0;
     for (int i = 0; i < k_remote_players; ++i) {
         config.targets[i].active = g_slots[i].connected ? 1 : 0;
         config.targets[i].ip = g_slots[i].address.sin_addr.s_addr;

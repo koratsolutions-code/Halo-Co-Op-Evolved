@@ -4,6 +4,7 @@
 #include "armor_colors.h"
 #include "log.h"
 #include "name_tags.h"
+#include "p1_view.h"
 #include "video.h"
 
 #include <d3d11.h>
@@ -30,6 +31,7 @@ HRESULT STDMETHODCALLTYPE hooked_present(IDXGISwapChain* swap_chain, UINT sync, 
         }
         name_tags_draw(swap_chain);  // antes de capturar: así los nombres también van en el video
         video_on_frame(swap_chain);
+        p1_view_on_frame(swap_chain);  // después de capturar: J2-J4 siguen recibiendo su cuadrante
     }
     return g_original_present(swap_chain, sync, flags);
 }

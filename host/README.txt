@@ -35,6 +35,9 @@ In the panel:
     (about 10 Mbps per friend at 60 FPS).
   - "Show names over players": turns the names on or off. If they do not sit right over
     the characters, set "Game FOV" to the game's field of view.
+  - "Player 1 full screen (F6 in game)": you see only your part, stretched to your monitor.
+    F6 switches between full screen and split screen while playing (use split screen for
+    MCC's pause menus). A higher game resolution looks sharper.
   - One card per player, laid out like the split screen: name, IP, inputs per second and
     the video each friend receives.
     "Move": tests that player's controller.  "Kick": disconnects them.

@@ -50,11 +50,12 @@ add_library(HaloCoopGame SHARED
     src/game/halo1_players.cpp
     src/game/armor_colors.cpp
     src/game/name_tags.cpp
+    src/game/p1_view.cpp
     src/game/log.cpp
     src/game/version.def
 )
 set_target_properties(HaloCoopGame PROPERTIES OUTPUT_NAME VERSION)
-target_link_libraries(HaloCoopGame PRIVATE imgui minhook nvcodec d3d11 dxgi ws2_32)
+target_link_libraries(HaloCoopGame PRIVATE imgui minhook nvcodec d3d11 dxgi d3dcompiler ws2_32)
 
 # Host: crea los mandos de J2-J4, recibe su input por red y muestra el panel.
 add_executable(HaloCoopHost WIN32
