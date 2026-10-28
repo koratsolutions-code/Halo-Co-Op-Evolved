@@ -16,11 +16,14 @@ envía a cada amigo solo su cuarto de pantalla y su sonido, y recibe sus control
 > Las dos apps vienen en **inglés**. Para usarlas en español elige **Español** en el selector de arriba a
 > la derecha (se guarda). Esta guía usa los textos en español.
 
-## Compilar desde el código
+## Descarga
 
-Requiere Visual Studio 2022 o Build Tools con *Desarrollo para el escritorio con C++* (incluye CMake
-y Ninja). Ejecuta `build.cmd`: compila y deja `HaloCoopHost.exe` y `VERSION.dll` en `host/` y
-`HaloCoopClient.exe` en `cliente/`.
+**No** hace falta compilar ni instalar herramientas de programación: los archivos listos para usar ya
+vienen en este repositorio.
+
+1. Arriba en esta página presiona el botón verde **Code** → **Download ZIP**.
+2. Descomprímelo (clic derecho → *Extraer todo...*).
+3. El host usa la carpeta `host/`; cada amigo solo necesita la carpeta `cliente/`.
 
 ---
 
@@ -191,6 +194,30 @@ Cuando llega el video, el cliente pasa a **pantalla completa** con tu cuadrante 
   `cliente/LEEME.txt`.
 - Si el video se congela un momento al perder paquetes, se recupera solo en menos de medio segundo.
 - El **volumen del juego** se ajusta con la barra del menú principal o de F2 (se guarda); **F3** silencia.
+
+---
+
+## Compilar desde el código (opcional)
+
+**Solo si quieres cambiar el código.** Para jugar usa los archivos que ya vienen en `host/` y `cliente/`
+(ver *Descarga*).
+
+1. **Instala Visual Studio** (gratis):
+   1. Entra a <https://visualstudio.microsoft.com/downloads/> y descarga **Visual Studio Community**.
+   2. Abre el instalador. En la pestaña **Cargas de trabajo** marca **Desarrollo para el escritorio con
+      C++** y presiona **Instalar**. Descarga varios GB y tarda un rato; no hace falta cambiar nada más.
+   3. Cuando termine puedes cerrar Visual Studio: no tiene que quedar abierto.
+2. **Descarga el código**: botón verde **Code** → **Download ZIP**, y descomprímelo.
+3. **Compila**: en la carpeta descomprimida, haz doble clic en **`build.cmd`**.
+   - Si Windows muestra "Windows protegió su PC": *Más información → Ejecutar de todas formas*.
+   - Se abre una ventana negra. La primera vez tarda unos minutos; después es mucho más rápido.
+   - Termina con **`DONE: ...`** y *Presione una tecla*: los archivos nuevos ya están en `host/` y
+     `cliente/`.
+   - Si termina con **`BUILD FAILED`**, lee los mensajes de arriba. Lo más común: Visual Studio se instaló
+     sin *Desarrollo para el escritorio con C++* (abre *Visual Studio Installer* → **Modificar** y márcalo),
+     o `HaloCoopHost.exe` / `HaloCoopClient.exe` estaban abiertos al compilar.
+
+Compilar también crea una carpeta `build/` con archivos temporales; puedes borrarla.
 
 ---
 

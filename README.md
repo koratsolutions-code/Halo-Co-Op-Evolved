@@ -15,11 +15,14 @@ each friend only their quarter of the screen plus the game sound, and receives t
 >
 > Both apps are in **English** by default; switch to **Español** with the selector at the top right.
 
-## Building from source
+## Download
 
-Requires Visual Studio 2022 or Build Tools with *Desktop development with C++* (includes CMake and
-Ninja). Run `build.cmd`: it builds and places `HaloCoopHost.exe` and `VERSION.dll` in `host/` and
-`HaloCoopClient.exe` in `cliente/`.
+You do **not** need to build or install any programming tools: the ready-to-use files are already in
+this repository.
+
+1. At the top of this page press the green **Code** button → **Download ZIP**.
+2. Unzip it (right-click → *Extract All...*).
+3. The host uses the `host/` folder; each friend only needs the `cliente/` folder.
 
 ---
 
@@ -188,6 +191,30 @@ When the video arrives, the client switches to **full screen** with your quadran
   `cliente/README.txt`.
 - If the video freezes for a moment after packet loss, it recovers by itself in under half a second.
 - **Game volume** is set with the slider in the main menu or in F2 (it is saved); **F3** mutes.
+
+---
+
+## Building from source (optional)
+
+**Only if you want to change the code.** To play, use the files that already come in `host/` and
+`cliente/` (see *Download*).
+
+1. **Install Visual Studio** (free):
+   1. Go to <https://visualstudio.microsoft.com/downloads/> and download **Visual Studio Community**.
+   2. Open the installer. On the **Workloads** tab tick **Desktop development with C++** and press
+      **Install**. It downloads several GB and takes a while; you do not need to change anything else.
+   3. When it finishes you can close Visual Studio: it does not need to stay open.
+2. **Download the code**: green **Code** button → **Download ZIP**, then unzip it.
+3. **Build**: in the unzipped folder, double-click **`build.cmd`**.
+   - If Windows shows "Windows protected your PC": *More info → Run anyway*.
+   - A black window opens. The first time it takes a few minutes; then it is much faster.
+   - It ends with **`DONE: ...`** and *Press any key*: the new files are already in `host/` and
+     `cliente/`.
+   - If it ends with **`BUILD FAILED`**, read the messages above it. The most common causes: Visual Studio
+     was installed without *Desktop development with C++* (open *Visual Studio Installer* →
+     **Modify** and tick it), or `HaloCoopHost.exe` / `HaloCoopClient.exe` were open while building.
+
+The build also creates a `build/` folder with temporary files; you can delete it.
 
 ---
 
