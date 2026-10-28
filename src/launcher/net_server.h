@@ -16,6 +16,9 @@ void net_server_stop();    // avisa a los clientes que el host se cerró
 PlayerInfo net_server_player(int player);  // player 2..4
 void net_server_kick(int player);
 
+// Audio del juego: el mismo paquete para todos los jugadores conectados.
+void net_server_send_audio(const uint8_t* packet, size_t size);
+
 // Video: el DLL del juego manda los cuadrantes; el launcher le dice a quién y a cuántos FPS.
 void net_server_set_fps(int fps);
 int net_server_fps();

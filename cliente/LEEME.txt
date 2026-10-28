@@ -2,7 +2,8 @@ HALO1-COOP - CLIENTE
 ====================
 
 HaloCoopClient.exe es la app de los jugadores 2, 3 y 4: te muestra tu parte del juego a
-pantalla completa y manda tu mando (o teclado y mouse) al PC del host por Radmin VPN.
+pantalla completa con el sonido del juego y manda tu mando (o teclado y mouse) al PC del
+host por Radmin VPN.
 
 Necesitas
 ---------
@@ -25,8 +26,9 @@ Cómo jugar
 
 Teclas del cliente
 ------------------
-  F2 ............. menú (sensibilidad, controles, desconectar)
+  F2 ............. menú (volumen, sensibilidad, controles, desconectar)
   F1 ............. estadísticas (ping, FPS del video, pérdidas)
+  F3 ............. silenciar / activar el sonido del juego
   F11 / Alt+Enter  pantalla completa o ventana
   Esc ............ suelta el mouse (teclado y mouse)
   + y - .......... sensibilidad del mouse (0.1x a 99x)

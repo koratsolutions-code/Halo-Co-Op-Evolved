@@ -5,7 +5,12 @@
 #include <dxgi1_2.h>
 #include <windows.h>
 
+#include <mmsystem.h>
+
 #include <cmath>
+#include <cstdint>
+#include <cstring>
+#include <vector>
 
 static LRESULT CALLBACK proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
     if (msg == WM_DESTROY) PostQuitMessage(0);
@@ -62,6 +67,25 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR command_line, int) {
     context->QueryInterface(IID_PPV_ARGS(&context1));
 
     if (command_line && *command_line) LoadLibraryW(command_line);  // el mod, como VERSION.dll en MCC
+
+    // HALOCOOP_TONE=1: un tono de 440 Hz casi inaudible (-60 dB) para probar la captura de audio.
+    static std::vector<uint8_t> wav;
+    if (GetEnvironmentVariableW(L"HALOCOOP_TONE", nullptr, 0)) {
+        const uint32_t rate = 48000, samples = rate;  // 1 s en bucle
+        uint32_t data_size = samples * 4;
+        wav.resize(44 + data_size);
+        auto put32 = [&](size_t at, uint32_t v) { memcpy(&wav[at], &v, 4); };
+        auto put16 = [&](size_t at, uint16_t v) { memcpy(&wav[at], &v, 2); };
+        memcpy(&wav[0], "RIFF", 4); put32(4, 36 + data_size); memcpy(&wav[8], "WAVEfmt ", 8);
+        put32(16, 16); put16(20, 1); put16(22, 2); put32(24, rate); put32(28, rate * 4); put16(32, 4); put16(34, 16);
+        memcpy(&wav[36], "data", 4); put32(40, data_size);
+        for (uint32_t i = 0; i < samples; ++i) {
+            int16_t v = int16_t(30 * std::sin(2 * 3.14159265 * 440 * i / rate));
+            put16(44 + i * 4, uint16_t(v));
+            put16(46 + i * 4, uint16_t(v));
+        }
+        PlaySoundW(reinterpret_cast<LPCWSTR>(wav.data()), nullptr, SND_MEMORY | SND_ASYNC | SND_LOOP);
+    }
 
     const float colors[4][4] = {{0.8f, 0.2f, 0.2f, 1}, {0.2f, 0.7f, 0.2f, 1}, {0.2f, 0.3f, 0.9f, 1}, {0.9f, 0.8f, 0.1f, 1}};
     MSG msg{};

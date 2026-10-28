@@ -29,6 +29,7 @@ En el panel:
   - "Video": a los ~10 s de abrir MCC dice "listo" y cuántos FPS/Mbps recibe cada amigo.
   - "Video a 30/60/120 FPS": más FPS = menos retraso pero más internet de subida
     (unos 10 Mbps por amigo a 60 FPS).
+  - "Audio: activo": se está mandando el sonido de MCC (solo el del juego) a todos.
   - "Mover": prueba el mando de ese jugador.  "Expulsar": lo desconecta.
 
 Las instrucciones completas están en el README.md del repositorio.

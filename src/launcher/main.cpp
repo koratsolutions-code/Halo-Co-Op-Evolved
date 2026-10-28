@@ -2,6 +2,7 @@
 // Crea los 3 mandos virtuales ANTES de abrir MCC (si no, MCC no siempre los registra y los jugadores 2-4 no
 // se mueven) y muestra el panel del host.
 
+#include "audio_capture.h"
 #include "game_install.h"
 #include "log.h"
 #include "net_server.h"
@@ -168,7 +169,9 @@ static void refresh() {
                    video.game_width, video.game_height, video.fps_sent[0], video.kbps_sent[0] / 1000.0,
                    video.fps_sent[1], video.kbps_sent[1] / 1000.0, video.fps_sent[2], video.kbps_sent[2] / 1000.0);
     }
-    SetWindowTextW(g_ui.video_label, video_text);
+    std::wstring video_line = std::wstring(video_text) +
+                              (audio_capture_active() ? L"  ·  Audio: activo" : L"  ·  Audio: esperando a MCC");
+    SetWindowTextW(g_ui.video_label, video_line.c_str());
 
     static ULONGLONG last_ip_check = 0;
     if (GetTickCount64() - last_ip_check > 5000) {
@@ -368,12 +371,25 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
                     k_title, MB_ICONWARNING);
     }
 
+    // Audio de MCC para los clientes. El pid se toma de la ventana del juego: un MCC colgado sin ventana no sirve.
+    audio_capture_start(
+        [] {
+            DWORD pid = 0;
+            if (HWND mcc = find_mcc_window()) GetWindowThreadProcessId(mcc, &pid);
+            // Pruebas: HALOCOOP_AUDIO_PID=n captura otro proceso en lugar de MCC.
+            wchar_t test_pid[16];
+            if (GetEnvironmentVariableW(L"HALOCOOP_AUDIO_PID", test_pid, 16)) pid = DWORD(_wtoi(test_pid));
+            return static_cast<unsigned long>(pid);
+        },
+        [](const uint8_t* packet, size_t size) { net_server_send_audio(packet, size); });
+
     create_ui(instance);
     MSG msg;
     while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
     }
+    audio_capture_stop();
     net_server_stop();
     pads_shutdown();
     log_write("HaloCoop Host cerrado");

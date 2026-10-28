@@ -6,8 +6,18 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")  # sin depender del runtime de VC++
 add_compile_options(/utf-8 /W3 /wd4828)
 add_compile_definitions(UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX _WINSOCK_DEPRECATED_NO_WARNINGS)
+# Quita la carpeta local de las rutas de __FILE__ (Opus las mete en los binarios).
+file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}" source_dir_native)
+add_compile_options("/d1trimfile:${source_dir_native}")
 
 add_subdirectory(deps/ViGEmClient EXCLUDE_FROM_ALL)
+
+# Opus (audio). Solo la librería: sin pruebas, programas ni archivos de instalación.
+set(OPUS_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+set(OPUS_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
+set(OPUS_INSTALL_PKG_CONFIG_MODULE OFF CACHE BOOL "" FORCE)
+set(OPUS_INSTALL_CMAKE_CONFIG_MODULE OFF CACHE BOOL "" FORCE)
+add_subdirectory(deps/opus EXCLUDE_FROM_ALL)
 
 add_library(imgui STATIC
     deps/imgui/imgui.cpp
@@ -49,9 +59,11 @@ add_executable(HaloCoopHost WIN32
     src/launcher/pads.cpp
     src/launcher/net_server.cpp
     src/launcher/game_install.cpp
+    src/launcher/audio_capture.cpp
     src/launcher/log.cpp
 )
-target_link_libraries(HaloCoopHost PRIVATE ViGEmClient setupapi xinput shell32 ws2_32 iphlpapi advapi32)
+target_link_libraries(HaloCoopHost PRIVATE ViGEmClient opus setupapi xinput shell32 ws2_32 iphlpapi advapi32
+                                           mmdevapi ole32)
 
 # Cliente: lo usan los jugadores 2, 3 y 4.
 add_executable(HaloCoopClient WIN32
@@ -62,9 +74,10 @@ add_executable(HaloCoopClient WIN32
     src/client/decoder.cpp
     src/client/renderer.cpp
     src/client/log.cpp
+    src/client/audio_player.cpp
 )
-target_link_libraries(HaloCoopClient PRIVATE imgui nvcodec d3d11 dxgi d3dcompiler xinput ws2_32 winmm)
+target_link_libraries(HaloCoopClient PRIVATE imgui nvcodec opus d3d11 dxgi d3dcompiler xinput ws2_32 winmm ole32)
 
 # Solo para pruebas: "juego" falso que carga el mod (no se distribuye).
 add_executable(HaloCoopTestGame WIN32 tools/test_game.cpp)
-target_link_libraries(HaloCoopTestGame PRIVATE d3d11 dxgi)
+target_link_libraries(HaloCoopTestGame PRIVATE d3d11 dxgi winmm)

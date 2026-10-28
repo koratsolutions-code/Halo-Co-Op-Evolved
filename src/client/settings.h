@@ -10,6 +10,8 @@ struct Settings {
     std::string nickname;
     ControlMode control = ControlMode::gamepad;
     float sensitivity = 1.0f;  // 0.1..99
+    int volume = 100;          // 0..100
+    bool muted = false;
 };
 
 constexpr float k_min_sensitivity = 0.1f;

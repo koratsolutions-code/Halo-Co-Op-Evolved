@@ -34,6 +34,8 @@ Settings settings_load() {
     s.nickname = read(L"nombre", L"");
     s.control = read(L"control", L"mando") == "teclado" ? ControlMode::keyboard_mouse : ControlMode::gamepad;
     s.sensitivity = std::clamp(float(atof(read(L"sensibilidad", L"1").c_str())), k_min_sensitivity, k_max_sensitivity);
+    s.volume = std::clamp(atoi(read(L"volumen", L"100").c_str()), 0, 100);
+    s.muted = read(L"silencio", L"no") == "si";
     return s;
 }
 
@@ -45,4 +47,6 @@ void settings_save(const Settings& s) {
     write(L"nombre", s.nickname);
     write(L"control", s.control == ControlMode::keyboard_mouse ? "teclado" : "mando");
     write(L"sensibilidad", sensitivity);
+    write(L"volumen", std::to_string(s.volume));
+    write(L"silencio", s.muted ? "si" : "no");
 }

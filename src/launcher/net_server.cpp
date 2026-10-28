@@ -272,6 +272,19 @@ PlayerInfo net_server_player(int player) {
     return info;
 }
 
+void net_server_send_audio(const uint8_t* packet, size_t size) {
+    sockaddr_in targets[k_remote_players];
+    int count = 0;
+    {
+        std::lock_guard lock(g_mutex);
+        for (const Slot& slot : g_slots)
+            if (slot.connected) targets[count++] = slot.address;
+    }
+    for (int i = 0; i < count; ++i)
+        sendto(g_socket, reinterpret_cast<const char*>(packet), int(size), 0,
+               reinterpret_cast<const sockaddr*>(&targets[i]), sizeof(targets[i]));
+}
+
 void net_server_set_fps(int fps) {
     g_fps = fps;
     log_write("Video a %d FPS", fps);

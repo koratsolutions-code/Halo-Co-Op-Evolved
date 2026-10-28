@@ -6,9 +6,9 @@ cada uno en su propio PC y con su propia pantalla completa, conectados por **Rad
 El juego corre una sola vez en el PC del host con la pantalla dividida en 4 (AlphaRing). El mod del host
 envía a cada amigo solo su cuarto de pantalla y recibe sus controles de vuelta.
 
-> **Estado actual (fase 3):** el host (`HaloCoopHost.exe` + `VERSION.dll`) crea los mandos de los
-> jugadores 2, 3 y 4, recibe sus controles y les manda su cuadrante del juego como video (NVENC).
-> Cada amigo lo ve a pantalla completa en `HaloCoopClient.exe`. Todavía sin audio.
+> **Estado actual (fase 4):** el host (`HaloCoopHost.exe` + `VERSION.dll`) crea los mandos de los
+> jugadores 2, 3 y 4, recibe sus controles y les manda su cuadrante del juego como video (NVENC) y el
+> sonido del juego (Opus). Cada amigo lo ve y escucha a pantalla completa en `HaloCoopClient.exe`.
 
 ## Compilar desde el código
 
@@ -103,6 +103,11 @@ del juego y los FPS y Mbps que recibe cada amigo. Con el selector **Video a 30/6
 mandar: más FPS = menos retraso, pero más subida de internet. Cada amigo recibe un cuarto de la
 resolución del juego (con el juego a 2560x1440, cada uno ve 1280x720).
 
+### Audio
+HaloCoop Host captura **solo el sonido de MCC** (no Discord, música ni otras apps) y lo manda igual a
+todos los amigos (~0,1 Mbps cada uno). El panel muestra *Audio: activo* cuando MCC está abierto.
+Requiere Windows 10 versión 2004 o más nuevo.
+
 ### Probar los mandos
 En HaloCoop Host, el botón **Mover** de cada jugador hace que su personaje camine hacia adelante,
 atrás, a los lados, gire y salte (unos 10 segundos). Después de presionarlo, el juego vuelve a quedar
@@ -137,8 +142,9 @@ Cuando llega el video, el cliente pasa a **pantalla completa** con tu cuadrante 
 
 | Tecla | Qué hace |
 |-------|----------|
-| **F2** | Menú: sensibilidad, controles, desconectar |
+| **F2** | Menú: volumen, sensibilidad, controles, desconectar |
 | **F1** | Estadísticas: ping, FPS del video, Mbps, fotogramas perdidos |
+| **F3** | Silenciar / activar el sonido del juego |
 | **F11** o **Alt+Enter** | Pantalla completa / ventana |
 | **Esc** | Suelta el mouse (teclado y mouse) |
 | **+ / -** | Sensibilidad del mouse (0.1x a 99x) |
@@ -147,6 +153,7 @@ Cuando llega el video, el cliente pasa a **pantalla completa** con tu cuadrante 
 - Con **teclado y mouse** haz clic en el video para capturar el mouse. La lista de teclas está en
   `cliente/LEEME.txt`.
 - Si el video se congela un momento al perder paquetes, se recupera solo en menos de medio segundo.
+- El **volumen del juego** se ajusta con la barra del menú principal o de F2 (se guarda); **F3** silencia.
 
 ### Primera vez en el host: firewall
 La primera vez que abres HaloCoop Host, Windows pregunta si permite el acceso a la red. Marca

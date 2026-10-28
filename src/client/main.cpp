@@ -1,6 +1,7 @@
 // HaloCoopClient: app de los jugadores 2, 3 y 4. Se conecta al host por Radmin VPN, muestra su cuadrante del
 // juego a pantalla completa y le manda su mando o teclado y mouse.
 
+#include "audio_player.h"
 #include "decoder.h"
 #include "input.h"
 #include "log.h"
@@ -138,6 +139,18 @@ void set_fullscreen(bool fullscreen) {
     }
 }
 
+void apply_audio_settings() {
+    audio_set_volume(g_settings.volume / 100.0f);
+    audio_set_muted(g_settings.muted);
+}
+
+void toggle_mute() {
+    g_settings.muted = !g_settings.muted;
+    apply_audio_settings();
+    settings_save(g_settings);
+    toast(g_settings.muted ? "Sonido silenciado (F3)" : "Sonido activado (F3)");
+}
+
 void change_sensitivity(float factor) {
     g_settings.sensitivity = std::clamp(g_settings.sensitivity * factor, k_min_sensitivity, k_max_sensitivity);
     net_update_settings(g_settings);
@@ -172,6 +185,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
         }
         if (wparam == VK_F11) set_fullscreen(!g_fullscreen);
         if (wparam == VK_F1) g_show_stats = !g_show_stats;
+        if (wparam == VK_F3) toggle_mute();
         if (wparam == VK_F2 && net_status().state == NetState::connected) {
             g_show_menu = !g_show_menu;
             if (g_show_menu) input_set_captured(false);
@@ -229,6 +243,19 @@ void sensitivity_slider() {
     if (ImGui::IsItemDeactivatedAfterEdit()) settings_save(g_settings);
 }
 
+void volume_controls() {
+    if (ImGui::Checkbox("Silenciar (F3)", &g_settings.muted)) {
+        apply_audio_settings();
+        settings_save(g_settings);
+    }
+    ImGui::SameLine();
+    ImGui::SetNextItemWidth(-1);
+    ImGui::BeginDisabled(g_settings.muted);
+    if (ImGui::SliderInt("##volume", &g_settings.volume, 0, 100, "Volumen del juego: %d%%")) apply_audio_settings();
+    if (ImGui::IsItemDeactivatedAfterEdit()) settings_save(g_settings);
+    ImGui::EndDisabled();
+}
+
 void draw_menu(const NetStatus& status) {
     ImGui::TextColored(k_green, "HALO CE · COOP 4 JUGADORES");
     ImGui::TextDisabled("Conéctate al host por Radmin VPN.");
@@ -259,6 +286,7 @@ void draw_menu(const NetStatus& status) {
     if (g_settings.control == ControlMode::gamepad && !input_gamepad_connected())
         ImGui::TextColored(k_orange, "No se detecta ningún mando conectado.");
     if (g_settings.control == ControlMode::keyboard_mouse) sensitivity_slider();
+    volume_controls();
 
     if (status.state == NetState::failed && !status.message.empty()) ImGui::TextColored(k_red, "%s", status.message.c_str());
 
@@ -294,6 +322,7 @@ void draw_ingame_panel(const NetStatus& status) {
             ImGui::TextColored(k_orange, "Esperando el video... El host tiene que tener MCC abierto con HaloCoop.");
     }
     ImGui::Separator();
+    volume_controls();
     if (g_settings.control == ControlMode::gamepad) {
         if (input_gamepad_connected())
             ImGui::Text("Usando tu mando.");
@@ -310,7 +339,7 @@ void draw_ingame_panel(const NetStatus& status) {
                 "1-4 o flechas cruceta (linterna, etc.) · Enter pausa · Tab marcador");
         }
     }
-    ImGui::TextDisabled("F1 estadísticas · F2 este menú · F11 pantalla completa");
+    ImGui::TextDisabled("F1 estadísticas · F2 este menú · F3 silenciar · F11 pantalla completa");
     ImGui::Spacing();
     if (ImGui::Button("Desconectar", ImVec2(-1, 40))) {
         input_set_captured(false);
@@ -354,7 +383,7 @@ void decode_pending_frames() {
                 g_has_video = true;
                 set_fullscreen(true);
                 g_show_menu = false;
-                toast("F2 menú · F1 estadísticas · F11 pantalla completa");
+                toast("F2 menú · F1 estadísticas · F3 silenciar · F11 pantalla completa");
             }
         } else if (frame.keyframe || g_has_video) {
             net_request_keyframe();
@@ -374,6 +403,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
                                               PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION, 0};
     SetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, &throttling, sizeof(throttling));
     g_settings = settings_load();
+    audio_start();
+    apply_audio_settings();
     strncpy_s(g_host_text, g_settings.host.c_str(), _TRUNCATE);
     strncpy_s(g_name_text, g_settings.nickname.c_str(), _TRUNCATE);
 
@@ -431,9 +462,12 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
         static ULONGLONG last_stats = 0;
         if (connected && GetTickCount64() - last_stats > 5000) {
             last_stats = GetTickCount64();
-            log_write("Ping %d ms · video %u fps %.1f Mbps · perdidos %u · decodificar %.1f ms · controles %u/s",
+            AudioStats audio = audio_take_stats();
+            log_write("Ping %d ms · video %u fps %.1f Mbps · perdidos %u · decodificar %.1f ms · controles %u/s · "
+                      "audio %u paquetes en 5 s, %u rellenados, colchón %u ms",
                       status.ping_ms, status.video_fps, status.video_kbps / 1000.0, status.frames_lost,
-                      g_decoder ? g_decoder->last_decode_ms() : 0.0, status.sent_per_second);
+                      g_decoder ? g_decoder->last_decode_ms() : 0.0, status.sent_per_second, audio.packets,
+                      audio.concealed, audio.buffered_ms);
         }
         if (!connected && previous_state == NetState::connected) {
             // Fin de la partida: volver al menú en ventana.
@@ -508,6 +542,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
 
     input_set_captured(false);
     net_disconnect();
+    audio_stop();
     g_decoder.reset();
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();

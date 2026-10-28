@@ -14,7 +14,7 @@ constexpr uint16_t k_port = 27960;
 // Puerto local (solo 127.0.0.1) del DLL del juego: ahí el launcher le dice a quién mandar el video.
 constexpr uint16_t k_video_control_port = 27961;
 constexpr uint32_t k_magic = 0x50434F48;  // "HOCP"
-constexpr uint16_t k_version = 2;
+constexpr uint16_t k_version = 3;
 constexpr int k_nickname_size = 24;       // UTF-8 con '\0'
 
 // Si el host no recibe nada de un cliente en este tiempo, libera su lugar y suelta su mando.
@@ -32,7 +32,13 @@ enum class Type : uint8_t {
     video = 9,             // DLL del juego -> cliente: un fragmento de un fotograma H.264
     video_config = 10,     // launcher -> DLL (local): a quién mandar video, FPS y bitrate
     video_status = 11,     // DLL -> launcher (local): estado del video para el panel
+    audio = 12,            // host -> cliente: 10 ms de audio del juego en Opus
 };
+
+// Audio: 48 kHz estéreo, paquetes de 10 ms (480 muestras por canal) comprimidos con Opus.
+constexpr int k_audio_rate = 48000;
+constexpr int k_audio_channels = 2;
+constexpr int k_audio_frame = 480;
 
 constexpr int k_video_payload = 1180;  // bytes de H.264 por paquete (cabe en el MTU de Radmin)
 constexpr int k_fps_options[] = {30, 60, 120};
@@ -96,6 +102,12 @@ struct Bye {
 struct Kicked {
     Header header{k_magic, Type::kicked};
     Reason reason = Reason::kicked;
+};
+
+// Seguido del paquete Opus.
+struct AudioHeader {
+    Header header{k_magic, Type::audio};
+    uint32_t sequence = 0;  // creciente: el cliente detecta paquetes perdidos y los rellena
 };
 
 struct KeyframeRequest {

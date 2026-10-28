@@ -1,4 +1,5 @@
 #include "net_client.h"
+#include "audio_player.h"
 #include "input.h"
 
 #include <winsock2.h>
@@ -242,6 +243,13 @@ void run(Settings settings) {
                 if (auto* kicked = proto::as<proto::Kicked>(buffer, size)) end_message = reason_text(kicked->reason);
                 g_stop = true;
                 break;
+            case proto::Type::audio:
+                if (connected && size > int(sizeof(proto::AudioHeader))) {
+                    auto* h = reinterpret_cast<const proto::AudioHeader*>(buffer);
+                    audio_on_packet(h->sequence, reinterpret_cast<const uint8_t*>(buffer) + sizeof(proto::AudioHeader),
+                                    size - sizeof(proto::AudioHeader));
+                }
+                break;
             case proto::Type::video:
                 if (connected && size > int(sizeof(proto::VideoHeader))) {
                     auto* h = reinterpret_cast<const proto::VideoHeader*>(buffer);
@@ -321,6 +329,7 @@ void run(Settings settings) {
     if (connected && end_message.empty()) send_message(proto::Bye{});  // desconexión voluntaria
     closesocket(s);
     WSACloseEvent(readable);
+    audio_reset();
     timeEndPeriod(1);
     set_status(end_message.empty() ? NetState::idle : NetState::failed, end_message);
 }
