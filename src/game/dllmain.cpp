@@ -3,9 +3,12 @@
 
 #include "aim.h"
 #include "armor_colors.h"
+#include "character_probe.h"
 #include "log.h"
 #include "name_tags.h"
 #include "p1_view.h"
+#include "skins.h"
+#include "spawn_probe.h"
 #include "video.h"
 
 #include <d3d11.h>
@@ -92,6 +95,8 @@ DWORD WINAPI init_thread(LPVOID) {
     name_tags_start();
     armor_colors_start();
     aim_start();
+    character_probe_start();  // diagnóstico temporal de personajes (F9/F10)
+    spawn_probe_start();      // diagnóstico temporal: quién hace aparecer a los jugadores (F11)
     void* present = find_present();
     MH_STATUS status = MH_Initialize();
     if (present && (status == MH_OK || status == MH_ERROR_ALREADY_INITIALIZED)) {
@@ -103,6 +108,7 @@ DWORD WINAPI init_thread(LPVOID) {
         log_write("Listo: capturando la pantalla del juego");
     else
         log_write("No se pudo enganchar Present (%s): sin video", MH_StatusToString(status));
+    skins_start();  // usa MinHook: después de MH_Initialize
     return 0;
 }
 

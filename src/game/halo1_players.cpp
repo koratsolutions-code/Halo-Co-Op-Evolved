@@ -168,6 +168,12 @@ uintptr_t halo1_player_biped(int player) {
     return player >= 0 && player < 4 ? biped_address(g_tables, player) : 0;
 }
 
+uintptr_t halo1_player_record(int player) {
+    std::lock_guard lock(g_mutex);
+    if (!g_tables.players_header || player < 0 || player > 3) return 0;
+    return g_tables.players_data + size_t(player) * size_t(g_tables.player_size);
+}
+
 bool halo1_players_read(Halo1Player out[4]) {
     Tables t;
     {

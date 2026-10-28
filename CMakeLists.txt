@@ -52,6 +52,9 @@ add_library(CoOpEvolvedGame SHARED
     src/game/name_tags.cpp
     src/game/p1_view.cpp
     src/game/aim.cpp
+    src/game/character_probe.cpp
+    src/game/spawn_probe.cpp
+    src/game/skins.cpp
     src/game/log.cpp
     src/game/version.def
 )
