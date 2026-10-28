@@ -1,5 +1,5 @@
 // Juego de prueba: dibuja 4 cuadrantes de colores que se mueven y carga VERSION.dll (el mod) como lo haría MCC.
-// Sirve para probar el video de punta a punta sin abrir el juego. Uso: HaloCoopTestGame.exe <ruta\VERSION.dll>
+// Sirve para probar el video de punta a punta sin abrir el juego. Uso: CoOpEvolvedTestGame.exe <ruta\VERSION.dll>
 
 #include <d3d11_1.h>
 #include <dxgi1_2.h>
@@ -23,7 +23,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR command_line, int) {
     const int width = 1280, height = 720;
     RECT rect{0, 0, width, height};
     AdjustWindowRect(&rect, WS_OVERLAPPEDWINDOW, FALSE);
-    HWND hwnd = CreateWindowW(L"TestGame", L"Juego de prueba HaloCoop", WS_OVERLAPPEDWINDOW, 50, 50,
+    HWND hwnd = CreateWindowW(L"TestGame", L"Juego de prueba Co Op Evolved", WS_OVERLAPPEDWINDOW, 50, 50,
                               rect.right - rect.left, rect.bottom - rect.top, nullptr, nullptr, instance, nullptr);
     ShowWindow(hwnd, SW_SHOWNOACTIVATE);
 
@@ -68,9 +68,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR command_line, int) {
 
     if (command_line && *command_line) LoadLibraryW(command_line);  // el mod, como VERSION.dll en MCC
 
-    // HALOCOOP_TONE=1: un tono de 440 Hz casi inaudible (-60 dB) para probar la captura de audio.
+    // COOPEVOLVED_TONE=1: un tono de 440 Hz casi inaudible (-60 dB) para probar la captura de audio.
     static std::vector<uint8_t> wav;
-    if (GetEnvironmentVariableW(L"HALOCOOP_TONE", nullptr, 0)) {
+    if (GetEnvironmentVariableW(L"COOPEVOLVED_TONE", nullptr, 0)) {
         const uint32_t rate = 48000, samples = rate;  // 1 s en bucle
         uint32_t data_size = samples * 4;
         wav.resize(44 + data_size);

@@ -3,7 +3,7 @@
 
 #include <string>
 
-// Preferencias del cliente, guardadas en halocoop-cliente.ini junto al .exe.
+// Preferencias del cliente, guardadas en coopevolved-cliente.ini junto al .exe.
 enum class ControlMode { gamepad = 0, keyboard_mouse = 1 };
 
 struct Settings {

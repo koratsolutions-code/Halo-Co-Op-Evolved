@@ -1,5 +1,5 @@
 #pragma once
-// Protocolo UDP entre HaloCoopClient (jugadores 2-4) y HaloCoopHost. Todos los enteros en little endian.
+// Protocolo UDP entre CoOpEvolvedClient (jugadores 2-4) y CoOpEvolvedHost. Todos los enteros en little endian.
 #include <cstdint>
 
 // Ioctl de Winsock para que un ICMP "puerto inalcanzable" no haga fallar el siguiente recvfrom.

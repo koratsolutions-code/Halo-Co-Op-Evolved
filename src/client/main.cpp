@@ -1,4 +1,4 @@
-// HaloCoopClient: app de los jugadores 2, 3 y 4. Se conecta al host por Radmin VPN, muestra su cuadrante del
+// CoOpEvolvedClient: app de los jugadores 2, 3 y 4. Se conecta al host por Radmin VPN, muestra su cuadrante del
 // juego a pantalla completa y le manda su mando o teclado y mouse.
 
 #include "audio_player.h"
@@ -245,7 +245,7 @@ void armor_color_control() {
 }
 
 void draw_menu(const NetStatus& status) {
-    ImGui::TextColored(k_green, "%s", T("HALO CE · 4-PLAYER CO-OP", "HALO CE · COOP 4 JUGADORES"));
+    ImGui::TextColored(k_green, "%s", "HALO: CO OP EVOLVED");
     // Idioma, arriba a la derecha.
     const char* languages[] = {"English", "Español"};
     float lang_width = 120;
@@ -262,8 +262,8 @@ void draw_menu(const NetStatus& status) {
 
     ImGui::TextUnformatted(T("Host's Radmin IP", "IP de Radmin del host"));
     ImGui::SetNextItemWidth(-1);
-    ImGui::InputTextWithHint("##host", T("The host gives it to you (shown in their HaloCoop Host)",
-                                         "Te la da el host (sale en su HaloCoop Host)"),
+    ImGui::InputTextWithHint("##host", T("The host gives it to you (shown in their Co Op Evolved Host)",
+                                         "Te la da el host (sale en su Co Op Evolved Host)"),
                              g_host_text, sizeof(g_host_text), ImGuiInputTextFlags_CharsNoBlank);
     ImGui::TextUnformatted(T("Your name", "Tu nombre"));
     ImGui::SetNextItemWidth(-1);
@@ -323,8 +323,8 @@ void draw_ingame_panel(const NetStatus& status) {
         if (!g_decoder_error.empty())
             ImGui::TextColored(k_red, "%s", g_decoder_error.c_str());
         else
-            ImGui::TextColored(k_orange, "%s", T("Waiting for video... The host must have MCC open with HaloCoop.",
-                                                 "Esperando el video... El host tiene que tener MCC abierto con HaloCoop."));
+            ImGui::TextColored(k_orange, "%s", T("Waiting for video... The host must have MCC open with Co Op Evolved.",
+                                                 "Esperando el video... El host tiene que tener MCC abierto con Co Op Evolved."));
     }
     ImGui::Separator();
     armor_color_control();
@@ -408,7 +408,7 @@ void decode_pending_frames() {
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     log_init();
-    log_write("HaloCoop Cliente iniciado (protocolo %u)", proto::k_version);
+    log_write("Co Op Evolved Cliente iniciado (protocolo %u)", proto::k_version);
     // Windows 11 ignora timeBeginPeriod en apps tapadas o minimizadas: el control saldría cada ~16 ms en vez
     // de cada 4. Esto le pide que lo respete siempre.
     PROCESS_POWER_THROTTLING_STATE throttling{PROCESS_POWER_THROTTLING_CURRENT_VERSION,
@@ -422,12 +422,12 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     strncpy_s(g_name_text, g_settings.nickname.c_str(), _TRUNCATE);
 
     WNDCLASSEXW wc{sizeof(wc), CS_CLASSDC, window_proc, 0, 0, instance, LoadIconW(nullptr, IDI_APPLICATION),
-                   LoadCursorW(nullptr, IDC_ARROW), nullptr, nullptr, L"HaloCoopClient", nullptr};
+                   LoadCursorW(nullptr, IDC_ARROW), nullptr, nullptr, L"CoOpEvolvedClient", nullptr};
     RegisterClassExW(&wc);
-    g_window = CreateWindowW(wc.lpszClassName, T(L"HaloCoop Client", L"HaloCoop Cliente"), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 640, 680,
+    g_window = CreateWindowW(wc.lpszClassName, T(L"Halo: Co Op Evolved - Client", L"Halo: Co Op Evolved - Cliente"), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 640, 680,
                              nullptr, nullptr, instance, nullptr);
     if (!create_device(g_window)) {
-        MessageBoxW(nullptr, T(L"Could not start Direct3D 11.", L"No se pudo iniciar Direct3D 11."), L"HaloCoop", MB_ICONERROR);
+        MessageBoxW(nullptr, T(L"Could not start Direct3D 11.", L"No se pudo iniciar Direct3D 11."), L"Halo: Co Op Evolved", MB_ICONERROR);
         return 1;
     }
     g_renderer.init(g_device);
@@ -443,8 +443,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     ImGui_ImplWin32_Init(g_window);
     ImGui_ImplDX11_Init(g_device, g_context);
 
-    // Pruebas automáticas: HALOCOOP_AUTOCONNECT=1 conecta al abrir con lo guardado en el .ini.
-    if (GetEnvironmentVariableW(L"HALOCOOP_AUTOCONNECT", nullptr, 0) && !g_settings.host.empty())
+    // Pruebas automáticas: COOPEVOLVED_AUTOCONNECT=1 conecta al abrir con lo guardado en el .ini.
+    if (GetEnvironmentVariableW(L"COOPEVOLVED_AUTOCONNECT", nullptr, 0) && !g_settings.host.empty())
         net_connect(g_settings);
 
     NetState previous_state = NetState::idle;

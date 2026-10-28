@@ -83,9 +83,9 @@ bool Decoder::init(ID3D11Device* device, std::string& error) {
     release(dxgi_device);
     if (result != CUDA_SUCCESS) {
         error = T("The screen is not driven by the NVIDIA GPU (laptop with integrated graphics?). In Windows graphics "
-                  "settings choose 'High performance' for HaloCoopClient.exe.",
+                  "settings choose 'High performance' for CoOpEvolvedClient.exe.",
                   "La pantalla no está conectada a la GPU NVIDIA (¿laptop con gráficos integrados?). En Configuración "
-                  "de gráficos de Windows elige 'Alto rendimiento' para HaloCoopClient.exe.");
+                  "de gráficos de Windows elige 'Alto rendimiento' para CoOpEvolvedClient.exe.");
         return false;
     }
     CUcontext context = nullptr;

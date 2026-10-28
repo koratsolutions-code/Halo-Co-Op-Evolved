@@ -1,7 +1,7 @@
-HALO1 ONLINE CO-OP - CLIENTE
+HALO: CO OP EVOLVED - CLIENTE
 ============================
 
-HaloCoopClient.exe es la app de los jugadores 2, 3 y 4: te muestra tu parte del juego a
+CoOpEvolvedClient.exe es la app de los jugadores 2, 3 y 4: te muestra tu parte del juego a
 pantalla completa con el sonido del juego y manda tu mando (o teclado y mouse) al PC del
 host por Radmin VPN. Tu nombre sale sobre tu personaje en la pantalla de todos, con el color de
 armadura que elijas en "Color de armadura" (también lo puedes cambiar en F2 durante la partida).
@@ -12,12 +12,12 @@ Necesitas
 ---------
   - Windows 10/11 con GPU NVIDIA y drivers actualizados.
   - Radmin VPN conectado a la misma red que el host.
-  - La IP de Radmin del host: te la da el host (sale arriba en su HaloCoop Host).
+  - La IP de Radmin del host: te la da el host (sale arriba en su Co Op Evolved Host).
   - Mando de Xbox (recomendado) o teclado y mouse.
 
 Cómo jugar
 ----------
-  1. Copia esta carpeta donde quieras y abre HaloCoopClient.exe.
+  1. Copia esta carpeta donde quieras y abre CoOpEvolvedClient.exe.
      (Si Windows muestra "Windows protegió su PC": Más información -> Ejecutar de todas formas.)
   2. Escribe la IP de Radmin del host y tu nombre.
   3. Elige tu número de jugador (cada amigo uno distinto, siempre el mismo):
@@ -49,16 +49,16 @@ Con TECLADO Y MOUSE: haz clic en el video para capturar el mouse.
 Problemas
 ---------
   "El host no responde": revisa la IP, que Radmin VPN esté conectado (ping al host
-     desde Radmin) y que el host tenga HaloCoop Host abierto.
+     desde Radmin) y que el host tenga Co Op Evolved Host abierto.
   "Esperando el video...": el host todavía no abrió MCC, o el mod no está instalado en
      su juego (su panel lo dice).
   "Ese jugador ya está ocupado": otro amigo eligió tu número; elige otro.
   "Se perdió la conexión": el host cerró o se cortó Radmin; vuelve a Conectar.
   Laptop sin video / error de NVIDIA: en Configuración > Pantalla > Gráficos de Windows
-     pon HaloCoopClient.exe en "Alto rendimiento".
+     pon CoOpEvolvedClient.exe en "Alto rendimiento".
   Mi personaje no se mueve: el juego del host tiene que estar en primer plano en su PC.
 
-Tus datos (IP del host, nombre, etc.) se guardan en halocoop-cliente.ini y lo que pasa en
-halocoop-cliente.log (pásaselo al host si algo falla), los dos en esta carpeta.
+Tus datos (IP del host, nombre, etc.) se guardan en coopevolved-cliente.ini y lo que pasa en
+coopevolved-cliente.log (pásaselo al host si algo falla), los dos en esta carpeta.
 
 English: README.txt

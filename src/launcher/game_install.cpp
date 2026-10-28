@@ -94,8 +94,8 @@ bool game_alpharing_present(const std::wstring& binaries_dir) {
 bool game_install_mod(const std::wstring& binaries_dir, std::wstring& error) {
     std::wstring source = bundled_dll();
     if (!exists(source)) {
-        error = T(L"VERSION.dll is missing next to HaloCoopHost.exe. Download the whole host folder again.",
-                  L"Falta VERSION.dll junto a HaloCoopHost.exe. Descarga de nuevo la carpeta host completa.");
+        error = T(L"VERSION.dll is missing next to CoOpEvolvedHost.exe. Download the whole host folder again.",
+                  L"Falta VERSION.dll junto a CoOpEvolvedHost.exe. Descarga de nuevo la carpeta host completa.");
         return false;
     }
     std::wstring target = binaries_dir + L"\\VERSION.dll";

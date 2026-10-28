@@ -11,8 +11,13 @@
 static std::wstring ini_path() {
     wchar_t path[MAX_PATH];
     GetModuleFileNameW(nullptr, path, MAX_PATH);
-    std::wstring result = path;
-    return result.substr(0, result.find_last_of(L"\\/") + 1) + L"halocoop-cliente.ini";
+    std::wstring folder = path;
+    folder = folder.substr(0, folder.find_last_of(L"\\/") + 1);
+    std::wstring result = folder + L"coopevolved-cliente.ini";
+    // Antes el proyecto se llamaba HaloCoop: se conservan los datos guardados.
+    if (GetFileAttributesW(result.c_str()) == INVALID_FILE_ATTRIBUTES)
+        MoveFileW((folder + L"halocoop-cliente.ini").c_str(), result.c_str());
+    return result;
 }
 
 static std::string read(const wchar_t* key, const wchar_t* fallback) {

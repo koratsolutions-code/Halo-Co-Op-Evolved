@@ -42,7 +42,7 @@ add_library(nvcodec INTERFACE)
 target_include_directories(nvcodec INTERFACE deps/nv-codec-headers/include)
 
 # Mod dentro del juego (VERSION.dll en mcc\binaries\win64): captura y codifica los cuadrantes de J2-J4.
-add_library(HaloCoopGame SHARED
+add_library(CoOpEvolvedGame SHARED
     src/game/dllmain.cpp
     src/game/proxy_version.cpp
     src/game/video.cpp
@@ -54,11 +54,11 @@ add_library(HaloCoopGame SHARED
     src/game/log.cpp
     src/game/version.def
 )
-set_target_properties(HaloCoopGame PROPERTIES OUTPUT_NAME VERSION)
-target_link_libraries(HaloCoopGame PRIVATE imgui minhook nvcodec d3d11 dxgi d3dcompiler ws2_32)
+set_target_properties(CoOpEvolvedGame PROPERTIES OUTPUT_NAME VERSION)
+target_link_libraries(CoOpEvolvedGame PRIVATE imgui minhook nvcodec d3d11 dxgi d3dcompiler ws2_32)
 
 # Host: crea los mandos de J2-J4, recibe su input por red y muestra el panel.
-add_executable(HaloCoopHost WIN32
+add_executable(CoOpEvolvedHost WIN32
     src/launcher/main.cpp
     src/launcher/pads.cpp
     src/launcher/net_server.cpp
@@ -66,11 +66,11 @@ add_executable(HaloCoopHost WIN32
     src/launcher/audio_capture.cpp
     src/launcher/log.cpp
 )
-target_link_libraries(HaloCoopHost PRIVATE ViGEmClient opus imgui d3d11 dxgi d3dcompiler setupapi xinput shell32
+target_link_libraries(CoOpEvolvedHost PRIVATE ViGEmClient opus imgui d3d11 dxgi d3dcompiler setupapi xinput shell32
                                            ws2_32 iphlpapi advapi32 mmdevapi ole32)
 
 # Cliente: lo usan los jugadores 2, 3 y 4.
-add_executable(HaloCoopClient WIN32
+add_executable(CoOpEvolvedClient WIN32
     src/client/main.cpp
     src/client/input.cpp
     src/client/net_client.cpp
@@ -80,8 +80,8 @@ add_executable(HaloCoopClient WIN32
     src/client/log.cpp
     src/client/audio_player.cpp
 )
-target_link_libraries(HaloCoopClient PRIVATE imgui nvcodec opus d3d11 dxgi d3dcompiler xinput ws2_32 winmm ole32)
+target_link_libraries(CoOpEvolvedClient PRIVATE imgui nvcodec opus d3d11 dxgi d3dcompiler xinput ws2_32 winmm ole32)
 
 # Solo para pruebas: "juego" falso que carga el mod (no se distribuye).
-add_executable(HaloCoopTestGame WIN32 tools/test_game.cpp)
-target_link_libraries(HaloCoopTestGame PRIVATE d3d11 dxgi winmm)
+add_executable(CoOpEvolvedTestGame WIN32 tools/test_game.cpp)
+target_link_libraries(CoOpEvolvedTestGame PRIVATE d3d11 dxgi winmm)

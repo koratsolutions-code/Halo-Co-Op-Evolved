@@ -119,7 +119,7 @@ void control_thread() {
     launcher.sin_family = AF_INET;
     launcher.sin_port = htons(proto::k_port);
     inet_pton(AF_INET, "127.0.0.1", &launcher.sin_addr);
-    log_write("Esperando a HaloCoop Host en 127.0.0.1:%u", proto::k_video_control_port);
+    log_write("Esperando a Co Op Evolved Host en 127.0.0.1:%u", proto::k_video_control_port);
 
     uint64_t last_status = now_us();
     bool had_launcher = false;
@@ -134,7 +134,7 @@ void control_thread() {
                 std::lock_guard lock(g_config_mutex);
                 g_config = *config;
                 g_config_time = now_us();
-                if (!had_launcher) log_write("HaloCoop Host conectado");
+                if (!had_launcher) log_write("Co Op Evolved Host conectado");
                 had_launcher = true;
             }
         }

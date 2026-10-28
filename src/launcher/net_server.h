@@ -12,7 +12,7 @@ struct PlayerInfo {
     int armor_color = 0;  // índice en k_armor_colors
 };
 
-bool net_server_start();   // false si el puerto está ocupado (¿otro HaloCoop Host abierto?)
+bool net_server_start();   // false si el puerto está ocupado (¿otro Co Op Evolved Host abierto?)
 void net_server_stop();    // avisa a los clientes que el host se cerró
 PlayerInfo net_server_player(int player);  // player 2..4
 void net_server_kick(int player);

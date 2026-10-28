@@ -1,5 +1,5 @@
-// HaloCoop dentro del juego (VERSION.dll en mcc\binaries\win64): captura los cuadrantes de J2-J4 y los manda
-// como video. No toca los mandos: de eso se encarga HaloCoop Host.
+// Co Op Evolved dentro del juego (VERSION.dll en mcc\binaries\win64): captura los cuadrantes de J2-J4 y los manda
+// como video. No toca los mandos: de eso se encarga Co Op Evolved Host.
 
 #include "armor_colors.h"
 #include "log.h"
@@ -39,7 +39,7 @@ HRESULT STDMETHODCALLTYPE hooked_present(IDXGISwapChain* swap_chain, UINT sync, 
 // Dirección de IDXGISwapChain::Present, sacada de un swapchain temporal.
 void* find_present() {
     WNDCLASSEXW wc{sizeof(wc), CS_CLASSDC, DefWindowProcW, 0, 0, GetModuleHandleW(nullptr), nullptr, nullptr,
-                   nullptr, nullptr, L"HaloCoopDummy", nullptr};
+                   nullptr, nullptr, L"CoOpEvolvedDummy", nullptr};
     RegisterClassExW(&wc);
     HWND hwnd = CreateWindowW(wc.lpszClassName, L"", WS_OVERLAPPEDWINDOW, 0, 0, 64, 64, nullptr, nullptr,
                               wc.hInstance, nullptr);
@@ -104,14 +104,14 @@ DWORD WINAPI init_thread(LPVOID) {
     return 0;
 }
 
-// Solo dentro de MCC (o del juego de prueba). HaloCoopHost.exe está junto a este DLL y Windows también se lo
+// Solo dentro de MCC (o del juego de prueba). CoOpEvolvedHost.exe está junto a este DLL y Windows también se lo
 // carga como version.dll: ahí tiene que ser solo el proxy, sin hooks ni sockets.
 bool is_game_process() {
     wchar_t path[MAX_PATH];
     GetModuleFileNameW(nullptr, path, MAX_PATH);
     const wchar_t* name = wcsrchr(path, L'\\');
     name = name ? name + 1 : path;
-    return _wcsicmp(name, L"MCC-Win64-Shipping.exe") == 0 || _wcsicmp(name, L"HaloCoopTestGame.exe") == 0;
+    return _wcsicmp(name, L"MCC-Win64-Shipping.exe") == 0 || _wcsicmp(name, L"CoOpEvolvedTestGame.exe") == 0;
 }
 
 }  // namespace
@@ -125,7 +125,7 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
         GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_PIN,
                            reinterpret_cast<LPCWSTR>(&DllMain), &pinned);
         log_init(module);
-        log_write("HaloCoop cargado en el juego (pid %lu)", GetCurrentProcessId());
+        log_write("Co Op Evolved cargado en el juego (pid %lu)", GetCurrentProcessId());
         if (HANDLE thread = CreateThread(nullptr, 0, init_thread, nullptr, 0, nullptr)) CloseHandle(thread);
     }
     return TRUE;

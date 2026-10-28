@@ -71,7 +71,7 @@ void armor_colors_start() {
         while (true) {
             Sleep(100);
             proto::VideoConfig config;
-            bool fresh = video_config(config);  // sin HaloCoop Host: se devuelven los colores originales
+            bool fresh = video_config(config);  // sin Co Op Evolved Host: se devuelven los colores originales
             for (int p = 0; p < 4; ++p) update(painted[p], p, fresh ? config.armor_colors[p] : 0);
         }
     }).detach();

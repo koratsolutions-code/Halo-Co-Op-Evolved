@@ -1,4 +1,4 @@
-// HaloCoopHost: launcher del host.
+// CoOpEvolvedHost: launcher del host.
 // Crea los 3 mandos virtuales ANTES de abrir MCC (si no, MCC no siempre los registra y los jugadores 2-4 no
 // se mueven) y muestra el panel del host.
 
@@ -32,13 +32,13 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM,
 
 namespace {
 
-constexpr wchar_t k_title[] = L"HaloCoop Host";
+constexpr wchar_t k_title[] = L"Halo: Co Op Evolved - Host";
 constexpr wchar_t k_mcc_exe[] = L"MCC-Win64-Shipping.exe";
 constexpr wchar_t k_mcc_steam_url[] = L"steam://rungameid/976730";
 constexpr wchar_t k_vigembus_url[] = L"https://github.com/nefarius/ViGEmBus/releases/latest";
 constexpr wchar_t k_alpharing_url[] = L"https://github.com/wouter51/AlphaRing/releases";
 
-// ---------------------------------------------------------------- configuración (halocoop-host.ini)
+// ---------------------------------------------------------------- configuración (coopevolved-host.ini)
 
 struct HostSettings {
     Lang lang = Lang::en;
@@ -54,8 +54,13 @@ HostSettings g_settings;
 std::wstring ini_path() {
     wchar_t path[MAX_PATH];
     GetModuleFileNameW(nullptr, path, MAX_PATH);
-    std::wstring p = path;
-    return p.substr(0, p.find_last_of(L"\\/") + 1) + L"halocoop-host.ini";
+    std::wstring folder = path;
+    folder = folder.substr(0, folder.find_last_of(L"\\/") + 1);
+    std::wstring p = folder + L"coopevolved-host.ini";
+    // Antes el proyecto se llamaba HaloCoop: se conservan los datos guardados.
+    if (GetFileAttributesW(p.c_str()) == INVALID_FILE_ATTRIBUTES)
+        MoveFileW((folder + L"halocoop-host.ini").c_str(), p.c_str());
+    return p;
 }
 
 void settings_load() {
@@ -264,9 +269,9 @@ void colored_button_style(const ImVec4& base) {
 
 void draw_header() {
     ImGui::PushFont(g_title_font);
-    ImGui::TextColored(k_green, "HALO CE");
+    ImGui::TextColored(k_green, "HALO:");
     ImGui::SameLine();
-    ImGui::TextUnformatted(T("4-PLAYER CO-OP  ·  HOST", "COOP 4 JUGADORES  ·  HOST"));
+    ImGui::TextUnformatted("CO OP EVOLVED  ·  HOST");
     ImGui::PopFont();
 
     // Idioma, arriba a la derecha.
@@ -327,7 +332,7 @@ void draw_connection_card() {
     } else if (g_status.video.error != proto::VideoError::none) {
         const char* error = "";
         switch (g_status.video.error) {
-        case proto::VideoError::nvenc_failed: error = T("could not start NVENC (see halocoop-juego.log)", "no se pudo iniciar NVENC (revisa halocoop-juego.log)"); break;
+        case proto::VideoError::nvenc_failed: error = T("could not start NVENC (see coopevolved-juego.log)", "no se pudo iniciar NVENC (revisa coopevolved-juego.log)"); break;
         case proto::VideoError::no_d3d11_4: error = T("the game does not use D3D11.4", "el juego no usa D3D11.4"); break;
         case proto::VideoError::msaa: error = T("the game uses MSAA antialiasing", "el juego usa antialiasing MSAA"); break;
         default: break;
@@ -560,9 +565,9 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
         break;
     case WM_CLOSE:
         if (find_mcc_pid() &&
-            MessageBoxW(hwnd, T(L"MCC is still open. If you close HaloCoop Host, players 2, 3 and 4 disconnect and "
+            MessageBoxW(hwnd, T(L"MCC is still open. If you close Co Op Evolved Host, players 2, 3 and 4 disconnect and "
                                 L"lose their controllers.\n\nClose anyway?",
-                                L"MCC sigue abierto. Si cierras HaloCoop Host, los jugadores 2, 3 y 4 se "
+                                L"MCC sigue abierto. Si cierras Co Op Evolved Host, los jugadores 2, 3 y 4 se "
                                 L"desconectan y pierden sus mandos.\n\n¿Cerrar de todas formas?"),
                         k_title, MB_YESNO | MB_ICONWARNING) != IDYES)
             return 0;
@@ -577,7 +582,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
 
 bool run_panel(HINSTANCE instance) {
     WNDCLASSEXW wc{sizeof(wc), CS_CLASSDC, window_proc, 0, 0, instance, LoadIconW(nullptr, IDI_APPLICATION),
-                   LoadCursorW(nullptr, IDC_ARROW), nullptr, nullptr, L"HaloCoopHost", nullptr};
+                   LoadCursorW(nullptr, IDC_ARROW), nullptr, nullptr, L"CoOpEvolvedHost", nullptr};
     RegisterClassExW(&wc);
     g_window = CreateWindowW(wc.lpszClassName, k_title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 900, 860,
                              nullptr, nullptr, instance, nullptr);
@@ -639,14 +644,14 @@ bool run_panel(HINSTANCE instance) {
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     settings_load();
     // Un solo launcher: dos crearían 6 mandos y desordenarían los slots.
-    HANDLE single = CreateMutexW(nullptr, TRUE, L"HaloCoopHost.SingleInstance");
+    HANDLE single = CreateMutexW(nullptr, TRUE, L"CoOpEvolvedHost.SingleInstance");
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
-        MessageBoxW(nullptr, T(L"HaloCoop Host is already open.", L"HaloCoop Host ya está abierto."), k_title,
+        MessageBoxW(nullptr, T(L"Co Op Evolved Host is already open.", L"Co Op Evolved Host ya está abierto."), k_title,
                     MB_ICONINFORMATION);
         return 0;
     }
     log_init();
-    log_write("HaloCoop Host iniciado");
+    log_write("Co Op Evolved Host iniciado");
 
     // Los mandos tienen que existir antes que MCC.
     while (find_mcc_pid()) {
@@ -666,16 +671,16 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     case PadsError::driver_missing:
         if (MessageBoxW(nullptr,
                         T(L"The ViGEmBus driver (virtual controllers) is missing.\n\nOpen the download page? Install "
-                          L"ViGEmBus_..._x64_x86_arm64.exe, restart the PC and open HaloCoop Host again.",
+                          L"ViGEmBus_..._x64_x86_arm64.exe, restart the PC and open Co Op Evolved Host again.",
                           L"Falta el driver ViGEmBus (mandos virtuales).\n\n¿Abrir la página de descarga? Instala el "
-                          L"archivo ViGEmBus_..._x64_x86_arm64.exe, reinicia el PC y vuelve a abrir HaloCoop Host."),
+                          L"archivo ViGEmBus_..._x64_x86_arm64.exe, reinicia el PC y vuelve a abrir Co Op Evolved Host."),
                         k_title, MB_YESNO | MB_ICONERROR) == IDYES)
             ShellExecuteW(nullptr, L"open", k_vigembus_url, nullptr, nullptr, SW_SHOWNORMAL);
         return 1;
     case PadsError::create_failed:
         MessageBoxW(nullptr,
-                    T(L"Could not create the virtual controllers. See halocoop-host.log.",
-                      L"No se pudieron crear los mandos virtuales. Revisa halocoop-host.log."),
+                    T(L"Could not create the virtual controllers. See coopevolved-host.log.",
+                      L"No se pudieron crear los mandos virtuales. Revisa coopevolved-host.log."),
                     k_title, MB_ICONERROR);
         return 1;
     }
@@ -683,10 +688,10 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     if (pads_occupied_slots_before() > 0 || pads_slot(2) != 0 || pads_slot(3) != 1 || pads_slot(4) != 2) {
         MessageBoxW(nullptr,
                     T(L"A physical controller is plugged in, so the virtual controllers did not get Controller 1, 2 "
-                      L"and 3.\n\nEasiest fix: unplug the physical controller and open HaloCoop Host again. "
+                      L"and 3.\n\nEasiest fix: unplug the physical controller and open Co Op Evolved Host again. "
                       L"Otherwise, in AlphaRing assign each player the Controller shown in the panel.",
                       L"Hay un mando físico conectado, así que los mandos virtuales no quedaron en Controller 1, 2 y "
-                      L"3.\n\nLo más fácil: desconecta el mando físico y vuelve a abrir HaloCoop Host. Si no, en "
+                      L"3.\n\nLo más fácil: desconecta el mando físico y vuelve a abrir Co Op Evolved Host. Si no, en "
                       L"AlphaRing asigna a cada jugador el Controller que muestra el panel."),
                     k_title, MB_ICONWARNING);
     }
@@ -695,7 +700,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     g_binaries_dir = game_binaries_dir();
     log_write("Carpeta del juego: %s", g_binaries_dir.empty() ? "no encontrada" : "encontrada");
     ModState mod = game_mod_state(g_binaries_dir);
-    bool auto_install = !GetEnvironmentVariableW(L"HALOCOOP_NO_INSTALL", nullptr, 0);  // pruebas: no tocar el juego
+    bool auto_install = !GetEnvironmentVariableW(L"COOPEVOLVED_NO_INSTALL", nullptr, 0);  // pruebas: no tocar el juego
     if (auto_install && (mod == ModState::not_installed || mod == ModState::outdated)) {
         std::wstring error;
         if (!game_install_mod(g_binaries_dir, error))
@@ -731,9 +736,9 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
         [] {
             DWORD pid = 0;
             if (HWND mcc = find_mcc_window()) GetWindowThreadProcessId(mcc, &pid);
-            // Pruebas: HALOCOOP_AUDIO_PID=n captura otro proceso en lugar de MCC.
+            // Pruebas: COOPEVOLVED_AUDIO_PID=n captura otro proceso en lugar de MCC.
             wchar_t test_pid[16];
-            if (GetEnvironmentVariableW(L"HALOCOOP_AUDIO_PID", test_pid, 16)) pid = DWORD(_wtoi(test_pid));
+            if (GetEnvironmentVariableW(L"COOPEVOLVED_AUDIO_PID", test_pid, 16)) pid = DWORD(_wtoi(test_pid));
             return static_cast<unsigned long>(pid);
         },
         [](const uint8_t* packet, size_t size) { net_server_send_audio(packet, size); });
@@ -742,7 +747,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     audio_capture_stop();
     net_server_stop();
     pads_shutdown();
-    log_write("HaloCoop Host cerrado");
+    log_write("Co Op Evolved Host cerrado");
     if (single) CloseHandle(single);
     return 0;
 }

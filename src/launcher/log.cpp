@@ -14,7 +14,7 @@ void log_init() {
     wchar_t path[MAX_PATH];
     GetModuleFileNameW(nullptr, path, MAX_PATH);
     std::wstring log_path = path;
-    log_path = log_path.substr(0, log_path.find_last_of(L"\\/") + 1) + L"halocoop-host.log";
+    log_path = log_path.substr(0, log_path.find_last_of(L"\\/") + 1) + L"coopevolved-host.log";
     g_file = _wfsopen(log_path.c_str(), L"w", _SH_DENYWR);
 }
 

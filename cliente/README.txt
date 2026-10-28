@@ -1,7 +1,7 @@
-HALO1 ONLINE CO-OP - CLIENT
+HALO: CO OP EVOLVED - CLIENT
 ===========================
 
-HaloCoopClient.exe is the app for players 2, 3 and 4: it shows your part of the game full
+CoOpEvolvedClient.exe is the app for players 2, 3 and 4: it shows your part of the game full
 screen with the game sound, and sends your controller (or keyboard and mouse) to the host's
 PC through Radmin VPN. Your name shows over your character in everyone's screen, with the
 armor color you pick in "Armor color" (you can also change it in F2 while playing).
@@ -12,12 +12,12 @@ You need
 --------
   - Windows 10/11 with an NVIDIA GPU and up-to-date drivers.
   - Radmin VPN joined to the same network as the host.
-  - The host's Radmin IP: the host gives it to you (shown at the top of their HaloCoop Host).
+  - The host's Radmin IP: the host gives it to you (shown at the top of their Co Op Evolved Host).
   - Xbox controller (recommended) or keyboard and mouse.
 
 How to play
 -----------
-  1. Copy this folder anywhere you like and open HaloCoopClient.exe.
+  1. Copy this folder anywhere you like and open CoOpEvolvedClient.exe.
      (If Windows shows "Windows protected your PC": More info -> Run anyway.)
   2. Type the host's Radmin IP and your name.
   3. Choose your player number (each friend a different one, always the same):
@@ -49,16 +49,16 @@ With KEYBOARD AND MOUSE: click the video to capture the mouse.
 Problems
 --------
   "The host is not responding": check the IP, that Radmin VPN is connected (ping the host
-     from Radmin) and that the host has HaloCoop Host open.
+     from Radmin) and that the host has Co Op Evolved Host open.
   "Waiting for video...": the host has not opened MCC yet, or the mod is not installed in
      their game (their panel says so).
   "That player is already taken": another friend picked your number; pick another one.
   "Lost the connection to the host": the host closed or Radmin dropped; press Connect again.
   Laptop with no video / NVIDIA error: in Windows Settings > Display > Graphics set
-     HaloCoopClient.exe to "High performance".
+     CoOpEvolvedClient.exe to "High performance".
   My character does not move: the host's game must be in the foreground on their PC.
 
-Your data (host IP, name, etc.) is saved in halocoop-cliente.ini and what happens in
-halocoop-cliente.log (send it to the host if something fails), both in this folder.
+Your data (host IP, name, etc.) is saved in coopevolved-cliente.ini and what happens in
+coopevolved-cliente.log (send it to the host if something fails), both in this folder.
 
 Español: LEEME.txt

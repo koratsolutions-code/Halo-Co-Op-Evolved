@@ -1,11 +1,11 @@
-HALO1 ONLINE CO-OP - HOST
+HALO: CO OP EVOLVED - HOST
 =========================
 
 Contenido:
-  HaloCoopHost.exe  -> crea los mandos de los jugadores 2, 3 y 4, recibe sus controles y
+  CoOpEvolvedHost.exe  -> crea los mandos de los jugadores 2, 3 y 4, recibe sus controles y
                        muestra el panel del host.
   VERSION.dll       -> el mod dentro del juego (el video de cada amigo y los nombres sobre los
-                       jugadores). HaloCoopHost.exe lo copia solo a la carpeta del juego.
+                       jugadores). CoOpEvolvedHost.exe lo copia solo a la carpeta del juego.
 
 El panel viene en inglés. Para usarlo en español elige "Español" arriba a la derecha (se guarda).
 
@@ -21,7 +21,7 @@ Antes de la primera vez:
 
 Cada vez que jueguen:
   1. Desconecta los mandos físicos.
-  2. Abre HaloCoopHost.exe PRIMERO, con MCC cerrado (no lo cierres mientras jueguen).
+  2. Abre CoOpEvolvedHost.exe PRIMERO, con MCC cerrado (no lo cierres mientras jueguen).
      La primera vez, si Windows pregunta por el firewall, marca redes privadas y públicas.
   3. Pásales a tus amigos la IP de Radmin que sale arriba en el panel ("Copiar" la copia).
   4. En la tarjeta del jugador 1 escribe tu nombre en "Nickname" y elige tu color en "Armadura".

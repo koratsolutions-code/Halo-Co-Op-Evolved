@@ -12,7 +12,7 @@ void log_init(HMODULE module) {
     wchar_t path[MAX_PATH];
     GetModuleFileNameW(module, path, MAX_PATH);
     std::wstring log_path = path;
-    log_path = log_path.substr(0, log_path.find_last_of(L"\\/") + 1) + L"halocoop-juego.log";
+    log_path = log_path.substr(0, log_path.find_last_of(L"\\/") + 1) + L"coopevolved-juego.log";
     g_file = _wfsopen(log_path.c_str(), L"w", _SH_DENYWR);
 }
 

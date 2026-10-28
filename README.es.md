@@ -1,4 +1,4 @@
-# Halo1 Online Co-op
+# Halo: Co Op Evolved
 
 **Español** · [English](README.md)
 
@@ -26,8 +26,8 @@ vienen en este repositorio.
 
 | Carpeta    | Para quién        | Contenido |
 |------------|-------------------|-----------|
-| `host/`    | El que hospeda    | `HaloCoopHost.exe` (launcher y panel), `VERSION.dll` (mod del juego, se instala solo) e instrucciones (`LEEME.txt` / `README.txt`) |
-| `cliente/` | Los otros 3 jugadores | `HaloCoopClient.exe` e instrucciones (`LEEME.txt` / `README.txt`) |
+| `host/`    | El que hospeda    | `CoOpEvolvedHost.exe` (launcher y panel), `VERSION.dll` (mod del juego, se instala solo) e instrucciones (`LEEME.txt` / `README.txt`) |
+| `cliente/` | Los otros 3 jugadores | `CoOpEvolvedClient.exe` e instrucciones (`LEEME.txt` / `README.txt`) |
 
 ---
 
@@ -71,16 +71,16 @@ AlphaRing no se incluye en este repositorio: se descarga de su página oficial.
 ### 2. Driver de mandos virtuales (ViGEmBus)
 
 Instala **ViGEmBus** desde <https://github.com/nefarius/ViGEmBus/releases/latest>
-(archivo `ViGEmBus_..._x64_x86_arm64.exe`) y reinicia el PC. Si falta, `HaloCoopHost.exe` lo avisa
+(archivo `ViGEmBus_..._x64_x86_arm64.exe`) y reinicia el PC. Si falta, `CoOpEvolvedHost.exe` lo avisa
 y abre esa página.
 
-### 3. HaloCoop Host
+### 3. Co Op Evolved Host
 
 Copia la carpeta `host/` a donde quieras (no hace falta ponerla en la carpeta del juego).
-Contiene `HaloCoopHost.exe`, que crea los mandos de los jugadores 2, 3 y 4, y `VERSION.dll`, el mod
+Contiene `CoOpEvolvedHost.exe`, que crea los mandos de los jugadores 2, 3 y 4, y `VERSION.dll`, el mod
 que captura el video dentro del juego.
 
-Al abrir `HaloCoopHost.exe` (con MCC cerrado) busca MCC en tus bibliotecas de Steam y **copia solo
+Al abrir `CoOpEvolvedHost.exe` (con MCC cerrado) busca MCC en tus bibliotecas de Steam y **copia solo
 `VERSION.dll`** en `mcc\binaries\win64`, o lo actualiza si cambió. El panel muestra si el mod y
 AlphaRing están instalados; si no pudo copiarlo (permisos), cópialo tú a esa carpeta.
 
@@ -88,13 +88,13 @@ AlphaRing están instalados; si no pudo copiarlo (permisos), cópialo tú a esa 
 
 ## Cómo jugar (host)
 
-> **Importante:** abre siempre **HaloCoop Host primero** y MCC después. Los mandos de los jugadores
+> **Importante:** abre siempre **Co Op Evolved Host primero** y MCC después. Los mandos de los jugadores
 > 2, 3 y 4 tienen que existir antes de que arranque el juego; si no, esos jugadores no se pueden mover.
 > Si MCC ya está abierto, el launcher te pide cerrarlo.
 
 1. Desconecta cualquier mando físico (cambia el orden de los mandos). Si quieres jugar con mando
    como jugador 1, ver *Problemas frecuentes*.
-2. Abre `HaloCoopHost.exe`. Arriba muestra tu IP de Radmin (pásasela a tus amigos) y qué Controller
+2. Abre `CoOpEvolvedHost.exe`. Arriba muestra tu IP de Radmin (pásasela a tus amigos) y qué Controller
    le tocó a cada jugador (normalmente J2 = Controller 1, J3 = Controller 2, J4 = Controller 3).
    **No lo cierres mientras jueguen.**
 3. Escribe tu nombre en **Nickname** y elige tu color en **Armadura** (tarjeta del jugador 1).
@@ -116,7 +116,7 @@ mandar: más FPS = menos retraso, pero más subida de internet. Cada amigo recib
 resolución del juego (con el juego a 2560x1440, cada uno ve 1280x720).
 
 ### Audio
-HaloCoop Host captura **solo el sonido de MCC** (no Discord, música ni otras apps) y lo manda igual a
+Co Op Evolved Host captura **solo el sonido de MCC** (no Discord, música ni otras apps) y lo manda igual a
 todos los amigos (~0,1 Mbps cada uno). El panel muestra *Audio activo* cuando MCC está abierto.
 
 ### Nombres sobre los jugadores
@@ -146,40 +146,40 @@ más **Por defecto** (el verde oliva de siempre). El color se vuelve a poner sol
 otro nivel, y cada tarjeta de jugador lo muestra.
 
 ### Probar los mandos
-En HaloCoop Host, el botón **Mover** de cada jugador hace que su personaje camine hacia adelante,
+En Co Op Evolved Host, el botón **Mover** de cada jugador hace que su personaje camine hacia adelante,
 atrás, a los lados, gire y salte (unos 10 segundos). Después de presionarlo, el juego vuelve a quedar
 en primer plano solo.
 
 ### Primera vez: firewall
-La primera vez que abres HaloCoop Host, Windows pregunta si permite el acceso a la red. Marca
+La primera vez que abres Co Op Evolved Host, Windows pregunta si permite el acceso a la red. Marca
 **redes privadas y públicas** (Radmin VPN suele quedar como red pública) y acepta. Si no aparece y
-tus amigos no pueden conectarse, permite `HaloCoopHost.exe` en *Firewall de Windows → Permitir una
+tus amigos no pueden conectarse, permite `CoOpEvolvedHost.exe` en *Firewall de Windows → Permitir una
 aplicación*.
 
 ### Seguridad
-- HaloCoop Host solo responde a **Radmin VPN** (26.x.x.x), a tu **red local** y a tu propio PC. Los paquetes
+- Co Op Evolved Host solo responde a **Radmin VPN** (26.x.x.x), a tu **red local** y a tu propio PC. Los paquetes
   de internet se ignoran, aunque el puerto esté abierto en el firewall o reenviado en tu router. No hace falta
   (ni conviene) reenviar ningún puerto.
 - Cualquiera de tu red de Radmin puede tomar un jugador libre: protege la red de Radmin con contraseña y
   compártela solo con tus amigos. **Expulsar** saca a alguien en cualquier momento.
 - El mod del juego solo lee la memoria de Halo 1, salvo los colores de armadura de los 4 jugadores. No toca
   tus archivos, tu cuenta de Steam ni tu perfil de MCC.
-- `halocoop-host.log` y `halocoop-cliente.log` guardan los nombres e IPs de Radmin de tus amigos. Se quedan
+- `coopevolved-host.log` y `coopevolved-cliente.log` guardan los nombres e IPs de Radmin de tus amigos. Se quedan
   en tu PC: no los publiques.
 
 ### Panel del host
 Está ordenado como la pantalla dividida: una tarjeta por jugador. Cada amigo conectado muestra su nombre,
 su IP, cuántos controles por segundo llegan (unos 250 es lo normal) y el video que recibe. **Expulsar** lo
 desconecta (puede volver a conectarse). El panel guarda tu nickname, el idioma, los FPS y lo de los
-nombres en `halocoop-host.ini`, junto a `HaloCoopHost.exe`.
+nombres en `coopevolved-host.ini`, junto a `CoOpEvolvedHost.exe`.
 
 ### Problemas frecuentes
-- **Un jugador no se mueve:** cierra MCC, cierra HaloCoop Host, ábrelos de nuevo en ese orden.
-- **Tengo un mando físico conectado:** los virtuales quedan en otros Controller. HaloCoop Host lo
+- **Un jugador no se mueve:** cierra MCC, cierra Co Op Evolved Host, ábrelos de nuevo en ese orden.
+- **Tengo un mando físico conectado:** los virtuales quedan en otros Controller. Co Op Evolved Host lo
   avisa y muestra cuál le tocó a cada jugador; en AlphaRing asigna esos Controller a cada jugador.
-- **HaloCoop Host dice que falta ViGEmBus:** instálalo (paso 2) y reinicia el PC.
+- **Co Op Evolved Host dice que falta ViGEmBus:** instálalo (paso 2) y reinicia el PC.
 - **Video: el juego no responde:** espera unos 10 segundos tras abrir MCC. Si sigue, revisa que el panel
-  muestre *Mod del juego* con punto verde y mira `halocoop-juego.log` en la carpeta `mcc\binaries\win64`.
+  muestre *Mod del juego* con punto verde y mira `coopevolved-juego.log` en la carpeta `mcc\binaries\win64`.
 - **No salen los nombres:** revisa que *Mostrar nombres sobre los jugadores* esté activado y espera unos
   segundos después de que cargue el nivel. Los nombres solo funcionan con MCC versión 1.3528.
 
@@ -203,10 +203,10 @@ Para los jugadores 2, 3 y 4. **No** necesitas Halo, Steam ni MCC: el juego corre
 
 ### Cada vez que jueguen
 1. Revisa que Radmin VPN esté **encendido** y que el host aparezca conectado en tu red de Radmin.
-2. Abre `HaloCoopClient.exe`. La primera vez Windows puede mostrar "Windows protegió su PC":
+2. Abre `CoOpEvolvedClient.exe`. La primera vez Windows puede mostrar "Windows protegió su PC":
    *Más información → Ejecutar de todas formas*.
 3. Llena el menú (se guarda todo para la próxima vez):
-   - **IP de Radmin del host:** el host la ve arriba en su HaloCoop Host (botón *Copiar*).
+   - **IP de Radmin del host:** el host la ve arriba en su Co Op Evolved Host (botón *Copiar*).
    - **Tu nombre:** sale sobre tu personaje para todos.
    - **Color de armadura:** tu color en la campaña.
    - **Jugador:** **2** (arriba a la derecha), **3** (abajo a la izquierda) o **4** (abajo a la derecha).
@@ -234,13 +234,13 @@ Para los jugadores 2, 3 y 4. **No** necesitas Halo, Steam ni MCC: el juego corre
 
 ### Problemas frecuentes (cliente)
 - **"El host no responde":** revisa la IP, que Radmin VPN esté conectado (ping al host desde Radmin) y que el
-  host tenga HaloCoop Host abierto.
+  host tenga Co Op Evolved Host abierto.
 - **"Esperando el video...":** el host todavía no abrió MCC, o su panel muestra que falta el mod del juego.
 - **"Ese jugador ya está ocupado":** otro amigo eligió tu número; elige otro.
 - **Pantalla negra o error de NVIDIA en laptop:** *Configuración de Windows → Pantalla → Gráficos* → pon
-  `HaloCoopClient.exe` en **Alto rendimiento**.
+  `CoOpEvolvedClient.exe` en **Alto rendimiento**.
 - **Tu personaje no se mueve:** el juego tiene que estar en primer plano en el PC del host; avísale.
-- Si algo falla, mándale al host tu `halocoop-cliente.log` (en la carpeta del cliente) por privado.
+- Si algo falla, mándale al host tu `coopevolved-cliente.log` (en la carpeta del cliente) por privado.
 
 ---
 
@@ -262,7 +262,7 @@ Para los jugadores 2, 3 y 4. **No** necesitas Halo, Steam ni MCC: el juego corre
      `cliente/`.
    - Si termina con **`BUILD FAILED`**, lee los mensajes de arriba. Lo más común: Visual Studio se instaló
      sin *Desarrollo para el escritorio con C++* (abre *Visual Studio Installer* → **Modificar** y márcalo),
-     o `HaloCoopHost.exe` / `HaloCoopClient.exe` estaban abiertos al compilar.
+     o `CoOpEvolvedHost.exe` / `CoOpEvolvedClient.exe` estaban abiertos al compilar.
 
 Compilar también crea una carpeta `build/` con archivos temporales; puedes borrarla.
 
@@ -271,5 +271,5 @@ Compilar también crea una carpeta `build/` con archivos temporales; puedes borr
 ## Desinstalar
 
 Borra de la carpeta `mcc\binaries\win64` del juego los archivos `WTSAPI32.dll` (AlphaRing),
-`VERSION.dll` (este mod) y `halocoop-juego.log`.
+`VERSION.dll` (este mod) y `coopevolved-juego.log`.
 Luego, en Steam: clic derecho en MCC → Propiedades → Archivos instalados → **Verificar integridad**.
