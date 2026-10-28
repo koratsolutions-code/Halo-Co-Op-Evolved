@@ -17,5 +17,6 @@ call "%VS%\VC\Auxiliary\Build\vcvars64.bat" >nul || exit /b 1
 cmake -S "%ROOT%." -B "%ROOT%build" -G Ninja -DCMAKE_BUILD_TYPE=Release || exit /b 1
 cmake --build "%ROOT%build" || exit /b 1
 copy /y "%ROOT%build\HaloCoopHost.exe" "%ROOT%host\HaloCoopHost.exe" >nul || exit /b 1
+copy /y "%ROOT%build\VERSION.dll" "%ROOT%host\VERSION.dll" >nul || exit /b 1
 copy /y "%ROOT%build\HaloCoopClient.exe" "%ROOT%cliente\HaloCoopClient.exe" >nul || exit /b 1
 echo Listo: host\HaloCoopHost.exe y cliente\HaloCoopClient.exe

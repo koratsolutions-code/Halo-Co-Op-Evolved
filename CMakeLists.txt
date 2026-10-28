@@ -19,14 +19,39 @@ add_library(imgui STATIC
 )
 target_include_directories(imgui PUBLIC deps/imgui deps/imgui/backends)
 
+add_library(minhook STATIC
+    deps/minhook/src/buffer.c
+    deps/minhook/src/hook.c
+    deps/minhook/src/trampoline.c
+    deps/minhook/src/hde/hde64.c
+)
+target_include_directories(minhook PUBLIC deps/minhook/include)
+
+# Encabezados de NVENC/NVDEC (las DLL las trae el driver de NVIDIA).
+add_library(nvcodec INTERFACE)
+target_include_directories(nvcodec INTERFACE deps/nv-codec-headers/include)
+
+# Mod dentro del juego (VERSION.dll en mcc\binaries\win64): captura y codifica los cuadrantes de J2-J4.
+add_library(HaloCoopGame SHARED
+    src/game/dllmain.cpp
+    src/game/proxy_version.cpp
+    src/game/video.cpp
+    src/game/encoder.cpp
+    src/game/log.cpp
+    src/game/version.def
+)
+set_target_properties(HaloCoopGame PROPERTIES OUTPUT_NAME VERSION)
+target_link_libraries(HaloCoopGame PRIVATE minhook nvcodec d3d11 dxgi ws2_32)
+
 # Host: crea los mandos de J2-J4, recibe su input por red y muestra el panel.
 add_executable(HaloCoopHost WIN32
     src/launcher/main.cpp
     src/launcher/pads.cpp
     src/launcher/net_server.cpp
+    src/launcher/game_install.cpp
     src/launcher/log.cpp
 )
-target_link_libraries(HaloCoopHost PRIVATE ViGEmClient setupapi xinput shell32 ws2_32 iphlpapi)
+target_link_libraries(HaloCoopHost PRIVATE ViGEmClient setupapi xinput shell32 ws2_32 iphlpapi advapi32)
 
 # Cliente: lo usan los jugadores 2, 3 y 4.
 add_executable(HaloCoopClient WIN32
@@ -34,5 +59,12 @@ add_executable(HaloCoopClient WIN32
     src/client/input.cpp
     src/client/net_client.cpp
     src/client/settings.cpp
+    src/client/decoder.cpp
+    src/client/renderer.cpp
+    src/client/log.cpp
 )
-target_link_libraries(HaloCoopClient PRIVATE imgui d3d11 dxgi xinput ws2_32 winmm)
+target_link_libraries(HaloCoopClient PRIVATE imgui nvcodec d3d11 dxgi d3dcompiler xinput ws2_32 winmm)
+
+# Solo para pruebas: "juego" falso que carga el mod (no se distribuye).
+add_executable(HaloCoopTestGame WIN32 tools/test_game.cpp)
+target_link_libraries(HaloCoopTestGame PRIVATE d3d11 dxgi)

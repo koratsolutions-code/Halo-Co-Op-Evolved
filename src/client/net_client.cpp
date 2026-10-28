@@ -8,6 +8,7 @@
 
 #include <atomic>
 #include <cstring>
+#include <map>
 #include <mutex>
 #include <thread>
 
@@ -18,6 +19,11 @@ NetStatus g_status;
 Settings g_settings;
 std::thread g_thread;
 std::atomic<bool> g_stop{false};
+std::atomic<bool> g_keyframe_wanted{false};
+
+std::mutex g_frames_mutex;
+std::vector<VideoFrame> g_frames;
+HANDLE g_frame_event = CreateEventW(nullptr, FALSE, FALSE, nullptr);
 
 uint64_t now_us() {
     static LARGE_INTEGER frequency = [] {
@@ -32,12 +38,9 @@ uint64_t now_us() {
 
 void set_status(NetState state, const std::string& message = {}) {
     std::lock_guard lock(g_mutex);
+    g_status = NetStatus{};
     g_status.state = state;
     g_status.message = message;
-    if (state != NetState::connected) {
-        g_status.ping_ms = -1;
-        g_status.sent_per_second = 0;
-    }
 }
 
 const char* reason_text(proto::Reason reason) {
@@ -51,13 +54,109 @@ const char* reason_text(proto::Reason reason) {
     }
 }
 
-template <typename T>
-void send(SOCKET s, const T& message) {
-    ::send(s, reinterpret_cast<const char*>(&message), sizeof(T), 0);
-}
+// Arma fotogramas a partir de los fragmentos. Como el video no tiene fotogramas completos periódicos,
+// si se pierde uno hay que pedir uno completo y descartar hasta que llegue.
+class FrameAssembler {
+public:
+    // Devuelve true si hay que pedir un fotograma completo.
+    bool add(const proto::VideoHeader& h, const uint8_t* payload, size_t size, uint64_t now) {
+        if (h.fragment_count == 0 || h.fragment_index >= h.fragment_count) return false;
+        if (m_has_delivered && int32_t(h.frame_id - m_last_delivered) <= 0) return false;  // viejo o repetido
+        Partial& p = m_partials[h.frame_id];
+        if (p.received.empty()) {
+            p.received.assign(h.fragment_count, false);
+            p.data.resize(size_t(h.fragment_count) * proto::k_video_payload);
+            p.keyframe = h.keyframe;
+            p.width = h.width;
+            p.height = h.height;
+        }
+        if (p.received.size() != h.fragment_count || p.received[h.fragment_index]) return false;
+        p.received[h.fragment_index] = true;
+        ++p.count;
+        memcpy(p.data.data() + size_t(h.fragment_index) * proto::k_video_payload, payload, size);
+        if (h.fragment_index == h.fragment_count - 1)
+            p.size = size_t(h.fragment_index) * proto::k_video_payload + size;
+        if (p.count < h.fragment_count) {
+            // Si ya hay dos fotogramas más nuevos en camino, este no se va a completar.
+            if (m_partials.size() > 3) return drop_oldest();
+            return false;
+        }
+
+        bool in_order = !m_has_delivered || h.frame_id == m_last_delivered + 1;
+        bool want_keyframe = false;
+        if (p.keyframe) {
+            m_waiting_keyframe = false;
+        } else if (!in_order) {
+            ++m_lost;
+            m_waiting_keyframe = true;
+            want_keyframe = true;
+        }
+        if (!m_waiting_keyframe) {
+            VideoFrame frame;
+            p.data.resize(p.size);
+            frame.data = std::move(p.data);
+            frame.keyframe = p.keyframe;
+            frame.width = p.width;
+            frame.height = p.height;
+            frame.received_us = now;
+            {
+                std::lock_guard lock(g_frames_mutex);
+                // Si la ventana no da abasto (minimizada), mejor empezar de nuevo desde un fotograma completo.
+                if (g_frames.size() > 30) {
+                    g_frames.clear();
+                    m_waiting_keyframe = true;
+                    want_keyframe = true;
+                } else {
+                    g_frames.push_back(std::move(frame));
+                    ++m_delivered;
+                }
+            }
+            SetEvent(g_frame_event);
+        }
+        m_has_delivered = true;
+        m_last_delivered = h.frame_id;
+        // Todo lo anterior a este ya no sirve.
+        for (auto it = m_partials.begin(); it != m_partials.end();)
+            it = int32_t(it->first - h.frame_id) <= 0 ? m_partials.erase(it) : std::next(it);
+        return want_keyframe;
+    }
+
+    bool waiting_keyframe() const { return m_waiting_keyframe; }
+    void set_waiting_keyframe() { m_waiting_keyframe = true; }
+    unsigned lost() const { return m_lost; }
+    unsigned delivered() const { return m_delivered; }
+
+private:
+    struct Partial {
+        std::vector<uint8_t> data;
+        std::vector<bool> received;
+        unsigned count = 0;
+        size_t size = 0;
+        bool keyframe = false;
+        uint16_t width = 0, height = 0;
+    };
+
+    bool drop_oldest() {
+        auto oldest = m_partials.begin();
+        for (auto it = m_partials.begin(); it != m_partials.end(); ++it)
+            if (int32_t(it->first - oldest->first) < 0) oldest = it;
+        m_last_delivered = oldest->first;  // se da por perdido
+        m_has_delivered = true;
+        m_partials.erase(oldest);
+        ++m_lost;
+        m_waiting_keyframe = true;
+        return true;
+    }
+
+    std::map<uint32_t, Partial> m_partials;
+    bool m_has_delivered = false;
+    uint32_t m_last_delivered = 0;
+    bool m_waiting_keyframe = true;  // el primero que se muestra tiene que ser completo
+    unsigned m_lost = 0;
+    unsigned m_delivered = 0;
+};
 
 void run(Settings settings) {
-    // Resolver la IP del host.
     addrinfo hints{};
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
@@ -66,60 +165,103 @@ void run(Settings settings) {
         set_status(NetState::failed, "No se reconoce la IP del host. Revisa que esté bien escrita.");
         return;
     }
+    sockaddr_in host = *reinterpret_cast<sockaddr_in*>(result->ai_addr);
+    freeaddrinfo(result);
+
+    // Socket sin "connect": el video llega desde otro puerto del host (el del juego).
     SOCKET s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     BOOL off = FALSE;
     DWORD returned = 0;
     WSAIoctl(s, SIO_UDP_CONNRESET, &off, sizeof(off), nullptr, 0, &returned, nullptr, nullptr);
-    connect(s, result->ai_addr, int(result->ai_addrlen));
-    freeaddrinfo(result);
-    u_long non_blocking = 1;
-    ioctlsocket(s, FIONBIO, &non_blocking);
+    int buffer_size = 4 * 1024 * 1024;
+    setsockopt(s, SOL_SOCKET, SO_RCVBUF, reinterpret_cast<const char*>(&buffer_size), sizeof(buffer_size));
+    sockaddr_in any{};
+    any.sin_family = AF_INET;
+    bind(s, reinterpret_cast<sockaddr*>(&any), sizeof(any));
+    // Evento que se activa al llegar datos: esperar en él respeta timeBeginPeriod(1) (WSAPoll no).
+    WSAEVENT readable = WSACreateEvent();
+    WSAEventSelect(s, readable, FD_READ);  // deja el socket en modo no bloqueante
+    auto send_message = [&](const auto& message) {
+        sendto(s, reinterpret_cast<const char*>(&message), sizeof(message), 0, reinterpret_cast<sockaddr*>(&host),
+               sizeof(host));
+    };
 
     proto::Hello hello;
     hello.player = uint8_t(settings.player);
     strncpy_s(hello.nickname, settings.nickname.c_str(), _TRUNCATE);
 
-    timeBeginPeriod(1);  // Sleep(1) de verdad: el input sale cada 4 ms
+    timeBeginPeriod(1);
     set_status(NetState::connecting);
-    uint64_t start = now_us(), last_hello = 0, last_ping = 0, last_heard = now_us(), next_send = 0, last_rate = now_us();
+    {
+        std::lock_guard lock(g_frames_mutex);
+        g_frames.clear();
+    }
+    FrameAssembler assembler;
+    uint64_t start = now_us(), last_hello = 0, last_ping = 0, last_heard = now_us(), next_send = 0,
+             last_rate = now_us(), last_keyframe_request = 0, last_video = 0;
     uint32_t sequence = 0;
-    unsigned sent = 0;
+    unsigned sent = 0, video_bytes = 0, frames_completed = 0;
     bool connected = false;
     std::string end_message;
+    g_keyframe_wanted = false;
 
     while (!g_stop) {
+        // Esperar datos como mucho 1 ms: el input tiene que salir cada 4 ms.
+        WaitForSingleObject(readable, 1);
+        WSAResetEvent(readable);
         uint64_t now = now_us();
-        char buffer[512];
+        char buffer[1600];
+        sockaddr_in from{};
+        int from_size = sizeof(from);
         int size;
-        while ((size = recv(s, buffer, sizeof(buffer), 0)) > 0) {
+        while ((size = recvfrom(s, buffer, sizeof(buffer), 0, reinterpret_cast<sockaddr*>(&from), &from_size)) > 0) {
+            from_size = sizeof(from);
+            if (from.sin_addr.s_addr != host.sin_addr.s_addr) continue;  // solo del host
             const proto::Header* header = proto::header_of(buffer, size);
             if (!header) continue;
             last_heard = now;
-            if (header->type == proto::Type::welcome) {
-                auto* welcome = proto::as<proto::Welcome>(buffer, size);
-                if (!welcome) continue;
-                if (!welcome->accepted) {
-                    end_message = reason_text(welcome->reason);
-                    g_stop = true;
-                } else if (!connected) {
-                    connected = true;
-                    set_status(NetState::connected);
+            switch (header->type) {
+            case proto::Type::welcome:
+                if (auto* welcome = proto::as<proto::Welcome>(buffer, size)) {
+                    if (!welcome->accepted) {
+                        end_message = reason_text(welcome->reason);
+                        g_stop = true;
+                    } else if (!connected) {
+                        connected = true;
+                        set_status(NetState::connected);
+                    }
                 }
-            } else if (header->type == proto::Type::pong) {
+                break;
+            case proto::Type::pong:
                 if (auto* pong = proto::as<proto::Pong>(buffer, size)) {
                     std::lock_guard lock(g_mutex);
                     g_status.ping_ms = int((now - pong->client_time_us + 500) / 1000);
                 }
-            } else if (header->type == proto::Type::kicked) {
+                break;
+            case proto::Type::kicked:
                 if (auto* kicked = proto::as<proto::Kicked>(buffer, size)) end_message = reason_text(kicked->reason);
                 g_stop = true;
+                break;
+            case proto::Type::video:
+                if (connected && size > int(sizeof(proto::VideoHeader))) {
+                    auto* h = reinterpret_cast<const proto::VideoHeader*>(buffer);
+                    video_bytes += unsigned(size);
+                    last_video = now;
+                    if (assembler.add(*h, reinterpret_cast<const uint8_t*>(buffer) + sizeof(proto::VideoHeader),
+                                      size - sizeof(proto::VideoHeader), now))
+                        g_keyframe_wanted = true;
+                }
+                break;
+            default:
+                break;
             }
+            if (g_stop) break;
         }
         if (g_stop) break;
 
         if (!connected) {
             if (now - last_hello > 500000) {
-                send(s, hello);
+                send_message(hello);
                 last_hello = now;
             }
             if (now - start > 6000000) {
@@ -127,44 +269,58 @@ void run(Settings settings) {
                               "HaloCoop Host abierto.";
                 break;
             }
-        } else {
-            if (now - last_heard > uint64_t(proto::k_timeout_ms) * 1000) {
-                end_message = "Se perdió la conexión con el host.";
-                break;
-            }
-            if (now >= next_send) {
-                ControlMode mode;
-                float sensitivity;
-                {
-                    std::lock_guard lock(g_mutex);
-                    mode = g_settings.control;
-                    sensitivity = g_settings.sensitivity;
-                }
-                proto::Input input;
-                input.sequence = ++sequence;
-                input.pad = input_read(mode, sensitivity);
-                send(s, input);
-                ++sent;
-                next_send = now + k_send_interval_ms * 1000;
-            }
-            if (now - last_ping > 500000) {
-                proto::Ping ping;
-                ping.client_time_us = now;
-                send(s, ping);
-                last_ping = now;
-            }
-            if (now - last_rate >= 1000000) {
-                std::lock_guard lock(g_mutex);
-                g_status.sent_per_second = sent;
-                sent = 0;
-                last_rate = now;
-            }
+            continue;
         }
-        Sleep(1);
+        if (now - last_heard > uint64_t(proto::k_timeout_ms) * 1000) {
+            end_message = "Se perdió la conexión con el host.";
+            break;
+        }
+        if (now >= next_send) {
+            ControlMode mode;
+            float sensitivity;
+            {
+                std::lock_guard lock(g_mutex);
+                mode = g_settings.control;
+                sensitivity = g_settings.sensitivity;
+            }
+            proto::Input input;
+            input.sequence = ++sequence;
+            input.pad = input_read(mode, sensitivity);
+            send_message(input);
+            ++sent;
+            // Ritmo fijo (no "ahora + 4 ms"): si no, el retraso de cada espera se acumula.
+            next_send += k_send_interval_ms * 1000;
+            if (next_send < now) next_send = now + k_send_interval_ms * 1000;
+        }
+        // Fotograma completo: si se perdió algo (con reintento si no llega), o si el decodificador lo pide.
+        if (g_keyframe_wanted.exchange(false)) assembler.set_waiting_keyframe();
+        if (assembler.waiting_keyframe() && last_video && now - last_keyframe_request > 300000) {
+            send_message(proto::KeyframeRequest{});
+            last_keyframe_request = now;
+        }
+        if (now - last_ping > 500000) {
+            proto::Ping ping;
+            ping.client_time_us = now;
+            send_message(ping);
+            last_ping = now;
+        }
+        if (now - last_rate >= 1000000) {
+            double seconds = (now - last_rate) / 1e6;
+            std::lock_guard lock(g_mutex);
+            g_status.sent_per_second = sent;
+            g_status.video_fps = unsigned((assembler.delivered() - frames_completed) / seconds + 0.5);
+            frames_completed = assembler.delivered();
+            g_status.video_kbps = unsigned(video_bytes * 8 / 1000 / seconds);
+            g_status.frames_lost = assembler.lost();
+            sent = 0;
+            video_bytes = 0;
+            last_rate = now;
+        }
     }
 
-    if (connected && end_message.empty()) send(s, proto::Bye{});  // desconexión voluntaria
+    if (connected && end_message.empty()) send_message(proto::Bye{});  // desconexión voluntaria
     closesocket(s);
+    WSACloseEvent(readable);
     timeEndPeriod(1);
     set_status(end_message.empty() ? NetState::idle : NetState::failed, end_message);
 }
@@ -200,4 +356,18 @@ void net_disconnect() {
 NetStatus net_status() {
     std::lock_guard lock(g_mutex);
     return g_status;
+}
+
+HANDLE net_frame_event() {
+    return g_frame_event;
+}
+
+void net_take_frames(std::vector<VideoFrame>& out) {
+    std::lock_guard lock(g_frames_mutex);
+    out.swap(g_frames);
+    g_frames.clear();
+}
+
+void net_request_keyframe() {
+    g_keyframe_wanted = true;
 }

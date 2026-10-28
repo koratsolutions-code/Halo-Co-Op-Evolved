@@ -1,15 +1,12 @@
 HALO1-COOP - CLIENTE
 ====================
 
-HaloCoopClient.exe es la app de los jugadores 2, 3 y 4: manda tu mando (o teclado y mouse)
-al PC del host por Radmin VPN.
-
-NOTA (versión actual): todavía no muestra el video del juego. Mientras tanto, mira la
-pantalla del host por otro medio (por ejemplo, que el host transmita por Discord).
+HaloCoopClient.exe es la app de los jugadores 2, 3 y 4: te muestra tu parte del juego a
+pantalla completa y manda tu mando (o teclado y mouse) al PC del host por Radmin VPN.
 
 Necesitas
 ---------
-  - Windows 10/11.
+  - Windows 10/11 con GPU NVIDIA y drivers actualizados.
   - Radmin VPN conectado a la misma red que el host.
   - La IP de Radmin del host: te la da el host (sale arriba en su HaloCoop Host).
   - Mando de Xbox (recomendado) o teclado y mouse.
@@ -24,14 +21,18 @@ Cómo jugar
        Jugador 3 = cuadro de abajo a la izquierda
        Jugador 4 = cuadro de abajo a la derecha
   4. Elige Mando o Teclado y mouse y presiona Conectar.
+  5. Cuando el host abre el juego, el cliente pasa solo a pantalla completa con tu video.
 
-  Con MANDO: funciona aunque la ventana del cliente no esté activa (puedes tener Discord
-  delante).
-  Con TECLADO Y MOUSE: haz clic en la ventana del cliente para capturar el mouse.
-  Esc lo suelta. + y - cambian la sensibilidad (también la barra, de 0.1x a 99x).
+Teclas del cliente
+------------------
+  F2 ............. menú (sensibilidad, controles, desconectar)
+  F1 ............. estadísticas (ping, FPS del video, pérdidas)
+  F11 / Alt+Enter  pantalla completa o ventana
+  Esc ............ suelta el mouse (teclado y mouse)
+  + y - .......... sensibilidad del mouse (0.1x a 99x)
 
-Teclado y mouse
----------------
+Con TECLADO Y MOUSE: haz clic en el video para capturar el mouse.
+
   WASD ............ moverse            Mouse ............ apuntar
   Clic izquierdo .. disparar           Clic derecho ..... granada
   Espacio ......... saltar             E o R ............ acción / recargar
@@ -44,8 +45,13 @@ Problemas
 ---------
   "El host no responde": revisa la IP, que Radmin VPN esté conectado (ping al host
      desde Radmin) y que el host tenga HaloCoop Host abierto.
+  "Esperando el video...": el host todavía no abrió MCC, o el mod no está instalado en
+     su juego (su panel lo dice).
   "Ese jugador ya está ocupado": otro amigo eligió tu número; elige otro.
   "Se perdió la conexión": el host cerró o se cortó Radmin; vuelve a Conectar.
+  Laptop sin video / error de NVIDIA: en Configuración > Pantalla > Gráficos de Windows
+     pon HaloCoopClient.exe en "Alto rendimiento".
   Mi personaje no se mueve: el juego del host tiene que estar en primer plano en su PC.
 
-Tus datos (IP del host, nombre, etc.) se guardan en halocoop-cliente.ini, en esta carpeta.
+Tus datos (IP del host, nombre, etc.) se guardan en halocoop-cliente.ini y lo que pasa en
+halocoop-cliente.log (pásaselo al host si algo falla), los dos en esta carpeta.

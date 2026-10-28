@@ -11,8 +11,10 @@
 namespace proto {
 
 constexpr uint16_t k_port = 27960;
+// Puerto local (solo 127.0.0.1) del DLL del juego: ahí el launcher le dice a quién mandar el video.
+constexpr uint16_t k_video_control_port = 27961;
 constexpr uint32_t k_magic = 0x50434F48;  // "HOCP"
-constexpr uint16_t k_version = 1;
+constexpr uint16_t k_version = 2;
 constexpr int k_nickname_size = 24;       // UTF-8 con '\0'
 
 // Si el host no recibe nada de un cliente en este tiempo, libera su lugar y suelta su mando.
@@ -26,7 +28,14 @@ enum class Type : uint8_t {
     pong = 5,     // host -> cliente (devuelve el mismo tiempo)
     bye = 6,      // cliente -> host: me desconecto
     kicked = 7,   // host -> cliente: el host te expulsó / cerró
+    keyframe_request = 8,  // cliente -> host: perdí video, mándame un fotograma completo
+    video = 9,             // DLL del juego -> cliente: un fragmento de un fotograma H.264
+    video_config = 10,     // launcher -> DLL (local): a quién mandar video, FPS y bitrate
+    video_status = 11,     // DLL -> launcher (local): estado del video para el panel
 };
+
+constexpr int k_video_payload = 1180;  // bytes de H.264 por paquete (cabe en el MTU de Radmin)
+constexpr int k_fps_options[] = {30, 60, 120};
 
 enum class Reason : uint8_t {
     none = 0,
@@ -87,6 +96,44 @@ struct Bye {
 struct Kicked {
     Header header{k_magic, Type::kicked};
     Reason reason = Reason::kicked;
+};
+
+struct KeyframeRequest {
+    Header header{k_magic, Type::keyframe_request};
+};
+
+// Seguido de hasta k_video_payload bytes del fotograma.
+struct VideoHeader {
+    Header header{k_magic, Type::video};
+    uint32_t frame_id = 0;
+    uint16_t fragment_index = 0;
+    uint16_t fragment_count = 0;
+    uint8_t keyframe = 0;
+    uint16_t width = 0, height = 0;
+    uint64_t capture_us = 0;  // reloj del host, para estadísticas
+};
+
+struct VideoTarget {
+    uint8_t active = 0;
+    uint32_t ip = 0;          // orden de red, como sin_addr
+    uint16_t port = 0;        // orden de red, como sin_port
+    uint32_t keyframe_requests = 0;  // contador: si sube, el DLL manda un fotograma completo
+};
+
+// El launcher lo manda al DLL cada 250 ms. Si el DLL deja de recibirlo, deja de mandar video.
+struct VideoConfig {
+    Header header{k_magic, Type::video_config};
+    uint8_t fps = 60;
+    VideoTarget targets[3];  // jugadores 2, 3, 4
+};
+
+struct VideoStatus {
+    Header header{k_magic, Type::video_status};
+    uint8_t encoder_ok = 0;
+    uint16_t game_width = 0, game_height = 0;
+    uint16_t fps_sent[3] = {};       // por jugador 2, 3, 4
+    uint32_t kbps_sent[3] = {};
+    char error[96] = {};
 };
 #pragma pack(pop)
 

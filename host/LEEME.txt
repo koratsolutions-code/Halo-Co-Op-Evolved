@@ -2,7 +2,10 @@ HALO1-COOP - HOST
 =================
 
 Contenido:
-  HaloCoopHost.exe  -> crea los mandos de los jugadores 2, 3 y 4 y muestra el panel del host.
+  HaloCoopHost.exe  -> crea los mandos de los jugadores 2, 3 y 4, recibe sus controles y
+                       muestra el panel del host.
+  VERSION.dll       -> el mod dentro del juego (captura el video de cada amigo).
+                       HaloCoopHost.exe lo copia solo a la carpeta del juego.
 
 Antes de la primera vez:
   1. AlphaRing: descarga Release1.0.zip (1.3528.0.0) de
@@ -15,11 +18,17 @@ Antes de la primera vez:
 
 Cada vez que jueguen:
   1. Desconecta los mandos físicos.
-  2. Abre HaloCoopHost.exe PRIMERO (no lo cierres mientras jueguen).
-  3. Presiona "Abrir MCC" y elige sin anticheat.
-  4. F4 -> Splitscreen -> Players = 4. Cierra el menú con F4.
-  5. En la misión usa gráficos clásicos (Tab) y deja el juego como ventana activa.
+  2. Abre HaloCoopHost.exe PRIMERO, con MCC cerrado (no lo cierres mientras jueguen).
+     La primera vez, si Windows pregunta por el firewall, marca redes privadas y públicas.
+  3. Pásales a tus amigos la IP de Radmin que sale arriba en el panel.
+  4. Presiona "Abrir MCC" y elige sin anticheat.
+  5. F4 -> Splitscreen -> Players = 4. Cierra el menú con F4.
+  6. En la misión usa gráficos clásicos (Tab) y deja el juego como ventana activa.
 
-Para probar: botón "Mover" de cada jugador en HaloCoop Host.
+En el panel:
+  - "Video": a los ~10 s de abrir MCC dice "listo" y cuántos FPS/Mbps recibe cada amigo.
+  - "Video a 30/60/120 FPS": más FPS = menos retraso pero más internet de subida
+    (unos 10 Mbps por amigo a 60 FPS).
+  - "Mover": prueba el mando de ese jugador.  "Expulsar": lo desconecta.
 
 Las instrucciones completas están en el README.md del repositorio.

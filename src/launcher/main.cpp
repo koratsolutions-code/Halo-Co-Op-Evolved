@@ -2,6 +2,7 @@
 // Crea los 3 mandos virtuales ANTES de abrir MCC (si no, MCC no siempre los registra y los jugadores 2-4 no
 // se mueven) y muestra el panel del host.
 
+#include "game_install.h"
 #include "log.h"
 #include "net_server.h"
 #include "pads.h"
@@ -20,22 +21,38 @@ static constexpr wchar_t k_title[] = L"HaloCoop Host";
 static constexpr wchar_t k_mcc_exe[] = L"MCC-Win64-Shipping.exe";
 static constexpr wchar_t k_mcc_steam_url[] = L"steam://rungameid/976730";
 static constexpr wchar_t k_vigembus_url[] = L"https://github.com/nefarius/ViGEmBus/releases/latest";
+static constexpr wchar_t k_alpharing_url[] = L"https://github.com/wouter51/AlphaRing/releases";
 
 static constexpr UINT_PTR k_refresh_timer = 1;
 static constexpr int k_id_launch = 100;
 static constexpr int k_id_move = 200;  // +0, +1, +2 para jugadores 2, 3, 4
 static constexpr int k_id_kick = 300;  // +0, +1, +2 para jugadores 2, 3, 4
+static constexpr int k_id_install = 400;
+static constexpr int k_id_fps = 500;
 
 struct Ui {
     HWND window = nullptr;
     HWND pads_label = nullptr;
     HWND ip_label = nullptr;
+    HWND mod_label = nullptr;
+    HWND install_button = nullptr;
     HWND mcc_label = nullptr;
     HWND launch_button = nullptr;
+    HWND video_label = nullptr;
+    HWND fps_combo = nullptr;
     HWND player_labels[k_remote_players]{};
     HWND kick_buttons[k_remote_players]{};
 };
 static Ui g_ui;
+static std::wstring g_binaries_dir;  // ...\mcc\binaries\win64
+
+static void install_mod(HWND owner) {
+    std::wstring error;
+    if (game_install_mod(g_binaries_dir, error))
+        MessageBoxW(owner, L"Mod instalado en el juego.", k_title, MB_ICONINFORMATION);
+    else
+        MessageBoxW(owner, error.c_str(), k_title, MB_ICONERROR);
+}
 
 // La IP que los amigos ponen en su cliente: la del adaptador de Radmin VPN.
 static std::wstring find_radmin_ip() {
@@ -120,6 +137,39 @@ static void refresh() {
         : L"MCC: cerrado. Ábrelo con el botón y elige \"sin anticheat\".");
     EnableWindow(g_ui.launch_button, !mcc_open);
 
+    ModState mod = game_mod_state(g_binaries_dir);
+    const wchar_t* mod_text = L"";
+    switch (mod) {
+    case ModState::game_not_found: mod_text = L"Mod del juego: no se encontró MCC en tus bibliotecas de Steam."; break;
+    case ModState::not_installed: mod_text = L"Mod del juego: NO instalado (sin él no hay video)."; break;
+    case ModState::outdated: mod_text = L"Mod del juego: versión distinta a la de esta carpeta: actualízalo."; break;
+    case ModState::installed:
+        mod_text = game_alpharing_present(g_binaries_dir)
+            ? L"Mod del juego: instalado  ·  AlphaRing: instalado"
+            : L"Mod del juego: instalado  ·  AlphaRing: FALTA (ver README)";
+        break;
+    }
+    SetWindowTextW(g_ui.mod_label, mod_text);
+    EnableWindow(g_ui.install_button,
+                 !mcc_open && (mod == ModState::not_installed || mod == ModState::outdated));
+
+    proto::VideoStatus video;
+    wchar_t video_text[256];
+    if (!net_server_video_status(video)) {
+        swprintf_s(video_text, mcc_open ? L"Video: el juego no responde (¿mod instalado? se activa unos segundos "
+                                          L"después de abrir MCC)"
+                                        : L"Video: se activa al abrir MCC");
+    } else if (video.error[0]) {
+        wchar_t error[128];
+        MultiByteToWideChar(CP_UTF8, 0, video.error, -1, error, 128);
+        swprintf_s(video_text, L"Video: %s", error);
+    } else {
+        swprintf_s(video_text, L"Video: listo (%ux%u)  ·  J2 %u fps %.1f Mbps  ·  J3 %u fps %.1f Mbps  ·  J4 %u fps %.1f Mbps",
+                   video.game_width, video.game_height, video.fps_sent[0], video.kbps_sent[0] / 1000.0,
+                   video.fps_sent[1], video.kbps_sent[1] / 1000.0, video.fps_sent[2], video.kbps_sent[2] / 1000.0);
+    }
+    SetWindowTextW(g_ui.video_label, video_text);
+
     static ULONGLONG last_ip_check = 0;
     if (GetTickCount64() - last_ip_check > 5000) {
         last_ip_check = GetTickCount64();
@@ -165,6 +215,14 @@ static LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
             net_server_kick(id - k_id_kick + k_first_remote_player);  // puede volver a conectarse
             refresh();
             focus_mcc();
+        } else if (id == k_id_install) {
+            install_mod(hwnd);
+            refresh();
+        } else if (id == k_id_fps && HIWORD(wparam) == CBN_SELCHANGE) {
+            int index = int(SendMessageW(g_ui.fps_combo, CB_GETCURSEL, 0, 0));
+            if (index >= 0 && index < int(std::size(proto::k_fps_options)))
+                net_server_set_fps(proto::k_fps_options[index]);
+            focus_mcc();
         }
         return 0;
     }
@@ -190,7 +248,7 @@ static void create_ui(HINSTANCE instance) {
     RegisterClassW(&wc);
 
     const int width = 720, margin = 12, row_h = 32;
-    RECT rect{0, 0, width, margin * 2 + row_h * (k_remote_players + 5) + 20};
+    RECT rect{0, 0, width, margin * 2 + row_h * (k_remote_players + 7) + 20};
     DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
     AdjustWindowRect(&rect, style, FALSE);
     g_ui.window = CreateWindowW(L"HaloCoopHost", k_title, style, CW_USEDEFAULT, CW_USEDEFAULT,
@@ -212,8 +270,22 @@ static void create_ui(HINSTANCE instance) {
     y += row_h;
     g_ui.ip_label = make(L"STATIC", L"", SS_LEFT, margin, y + 4, width - 2 * margin, 20, 0);
     y += row_h;
+    g_ui.mod_label = make(L"STATIC", L"", SS_LEFT, margin, y + 6, width - 2 * margin - 140, 20, 0);
+    g_ui.install_button = make(L"BUTTON", L"Instalar en el juego", BS_PUSHBUTTON, width - margin - 130, y, 130, 26,
+                               k_id_install);
+    y += row_h;
     g_ui.mcc_label = make(L"STATIC", L"", SS_LEFT, margin, y + 6, width - 2 * margin - 140, 20, 0);
     g_ui.launch_button = make(L"BUTTON", L"Abrir MCC", BS_PUSHBUTTON, width - margin - 130, y, 130, 26, k_id_launch);
+    y += row_h;
+    g_ui.video_label = make(L"STATIC", L"", SS_LEFT, margin, y + 6, width - 2 * margin - 140, 20, 0);
+    g_ui.fps_combo = make(L"COMBOBOX", L"", CBS_DROPDOWNLIST | WS_VSCROLL, width - margin - 130, y, 130, 200, k_id_fps);
+    for (int fps : proto::k_fps_options) {
+        wchar_t option[32];
+        swprintf_s(option, L"Video a %d FPS", fps);
+        SendMessageW(g_ui.fps_combo, CB_ADDSTRING, 0, reinterpret_cast<LPARAM>(option));
+        if (fps == net_server_fps())
+            SendMessageW(g_ui.fps_combo, CB_SETCURSEL, SendMessageW(g_ui.fps_combo, CB_GETCOUNT, 0, 0) - 1, 0);
+    }
     y += row_h + 8;
     make(L"STATIC", L"En AlphaRing (F4): Players = 4, sin cambiar nada más. Ciérralo con F4 y usa gráficos clásicos (Tab).",
          SS_LEFT, margin, y, width - 2 * margin, 20, 0);
@@ -272,6 +344,23 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
                              L"el panel.",
                     k_title, MB_ICONWARNING);
     }
+
+    // El DLL del juego (video): instalarlo o actualizarlo ahora que MCC está cerrado.
+    g_binaries_dir = game_binaries_dir();
+    log_write("Carpeta del juego: %s", g_binaries_dir.empty() ? "no encontrada" : "encontrada");
+    ModState mod = game_mod_state(g_binaries_dir);
+    bool auto_install = !GetEnvironmentVariableW(L"HALOCOOP_NO_INSTALL", nullptr, 0);  // pruebas: no tocar el juego
+    if (auto_install && (mod == ModState::not_installed || mod == ModState::outdated)) {
+        std::wstring error;
+        if (!game_install_mod(g_binaries_dir, error))
+            MessageBoxW(nullptr, (L"No se pudo instalar el mod del juego (video):\n\n" + error).c_str(), k_title,
+                        MB_ICONWARNING);
+    }
+    if (!g_binaries_dir.empty() && !game_alpharing_present(g_binaries_dir) &&
+        MessageBoxW(nullptr, L"Falta AlphaRing (pantalla dividida de 4 jugadores) en la carpeta del juego.\n\n"
+                             L"¿Abrir su página de descarga? Copia WTSAPI32.dll de Release1.0.zip en mcc\\binaries\\win64.",
+                    k_title, MB_YESNO | MB_ICONWARNING) == IDYES)
+        ShellExecuteW(nullptr, L"open", k_alpharing_url, nullptr, nullptr, SW_SHOWNORMAL);
 
     if (!net_server_start()) {
         MessageBoxW(nullptr, L"No se pudo abrir el puerto UDP 27960: otro programa lo está usando.\n\nLos mandos "

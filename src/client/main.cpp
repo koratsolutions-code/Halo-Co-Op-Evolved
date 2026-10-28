@@ -1,11 +1,15 @@
-// HaloCoopClient: app de los jugadores 2, 3 y 4. Se conecta al host por Radmin VPN y le manda su mando o
-// teclado y mouse. (Fase 2: todavía sin video; la pantalla del host se ve aparte, por ejemplo por Discord.)
+// HaloCoopClient: app de los jugadores 2, 3 y 4. Se conecta al host por Radmin VPN, muestra su cuadrante del
+// juego a pantalla completa y le manda su mando o teclado y mouse.
 
+#include "decoder.h"
 #include "input.h"
+#include "log.h"
 #include "net_client.h"
+#include "renderer.h"
 #include "settings.h"
 
 #include <d3d11.h>
+#include <dxgi1_5.h>
 #include <windows.h>
 
 #include <imgui.h>
@@ -16,6 +20,9 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <memory>
+#include <string>
+#include <vector>
 
 extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM, LPARAM);
 
@@ -28,12 +35,24 @@ ID3D11DeviceContext* g_context = nullptr;
 IDXGISwapChain* g_swap_chain = nullptr;
 ID3D11RenderTargetView* g_target = nullptr;
 HWND g_window = nullptr;
+bool g_tearing = false;  // presentar sin esperar al refresco del monitor (menos retraso)
+UINT g_swap_flags = 0;
+UINT g_width = 0, g_height = 0;
 
 Settings g_settings;
 char g_host_text[64] = {};
 char g_name_text[proto::k_nickname_size] = {};
 float g_toast_until = 0;
 char g_toast[128] = {};
+
+std::unique_ptr<Decoder> g_decoder;
+std::string g_decoder_error;
+VideoRenderer g_renderer;
+bool g_has_video = false;
+bool g_show_stats = false;
+bool g_show_menu = false;
+bool g_fullscreen = false;
+WINDOWPLACEMENT g_windowed_placement{sizeof(WINDOWPLACEMENT)};
 
 void create_target() {
     ID3D11Texture2D* back = nullptr;
@@ -43,6 +62,33 @@ void create_target() {
 }
 
 bool create_device(HWND hwnd) {
+    // ¿El sistema permite "tearing"? (Windows 10 con drivers recientes) Y en laptops con dos GPU, la NVIDIA:
+    // el decodificador NVDEC tiene que estar en la misma GPU que dibuja.
+    IDXGIFactory5* factory = nullptr;
+    IDXGIAdapter1* nvidia = nullptr;
+    if (SUCCEEDED(CreateDXGIFactory1(IID_PPV_ARGS(&factory)))) {
+        BOOL allow = FALSE;
+        g_tearing = SUCCEEDED(factory->CheckFeatureSupport(DXGI_FEATURE_PRESENT_ALLOW_TEARING, &allow, sizeof(allow))) &&
+                    allow;
+        for (UINT i = 0; !nvidia; ++i) {
+            IDXGIAdapter1* adapter = nullptr;
+            if (factory->EnumAdapters1(i, &adapter) == DXGI_ERROR_NOT_FOUND) break;
+            DXGI_ADAPTER_DESC1 adapter_desc;
+            adapter->GetDesc1(&adapter_desc);
+            if (adapter_desc.VendorId == 0x10DE) {
+                nvidia = adapter;
+                char name[128];
+                WideCharToMultiByte(CP_UTF8, 0, adapter_desc.Description, -1, name, sizeof(name), nullptr, nullptr);
+                log_write("GPU: %s", name);
+            } else {
+                adapter->Release();
+            }
+        }
+        factory->Release();
+    }
+    if (!nvidia) log_write("No se encontró una GPU NVIDIA");
+    g_swap_flags = g_tearing ? DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING : 0;
+
     DXGI_SWAP_CHAIN_DESC desc{};
     desc.BufferCount = 2;
     desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
@@ -51,20 +97,45 @@ bool create_device(HWND hwnd) {
     desc.SampleDesc.Count = 1;
     desc.Windowed = TRUE;
     desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
-    if (FAILED(D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, nullptr, 0,
-                                             D3D11_SDK_VERSION, &desc, &g_swap_chain, &g_device, nullptr,
-                                             &g_context)) &&
-        FAILED(D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_WARP, nullptr, 0, nullptr, 0,
-                                             D3D11_SDK_VERSION, &desc, &g_swap_chain, &g_device, nullptr,
-                                             &g_context)))
-        return false;
+    desc.Flags = g_swap_flags;
+    HRESULT hr = D3D11CreateDeviceAndSwapChain(nvidia, nvidia ? D3D_DRIVER_TYPE_UNKNOWN : D3D_DRIVER_TYPE_HARDWARE,
+                                               nullptr, 0, nullptr, 0, D3D11_SDK_VERSION, &desc, &g_swap_chain,
+                                               &g_device, nullptr, &g_context);
+    if (nvidia) nvidia->Release();
+    if (FAILED(hr)) return false;
+    // Alt+Enter de DXGI no: la pantalla completa la maneja F11 (sin bordes, sin cambio de modo).
+    IDXGIFactory1* parent = nullptr;
+    if (SUCCEEDED(g_swap_chain->GetParent(IID_PPV_ARGS(&parent)))) {
+        parent->MakeWindowAssociation(hwnd, DXGI_MWA_NO_ALT_ENTER);
+        parent->Release();
+    }
     create_target();
     return true;
 }
 
 void toast(const char* text) {
     snprintf(g_toast, sizeof(g_toast), "%s", text);
-    g_toast_until = float(ImGui::GetTime()) + 2.0f;
+    g_toast_until = float(ImGui::GetTime()) + 2.5f;
+}
+
+void set_fullscreen(bool fullscreen) {
+    if (fullscreen == g_fullscreen) return;
+    g_fullscreen = fullscreen;
+    DWORD style = GetWindowLongW(g_window, GWL_STYLE);
+    if (fullscreen) {
+        GetWindowPlacement(g_window, &g_windowed_placement);
+        MONITORINFO monitor{sizeof(monitor)};
+        GetMonitorInfoW(MonitorFromWindow(g_window, MONITOR_DEFAULTTONEAREST), &monitor);
+        SetWindowLongW(g_window, GWL_STYLE, style & ~WS_OVERLAPPEDWINDOW);
+        const RECT& r = monitor.rcMonitor;
+        SetWindowPos(g_window, HWND_TOP, r.left, r.top, r.right - r.left, r.bottom - r.top,
+                     SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+    } else {
+        SetWindowLongW(g_window, GWL_STYLE, style | WS_OVERLAPPEDWINDOW);
+        SetWindowPlacement(g_window, &g_windowed_placement);
+        SetWindowPos(g_window, nullptr, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_FRAMECHANGED);
+    }
 }
 
 void change_sensitivity(float factor) {
@@ -81,15 +152,15 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
     if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam)) return true;
     switch (msg) {
     case WM_SIZE:
+        g_width = LOWORD(lparam);
+        g_height = HIWORD(lparam);
         if (g_device && wparam != SIZE_MINIMIZED) {
             if (g_target) g_target->Release();
             g_target = nullptr;
-            g_swap_chain->ResizeBuffers(0, LOWORD(lparam), HIWORD(lparam), DXGI_FORMAT_UNKNOWN, 0);
+            g_swap_chain->ResizeBuffers(0, g_width, g_height, DXGI_FORMAT_UNKNOWN, g_swap_flags);
             create_target();
         }
-        if (input_captured()) {
-            input_set_captured(false);  // se vuelve a capturar con un clic, ya con el tamaño nuevo
-        }
+        input_set_captured(false);  // se vuelve a capturar con un clic, ya con el tamaño nuevo
         return 0;
     case WM_ACTIVATE:
         if (LOWORD(wparam) == WA_INACTIVE) input_set_captured(false);
@@ -99,8 +170,20 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
             input_set_captured(false);
             return 0;
         }
+        if (wparam == VK_F11) set_fullscreen(!g_fullscreen);
+        if (wparam == VK_F1) g_show_stats = !g_show_stats;
+        if (wparam == VK_F2 && net_status().state == NetState::connected) {
+            g_show_menu = !g_show_menu;
+            if (g_show_menu) input_set_captured(false);
+        }
         if (input_captured() && (wparam == VK_OEM_PLUS || wparam == VK_ADD)) change_sensitivity(1.1f);
         if (input_captured() && (wparam == VK_OEM_MINUS || wparam == VK_SUBTRACT)) change_sensitivity(1 / 1.1f);
+        break;
+    case WM_SYSKEYDOWN:
+        if (wparam == VK_RETURN) {  // Alt+Enter: pantalla completa
+            set_fullscreen(!g_fullscreen);
+            return 0;
+        }
         break;
     case WM_SYSCOMMAND:
         if ((wparam & 0xfff0) == SC_KEYMENU) return 0;  // Alt no abre el menú de la ventana
@@ -115,13 +198,14 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
 void apply_style() {
     ImGuiStyle& style = ImGui::GetStyle();
     ImGui::StyleColorsDark();
-    style.WindowRounding = 0;
+    style.WindowRounding = 8;
     style.FrameRounding = 6;
     style.GrabRounding = 6;
     style.FramePadding = ImVec2(10, 7);
     style.ItemSpacing = ImVec2(10, 10);
+    style.WindowPadding = ImVec2(18, 16);
     ImVec4* c = style.Colors;
-    c[ImGuiCol_WindowBg] = ImVec4(0.07f, 0.09f, 0.11f, 1);
+    c[ImGuiCol_WindowBg] = ImVec4(0.07f, 0.09f, 0.11f, 0.97f);
     c[ImGuiCol_FrameBg] = ImVec4(0.14f, 0.17f, 0.20f, 1);
     c[ImGuiCol_FrameBgHovered] = ImVec4(0.18f, 0.22f, 0.26f, 1);
     c[ImGuiCol_Button] = ImVec4(0.20f, 0.45f, 0.30f, 1);
@@ -133,17 +217,20 @@ void apply_style() {
     c[ImGuiCol_HeaderHovered] = ImVec4(0.25f, 0.55f, 0.36f, 1);
 }
 
+const ImVec4 k_green(0.45f, 0.80f, 0.55f, 1);
+const ImVec4 k_orange(0.95f, 0.70f, 0.30f, 1);
+const ImVec4 k_red(0.95f, 0.45f, 0.40f, 1);
+
 void sensitivity_slider() {
     ImGui::SetNextItemWidth(-1);
     if (ImGui::SliderFloat("##sens", &g_settings.sensitivity, k_min_sensitivity, k_max_sensitivity,
-                           "Sensibilidad del mouse: %.2fx", ImGuiSliderFlags_Logarithmic)) {
+                           "Sensibilidad del mouse: %.2fx", ImGuiSliderFlags_Logarithmic))
         net_update_settings(g_settings);
-    }
     if (ImGui::IsItemDeactivatedAfterEdit()) settings_save(g_settings);
 }
 
 void draw_menu(const NetStatus& status) {
-    ImGui::TextColored(ImVec4(0.45f, 0.80f, 0.55f, 1), "HALO CE · COOP 4 JUGADORES");
+    ImGui::TextColored(k_green, "HALO CE · COOP 4 JUGADORES");
     ImGui::TextDisabled("Conéctate al host por Radmin VPN.");
     ImGui::Separator();
 
@@ -170,15 +257,13 @@ void draw_menu(const NetStatus& status) {
     if (ImGui::RadioButton("Teclado y mouse", g_settings.control == ControlMode::keyboard_mouse))
         g_settings.control = ControlMode::keyboard_mouse;
     if (g_settings.control == ControlMode::gamepad && !input_gamepad_connected())
-        ImGui::TextColored(ImVec4(0.95f, 0.70f, 0.30f, 1), "No se detecta ningún mando conectado.");
+        ImGui::TextColored(k_orange, "No se detecta ningún mando conectado.");
     if (g_settings.control == ControlMode::keyboard_mouse) sensitivity_slider();
 
-    if (status.state == NetState::failed && !status.message.empty())
-        ImGui::TextColored(ImVec4(0.95f, 0.45f, 0.40f, 1), "%s", status.message.c_str());
+    if (status.state == NetState::failed && !status.message.empty()) ImGui::TextColored(k_red, "%s", status.message.c_str());
 
     ImGui::Spacing();
-    bool can_connect = g_host_text[0] != '\0';
-    ImGui::BeginDisabled(!can_connect);
+    ImGui::BeginDisabled(g_host_text[0] == '\0');
     if (ImGui::Button("Conectar", ImVec2(-1, 44))) {
         g_settings.host = g_host_text;
         g_settings.nickname = g_name_text;
@@ -189,32 +274,33 @@ void draw_menu(const NetStatus& status) {
 }
 
 void draw_connecting() {
-    ImGui::TextColored(ImVec4(0.45f, 0.80f, 0.55f, 1), "Conectando...");
+    ImGui::TextColored(k_green, "Conectando...");
     ImGui::Text("Host %s  ·  Jugador %d", g_settings.host.c_str(), g_settings.player);
     ImGui::Spacing();
     if (ImGui::Button("Cancelar", ImVec2(-1, 40))) net_disconnect();
 }
 
-void draw_connected(const NetStatus& status) {
-    ImGui::TextColored(ImVec4(0.45f, 0.80f, 0.55f, 1), "CONECTADO  ·  JUGADOR %d", g_settings.player);
+// Panel de partida (F2, o mientras no llega el video).
+void draw_ingame_panel(const NetStatus& status) {
+    ImGui::TextColored(k_green, "CONECTADO  ·  JUGADOR %d", g_settings.player);
     if (status.ping_ms >= 0)
-        ImGui::Text("Ping %d ms  ·  %u envíos/s", status.ping_ms, status.sent_per_second);
+        ImGui::Text("Ping %d ms  ·  video %u fps", status.ping_ms, status.video_fps);
     else
         ImGui::Text("Midiendo ping...");
+    if (!g_has_video) {
+        if (!g_decoder_error.empty())
+            ImGui::TextColored(k_red, "%s", g_decoder_error.c_str());
+        else
+            ImGui::TextColored(k_orange, "Esperando el video... El host tiene que tener MCC abierto con HaloCoop.");
+    }
     ImGui::Separator();
-
     if (g_settings.control == ControlMode::gamepad) {
         if (input_gamepad_connected())
-            ImGui::Text("Usando tu mando. Funciona aunque esta ventana no esté activa.");
+            ImGui::Text("Usando tu mando.");
         else
-            ImGui::TextColored(ImVec4(0.95f, 0.70f, 0.30f, 1), "No se detecta ningún mando: conéctalo.");
+            ImGui::TextColored(k_orange, "No se detecta ningún mando: conéctalo.");
     } else {
-        if (input_captured()) {
-            ImGui::TextColored(ImVec4(0.45f, 0.80f, 0.55f, 1), "Mouse y teclado capturados.");
-            ImGui::TextDisabled("Esc para soltar el mouse  ·  + / - cambia la sensibilidad");
-        } else {
-            ImGui::TextColored(ImVec4(0.95f, 0.70f, 0.30f, 1), "Haz clic en esta ventana para jugar con teclado y mouse.");
-        }
+        ImGui::TextDisabled("Clic en el video para capturar el mouse · Esc lo suelta · + / - sensibilidad");
         sensitivity_slider();
         if (ImGui::CollapsingHeader("Controles del teclado")) {
             ImGui::TextDisabled(
@@ -224,6 +310,7 @@ void draw_connected(const NetStatus& status) {
                 "1-4 o flechas cruceta (linterna, etc.) · Enter pausa · Tab marcador");
         }
     }
+    ImGui::TextDisabled("F1 estadísticas · F2 este menú · F11 pantalla completa");
     ImGui::Spacing();
     if (ImGui::Button("Desconectar", ImVec2(-1, 40))) {
         input_set_captured(false);
@@ -231,9 +318,61 @@ void draw_connected(const NetStatus& status) {
     }
 }
 
+void draw_stats(const NetStatus& status) {
+    ImGui::SetNextWindowPos(ImVec2(12, 12));
+    ImGui::SetNextWindowBgAlpha(0.6f);
+    ImGui::Begin("##stats", nullptr,
+                 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs |
+                     ImGuiWindowFlags_NoSavedSettings);
+    ImGui::Text("Ping %d ms", status.ping_ms);
+    ImGui::Text("Video %u fps · %.1f Mbps", status.video_fps, status.video_kbps / 1000.0);
+    if (g_decoder) ImGui::Text("Decodificar %.1f ms · %ux%u", g_decoder->last_decode_ms(), g_decoder->width(), g_decoder->height());
+    ImGui::Text("Fotogramas perdidos %u", status.frames_lost);
+    ImGui::Text("Controles %u/s", status.sent_per_second);
+    ImGui::End();
+}
+
+void decode_pending_frames() {
+    static std::vector<VideoFrame> frames;
+    net_take_frames(frames);
+    if (frames.empty()) return;
+    if (!g_decoder && g_decoder_error.empty()) {
+        auto decoder = std::make_unique<Decoder>();
+        if (decoder->init(g_device, g_decoder_error)) {
+            g_decoder = std::move(decoder);
+            log_write("Decodificador NVDEC listo");
+        } else {
+            log_write("Decodificador: %s", g_decoder_error.c_str());
+        }
+    }
+    if (!g_decoder) return;
+    // Hay que decodificarlos todos y en orden (cada uno depende del anterior); solo se ve el último.
+    for (VideoFrame& frame : frames) {
+        if (g_decoder->decode(frame.data.data(), frame.data.size())) {
+            if (!g_has_video) {
+                log_write("Primer fotograma de video: %ux%u", g_decoder->width(), g_decoder->height());
+                g_has_video = true;
+                set_fullscreen(true);
+                g_show_menu = false;
+                toast("F2 menú · F1 estadísticas · F11 pantalla completa");
+            }
+        } else if (frame.keyframe || g_has_video) {
+            net_request_keyframe();
+        }
+    }
+    frames.clear();
+}
+
 }  // namespace
 
 int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
+    log_init();
+    log_write("HaloCoop Cliente iniciado (protocolo %u)", proto::k_version);
+    // Windows 11 ignora timeBeginPeriod en apps tapadas o minimizadas: el control saldría cada ~16 ms en vez
+    // de cada 4. Esto le pide que lo respete siempre.
+    PROCESS_POWER_THROTTLING_STATE throttling{PROCESS_POWER_THROTTLING_CURRENT_VERSION,
+                                              PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION, 0};
+    SetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, &throttling, sizeof(throttling));
     g_settings = settings_load();
     strncpy_s(g_host_text, g_settings.host.c_str(), _TRUNCATE);
     strncpy_s(g_name_text, g_settings.nickname.c_str(), _TRUNCATE);
@@ -241,12 +380,13 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     WNDCLASSEXW wc{sizeof(wc), CS_CLASSDC, window_proc, 0, 0, instance, LoadIconW(nullptr, IDI_APPLICATION),
                    LoadCursorW(nullptr, IDC_ARROW), nullptr, nullptr, L"HaloCoopClient", nullptr};
     RegisterClassExW(&wc);
-    g_window = CreateWindowW(wc.lpszClassName, k_title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 600, 620,
+    g_window = CreateWindowW(wc.lpszClassName, k_title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 640, 680,
                              nullptr, nullptr, instance, nullptr);
     if (!create_device(g_window)) {
         MessageBoxW(nullptr, L"No se pudo iniciar Direct3D 11.", k_title, MB_ICONERROR);
         return 1;
     }
+    g_renderer.init(g_device);
     ShowWindow(g_window, SW_SHOWDEFAULT);
     input_init(g_window);
 
@@ -254,10 +394,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = nullptr;
-    // Segoe UI de Windows: tiene tildes y ñ.
-    ImFontConfig font_config;
     static const ImWchar k_ranges[] = {0x0020, 0x00FF, 0x2010, 0x2027, 0};
-    if (!io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\segoeui.ttf", 19.0f, &font_config, k_ranges))
+    if (!io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\segoeui.ttf", 19.0f, nullptr, k_ranges))
         io.Fonts->AddFontDefault();
     apply_style();
     ImGui_ImplWin32_Init(g_window);
@@ -267,8 +405,14 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     if (GetEnvironmentVariableW(L"HALOCOOP_AUTOCONNECT", nullptr, 0) && !g_settings.host.empty())
         net_connect(g_settings);
 
+    NetState previous_state = NetState::idle;
     bool running = true;
     while (running) {
+        // Conectado: despertar en cuanto llega un fotograma. En el menú, ~60 veces por segundo.
+        NetStatus status = net_status();
+        bool connected = status.state == NetState::connected;
+        HANDLE frame_event = net_frame_event();
+        MsgWaitForMultipleObjects(1, &frame_event, FALSE, connected ? 8 : 16, QS_ALLINPUT);
         MSG msg;
         while (PeekMessageW(&msg, nullptr, 0, 0, PM_REMOVE)) {
             TranslateMessage(&msg);
@@ -277,49 +421,94 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
         }
         if (!running) break;
 
-        NetStatus status = net_status();
-        if (status.state != NetState::connected && input_captured()) input_set_captured(false);
+        status = net_status();
+        connected = status.state == NetState::connected;
+        if (status.state != previous_state) {
+            static const char* k_names[] = {"desconectado", "conectando", "conectado", "error"};
+            log_write("Estado: %s%s%s", k_names[int(status.state)], status.message.empty() ? "" : " - ",
+                      status.message.c_str());
+        }
+        static ULONGLONG last_stats = 0;
+        if (connected && GetTickCount64() - last_stats > 5000) {
+            last_stats = GetTickCount64();
+            log_write("Ping %d ms · video %u fps %.1f Mbps · perdidos %u · decodificar %.1f ms · controles %u/s",
+                      status.ping_ms, status.video_fps, status.video_kbps / 1000.0, status.frames_lost,
+                      g_decoder ? g_decoder->last_decode_ms() : 0.0, status.sent_per_second);
+        }
+        if (!connected && previous_state == NetState::connected) {
+            // Fin de la partida: volver al menú en ventana.
+            input_set_captured(false);
+            set_fullscreen(false);
+            g_decoder.reset();
+            g_decoder_error.clear();
+            g_has_video = false;
+            g_show_menu = false;
+        }
+        previous_state = status.state;
+        if (connected) decode_pending_frames();
 
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
         ImGui::NewFrame();
 
-        // Clic en la ventana con teclado y mouse: capturar.
-        if (status.state == NetState::connected && g_settings.control == ControlMode::keyboard_mouse &&
-            !input_captured() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered() &&
-            !ImGui::IsAnyItemActive())
+        if (!connected || !g_has_video) {
+            ImGui::SetNextWindowPos(ImVec2(0, 0));
+            ImGui::SetNextWindowSize(io.DisplaySize);
+            ImGui::Begin("##main", nullptr,
+                         ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
+                             ImGuiWindowFlags_NoBringToFrontOnFocus);
+            switch (status.state) {
+            case NetState::idle:
+            case NetState::failed: draw_menu(status); break;
+            case NetState::connecting: draw_connecting(); break;
+            case NetState::connected: draw_ingame_panel(status); break;
+            }
+            ImGui::End();
+        } else if (g_show_menu) {
+            ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x / 2, io.DisplaySize.y / 2), ImGuiCond_Always,
+                                    ImVec2(0.5f, 0.5f));
+            ImGui::SetNextWindowSize(ImVec2(std::min(560.0f, io.DisplaySize.x - 40), 0));
+            ImGui::Begin("Menú", &g_show_menu, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
+            draw_ingame_panel(status);
+            ImGui::End();
+        }
+        if (connected && g_show_stats) draw_stats(status);
+        if (ImGui::GetTime() < g_toast_until) {
+            ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x / 2, io.DisplaySize.y - 30), ImGuiCond_Always,
+                                    ImVec2(0.5f, 1.0f));
+            ImGui::SetNextWindowBgAlpha(0.7f);
+            ImGui::Begin("##toast", nullptr,
+                         ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs |
+                             ImGuiWindowFlags_NoSavedSettings);
+            ImGui::TextUnformatted(g_toast);
+            ImGui::End();
+        }
+
+        // Clic en el video con teclado y mouse: capturar.
+        if (connected && g_has_video && !g_show_menu && g_settings.control == ControlMode::keyboard_mouse &&
+            !input_captured() && ImGui::IsMouseClicked(ImGuiMouseButton_Left) && !io.WantCaptureMouse)
             input_set_captured(true);
 
-        ImGui::SetNextWindowPos(ImVec2(0, 0));
-        ImGui::SetNextWindowSize(io.DisplaySize);
-        ImGui::Begin("##main", nullptr,
-                     ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
-                         ImGuiWindowFlags_NoBringToFrontOnFocus);
-        ImGui::PushItemWidth(-1);
-        switch (status.state) {
-        case NetState::idle:
-        case NetState::failed: draw_menu(status); break;
-        case NetState::connecting: draw_connecting(); break;
-        case NetState::connected: draw_connected(status); break;
-        }
-        ImGui::PopItemWidth();
-        if (ImGui::GetTime() < g_toast_until) {
-            ImGui::SetCursorPosY(io.DisplaySize.y - 40);
-            ImGui::TextColored(ImVec4(1, 1, 1, 0.9f), "%s", g_toast);
-        }
-        ImGui::End();
-
         ImGui::Render();
-        const float clear[4] = {0.07f, 0.09f, 0.11f, 1};
+        const float clear[4] = {0.0f, 0.0f, 0.0f, 1};
+        const float menu_clear[4] = {0.07f, 0.09f, 0.11f, 1};
         g_context->OMSetRenderTargets(1, &g_target, nullptr);
-        g_context->ClearRenderTargetView(g_target, clear);
+        g_context->ClearRenderTargetView(g_target, g_has_video ? clear : menu_clear);
+        if (g_has_video && g_decoder)
+            g_renderer.draw(g_context, g_decoder->luma(), g_decoder->chroma(), g_decoder->width(),
+                            g_decoder->height(), g_width, g_height);
         ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-        g_swap_chain->Present(1, 0);
-        if (IsIconic(g_window)) Sleep(50);
+        // Con video: presentar ya (sin esperar al refresco del monitor). En el menú: sincronizado.
+        if (g_has_video)
+            g_swap_chain->Present(0, g_tearing ? DXGI_PRESENT_ALLOW_TEARING : 0);
+        else
+            g_swap_chain->Present(1, 0);
+        if (IsIconic(g_window)) Sleep(30);
     }
 
     input_set_captured(false);
     net_disconnect();
+    g_decoder.reset();
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();

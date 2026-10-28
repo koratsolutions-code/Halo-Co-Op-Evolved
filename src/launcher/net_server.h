@@ -15,3 +15,9 @@ bool net_server_start();   // false si el puerto está ocupado (¿otro HaloCoop 
 void net_server_stop();    // avisa a los clientes que el host se cerró
 PlayerInfo net_server_player(int player);  // player 2..4
 void net_server_kick(int player);
+
+// Video: el DLL del juego manda los cuadrantes; el launcher le dice a quién y a cuántos FPS.
+void net_server_set_fps(int fps);
+int net_server_fps();
+// false si el DLL del juego no reporta (juego cerrado o sin el DLL instalado).
+bool net_server_video_status(proto::VideoStatus& status);

@@ -1,0 +1,114 @@
+// HaloCoop dentro del juego (VERSION.dll en mcc\binaries\win64): captura los cuadrantes de J2-J4 y los manda
+// como video. No toca los mandos: de eso se encarga HaloCoop Host.
+
+#include "log.h"
+#include "video.h"
+
+#include <d3d11.h>
+#include <dxgi.h>
+#include <windows.h>
+
+#include <MinHook.h>
+
+namespace {
+
+using PresentFn = HRESULT(STDMETHODCALLTYPE*)(IDXGISwapChain*, UINT, UINT);
+PresentFn g_original_present = nullptr;
+constexpr int k_vtable_present = 8;
+
+HRESULT STDMETHODCALLTYPE hooked_present(IDXGISwapChain* swap_chain, UINT sync, UINT flags) {
+    if (!(flags & DXGI_PRESENT_TEST)) {
+        static bool described = false;
+        if (!described) {
+            described = true;
+            DXGI_SWAP_CHAIN_DESC desc{};
+            swap_chain->GetDesc(&desc);
+            log_write("Pantalla del juego: %ux%u formato %d", desc.BufferDesc.Width, desc.BufferDesc.Height,
+                      int(desc.BufferDesc.Format));
+        }
+        video_on_frame(swap_chain);
+    }
+    return g_original_present(swap_chain, sync, flags);
+}
+
+// Dirección de IDXGISwapChain::Present, sacada de un swapchain temporal.
+void* find_present() {
+    WNDCLASSEXW wc{sizeof(wc), CS_CLASSDC, DefWindowProcW, 0, 0, GetModuleHandleW(nullptr), nullptr, nullptr,
+                   nullptr, nullptr, L"HaloCoopDummy", nullptr};
+    RegisterClassExW(&wc);
+    HWND hwnd = CreateWindowW(wc.lpszClassName, L"", WS_OVERLAPPEDWINDOW, 0, 0, 64, 64, nullptr, nullptr,
+                              wc.hInstance, nullptr);
+    DXGI_SWAP_CHAIN_DESC desc{};
+    desc.BufferCount = 2;
+    desc.BufferDesc.Width = 64;
+    desc.BufferDesc.Height = 64;
+    desc.BufferDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    desc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+    desc.OutputWindow = hwnd;
+    desc.SampleDesc.Count = 1;
+    desc.Windowed = TRUE;
+    desc.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+    IDXGISwapChain* swap_chain = nullptr;
+    ID3D11Device* device = nullptr;
+    ID3D11DeviceContext* context = nullptr;
+    void* address = nullptr;
+    if (SUCCEEDED(D3D11CreateDeviceAndSwapChain(nullptr, D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, nullptr, 0,
+                                                D3D11_SDK_VERSION, &desc, &swap_chain, &device, nullptr, &context)))
+        address = (*reinterpret_cast<void***>(swap_chain))[k_vtable_present];
+    if (swap_chain) swap_chain->Release();
+    if (context) context->Release();
+    if (device) device->Release();
+    DestroyWindow(hwnd);
+    UnregisterClassW(wc.lpszClassName, wc.hInstance);
+    return address;
+}
+
+BOOL CALLBACK find_game_window(HWND hwnd, LPARAM found) {
+    DWORD pid = 0;
+    GetWindowThreadProcessId(hwnd, &pid);
+    if (pid == GetCurrentProcessId() && IsWindowVisible(hwnd) && !GetWindow(hwnd, GW_OWNER)) {
+        *reinterpret_cast<HWND*>(found) = hwnd;
+        return FALSE;
+    }
+    return TRUE;
+}
+
+DWORD WINAPI init_thread(LPVOID) {
+    // Esperamos a que el juego tenga ventana y unos segundos más: así AlphaRing y el overlay de Steam ya
+    // instalaron sus propios hooks y no parcheamos el mismo código a la vez.
+    HWND window = nullptr;
+    while (!window) {
+        Sleep(500);
+        EnumWindows(find_game_window, reinterpret_cast<LPARAM>(&window));
+    }
+    Sleep(5000);
+    video_start();
+    void* present = find_present();
+    MH_STATUS status = MH_Initialize();
+    if (present && (status == MH_OK || status == MH_ERROR_ALREADY_INITIALIZED)) {
+        status = MH_CreateHook(present, reinterpret_cast<void*>(&hooked_present),
+                               reinterpret_cast<void**>(&g_original_present));
+        if (status == MH_OK) status = MH_EnableHook(present);
+    }
+    if (present && status == MH_OK)
+        log_write("Listo: capturando la pantalla del juego");
+    else
+        log_write("No se pudo enganchar Present (%s): sin video", MH_StatusToString(status));
+    return 0;
+}
+
+}  // namespace
+
+BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
+    if (reason == DLL_PROCESS_ATTACH) {
+        DisableThreadLibraryCalls(module);
+        // Que nadie pueda descargar el DLL mientras sus hilos y el hook de Present siguen vivos.
+        HMODULE pinned = nullptr;
+        GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_PIN,
+                           reinterpret_cast<LPCWSTR>(&DllMain), &pinned);
+        log_init(module);
+        log_write("HaloCoop cargado en el juego (pid %lu)", GetCurrentProcessId());
+        if (HANDLE thread = CreateThread(nullptr, 0, init_thread, nullptr, 0, nullptr)) CloseHandle(thread);
+    }
+    return TRUE;
+}
