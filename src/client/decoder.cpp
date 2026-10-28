@@ -1,5 +1,7 @@
 #include "decoder.h"
 
+#include "../common/lang.h"
+
 #include <dxgi.h>
 
 #include <chrono>
@@ -58,14 +60,16 @@ bool Decoder::init(ID3D11Device* device, std::string& error) {
     CudaFunctions* cuda = nullptr;
     CuvidFunctions* cuvid = nullptr;
     if (cuda_load_functions(&cuda, nullptr) != 0 || cuvid_load_functions(&cuvid, nullptr) != 0) {
-        error = "No se encontró el decodificador de NVIDIA (nvcuda.dll / nvcuvid.dll). Necesitas una GPU NVIDIA "
-                "con drivers actualizados.";
+        error = T("NVIDIA's video decoder was not found (nvcuda.dll / nvcuvid.dll). You need an NVIDIA GPU with "
+                  "up-to-date drivers.",
+                  "No se encontró el decodificador de NVIDIA (nvcuda.dll / nvcuvid.dll). Necesitas una GPU NVIDIA "
+                  "con drivers actualizados.");
         return false;
     }
     m_cuda = cuda;
     m_cuvid = cuvid;
     if (cuda->cuInit(0) != CUDA_SUCCESS) {
-        error = "No se pudo iniciar CUDA: actualiza los drivers de NVIDIA.";
+        error = T("Could not start CUDA: update your NVIDIA drivers.", "No se pudo iniciar CUDA: actualiza los drivers de NVIDIA.");
         return false;
     }
     // CUDA en la misma GPU que dibuja la ventana.
@@ -78,13 +82,15 @@ bool Decoder::init(ID3D11Device* device, std::string& error) {
     release(adapter);
     release(dxgi_device);
     if (result != CUDA_SUCCESS) {
-        error = "La pantalla no está conectada a la GPU NVIDIA (¿laptop con gráficos integrados?). En Configuración "
-                "de gráficos de Windows elige 'Alto rendimiento' para HaloCoopClient.exe.";
+        error = T("The screen is not driven by the NVIDIA GPU (laptop with integrated graphics?). In Windows graphics "
+                  "settings choose 'High performance' for HaloCoopClient.exe.",
+                  "La pantalla no está conectada a la GPU NVIDIA (¿laptop con gráficos integrados?). En Configuración "
+                  "de gráficos de Windows elige 'Alto rendimiento' para HaloCoopClient.exe.");
         return false;
     }
     CUcontext context = nullptr;
     if (cuda->cuCtxCreate(&context, 0, cuda_device) != CUDA_SUCCESS) {
-        error = "No se pudo crear el contexto CUDA.";
+        error = T("Could not create the CUDA context.", "No se pudo crear el contexto CUDA.");
         return false;
     }
     m_context = context;
@@ -102,7 +108,7 @@ bool Decoder::init(ID3D11Device* device, std::string& error) {
     params.pfnDisplayPicture = display_callback;
     CUvideoparser parser = nullptr;
     if (cuvid->cuvidCreateVideoParser(&parser, &params) != CUDA_SUCCESS) {
-        error = "No se pudo crear el lector de video de NVIDIA.";
+        error = T("Could not create NVIDIA's video parser.", "No se pudo crear el lector de video de NVIDIA.");
         return false;
     }
     m_parser = parser;

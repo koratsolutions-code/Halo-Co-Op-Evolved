@@ -1,4 +1,6 @@
 #pragma once
+#include "../common/lang.h"
+
 #include <string>
 
 // Preferencias del cliente, guardadas en halocoop-cliente.ini junto al .exe.
@@ -12,6 +14,7 @@ struct Settings {
     float sensitivity = 1.0f;  // 0.1..99
     int volume = 100;          // 0..100
     bool muted = false;
+    Lang lang = Lang::en;  // idioma de la interfaz
 };
 
 constexpr float k_min_sensitivity = 0.1f;

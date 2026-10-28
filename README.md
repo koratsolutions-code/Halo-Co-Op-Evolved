@@ -8,9 +8,12 @@ each on their own PC with their own full screen, connected through **Radmin VPN*
 The game runs only once, on the host's PC, with the screen split in 4 (AlphaRing). The host mod sends
 each friend only their quarter of the screen plus the game sound, and receives their controls back.
 
-> **Current status (phase 4):** the host (`HaloCoopHost.exe` + `VERSION.dll`) creates the controllers
+> **Current status (phase 5):** the host (`HaloCoopHost.exe` + `VERSION.dll`) creates the controllers
 > for players 2, 3 and 4, receives their input and sends each one their quadrant as video (NVENC) plus
-> the game sound (Opus). Each friend sees and hears it full screen in `HaloCoopClient.exe`.
+> the game sound (Opus). Each friend sees and hears it full screen in `HaloCoopClient.exe`, with every
+> player's name over their character.
+>
+> Both apps are in **English** by default; switch to **Español** with the selector at the top right.
 
 ## Building from source
 
@@ -96,29 +99,38 @@ yourself.
 2. Open `HaloCoopHost.exe`. At the top it shows your Radmin IP (give it to your friends) and which
    Controller each player got (usually P2 = Controller 1, P3 = Controller 2, P4 = Controller 3).
    **Do not close it while you play.**
-3. Press **Abrir MCC** (Open MCC) and choose **without anti-cheat (EAC disabled)**.
-4. Press **F4** to open the AlphaRing menu → **Splitscreen**:
+3. Type your name in **Nickname** (player 1 card): your friends see it over your character.
+4. Press **Open MCC** and choose **without anti-cheat (EAC disabled)**.
+5. Press **F4** to open the AlphaRing menu → **Splitscreen**:
    - **Players = 4**.
    - Do not change the other options. In particular, keep *"Use player1's profile"* enabled.
    - AlphaRing **does not save** its settings: do this every time the game is opened.
-5. Close the menu with **F4**. While it is open, **no player can move**.
-6. In Halo CE turn on **classic graphics** (**Tab** key in game): with the new graphics only
+6. Close the menu with **F4**. While it is open, **no player can move**.
+7. In Halo CE turn on **classic graphics** (**Tab** key in game): with the new graphics only
    2 players are shown.
-7. Keep the game window **active** (in the foreground) while you play: if you switch to another
+8. Keep the game window **active** (in the foreground) while you play: if you switch to another
    window, MCC stops reading the controllers.
 
 ### Video
-The panel shows the **Video** line: a few seconds after MCC opens it says *listo* (ready) with the game
-resolution and the FPS and Mbps each friend receives. The **Video a 30/60/120 FPS** selector sets how
-much to send: more FPS = less delay, but more upload bandwidth. Each friend receives a quarter of the
+The panel shows the **Video** line: a few seconds after MCC opens it says *Video ready* with the game
+resolution, and each player card shows the FPS and Mbps that friend receives. The **Video at 30/60/120 FPS**
+selector sets how much to send: more FPS = less delay, but more upload bandwidth. Each friend receives a quarter of the
 game resolution (with the game at 2560x1440, each sees 1280x720).
 
 ### Audio
 HaloCoop Host captures **only MCC's sound** (not Discord, music or other apps) and sends the same mix
-to every friend (~0.1 Mbps each). The panel shows *Audio: activo* (active) while MCC is open.
+to every friend (~0.1 Mbps each). The panel shows *Audio active* while MCC is open.
+
+### Names over players
+The game mod draws each player's name over their character, on your screen and in every friend's video.
+Names stay visible through walls and get smaller and fainter with distance. Player 1's name is the
+**Nickname** in the panel; players 2-4 use the name they typed in their client.
+- **Show names over players** turns them on or off.
+- If the names do not sit right over the characters, set **Game FOV** to the game's field of view.
+- The names show up a few seconds after each level loads.
 
 ### Testing the controllers
-In HaloCoop Host, each player's **Mover** (Move) button makes their character walk forward, back,
+In HaloCoop Host, each player's **Move** button makes their character walk forward, back,
 sideways, turn and jump (about 10 seconds). Afterwards the game is brought back to the foreground.
 
 ### First time: firewall
@@ -127,8 +139,10 @@ The first time you open HaloCoop Host, Windows asks whether to allow network acc
 appear and your friends cannot connect, allow `HaloCoopHost.exe` in *Windows Firewall → Allow an app*.
 
 ### Host panel
-Each connected player appears with their name, IP and how many control updates per second arrive
-(about 250 is normal). **Expulsar** (Kick) disconnects them (they can reconnect).
+It is laid out like the split screen: one card per player. Each connected friend shows their name, IP,
+how many control updates per second arrive (about 250 is normal) and the video they receive.
+**Kick** disconnects them (they can reconnect). The panel remembers your nickname, language, FPS and
+name settings in `halocoop-host.ini`, next to `HaloCoopHost.exe`.
 
 ### Common problems
 - **A player does not move:** close MCC, close HaloCoop Host, then open them again in that order.
@@ -136,8 +150,10 @@ Each connected player appears with their name, IP and how many control updates p
   HaloCoop Host warns you and shows which one each player got; assign those Controllers in AlphaRing.
 - **HaloCoop Host says ViGEmBus is missing:** install it (step 2) and restart the PC.
 - **Video: game not responding:** wait about 10 seconds after opening MCC. If it persists, check that
-  the panel says *Mod del juego: instalado* (game mod installed) and look at `halocoop-juego.log` in
-  the `mcc\binaries\win64` folder.
+  the panel shows a green *Game mod* dot and look at `halocoop-juego.log` in the `mcc\binaries\win64`
+  folder.
+- **No names over the players:** check that *Show names over players* is on and wait a few seconds after
+  the level loads. The names only work with MCC version 1.3528.
 
 ### Known AlphaRing issues with 4 players
 - With remastered graphics only players 1 and 2 are shown → use classic graphics (Tab).
@@ -154,8 +170,7 @@ Each friend downloads the `cliente/` folder and opens `HaloCoopClient.exe`
 1. Type the **host's Radmin IP** (shown at the top of their HaloCoop Host) and your name.
 2. Choose your player number: **2** (top right), **3** (bottom left) or **4** (bottom right).
    Each friend a different one.
-3. Choose **Mando** (controller) or **Teclado y mouse** (keyboard and mouse) and press **Conectar**
-   (Connect).
+3. Choose **Controller** or **Keyboard and mouse** and press **Connect**.
 
 When the video arrives, the client switches to **full screen** with your quadrant of the game.
 
@@ -173,8 +188,6 @@ When the video arrives, the client switches to **full screen** with your quadran
   `cliente/README.txt`.
 - If the video freezes for a moment after packet loss, it recovers by itself in under half a second.
 - **Game volume** is set with the slider in the main menu or in F2 (it is saved); **F3** mutes.
-
-The client's interface is in Spanish; the words in parentheses above are the translations.
 
 ---
 

@@ -43,12 +43,10 @@ std::atomic<uint32_t> g_frames[k_players];
 std::atomic<uint64_t> g_bytes[k_players];
 std::atomic<uint16_t> g_game_width{0}, g_game_height{0};
 std::atomic<bool> g_encoder_ok{false};
-std::mutex g_error_mutex;
-char g_error[96] = {};
+std::atomic<proto::VideoError> g_error{proto::VideoError::none};
 
-void set_error(const char* text) {
-    std::lock_guard lock(g_error_mutex);
-    strncpy_s(g_error, text, _TRUNCATE);
+void set_error(proto::VideoError error) {
+    g_error = error;
 }
 
 struct PlayerStream {
@@ -152,10 +150,7 @@ void control_thread() {
                 status.fps_sent[i] = uint16_t(g_frames[i].exchange(0) / seconds + 0.5);
                 status.kbps_sent[i] = uint32_t(g_bytes[i].exchange(0) * 8 / 1000 / seconds);
             }
-            {
-                std::lock_guard lock(g_error_mutex);
-                memcpy(status.error, g_error, sizeof(status.error));
-            }
+            status.error = g_error;
             sendto(s, reinterpret_cast<const char*>(&status), sizeof(status), 0,
                    reinterpret_cast<sockaddr*>(&launcher), sizeof(launcher));
         }
@@ -173,14 +168,15 @@ void video_start() {
     std::thread(control_thread).detach();
 }
 
+bool video_config(proto::VideoConfig& out) {
+    std::lock_guard lock(g_config_mutex);
+    out = g_config;
+    return g_config_time && now_us() - g_config_time < 1500000;
+}
+
 void video_on_frame(IDXGISwapChain* swap_chain) {
     proto::VideoConfig config;
-    bool fresh;
-    {
-        std::lock_guard lock(g_config_mutex);
-        config = g_config;
-        fresh = g_config_time && now_us() - g_config_time < 1500000;  // launcher cerrado -> sin video
-    }
+    bool fresh = video_config(config);  // launcher cerrado -> sin video
     bool any_active = false;
     for (int i = 0; i < k_players; ++i) {
         if (!fresh || !config.targets[i].active) {
@@ -245,12 +241,12 @@ void video_on_frame(IDXGISwapChain* swap_chain) {
                 if (!encoder->open(device, wanted, output)) {
                     last_failure[i] = now;
                     g_encoder_ok = false;
-                    set_error("No se pudo iniciar NVENC (revisa halocoop-juego.log)");
+                    set_error(proto::VideoError::nvenc_failed);
                     destroy_later(std::move(encoder));
                     continue;
                 }
                 g_encoder_ok = true;
-                set_error("");
+                set_error(proto::VideoError::none);
                 stream.encoder = std::move(encoder);
                 stream.force_keyframe = true;
             }
@@ -266,9 +262,9 @@ void video_on_frame(IDXGISwapChain* swap_chain) {
                 stream.force_keyframe = false;
         }
     } else if (!context4) {
-        set_error("El juego no usa D3D11.4: no se puede capturar");
+        set_error(proto::VideoError::no_d3d11_4);
     } else {
-        set_error("El juego usa antialiasing MSAA: no se puede capturar");
+        set_error(proto::VideoError::msaa);
     }
 
     if (context4) context4->Release();

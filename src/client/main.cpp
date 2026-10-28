@@ -9,6 +9,9 @@
 #include "renderer.h"
 #include "settings.h"
 
+#include "../common/lang.h"
+#include "../common/ui_style.h"
+
 #include <d3d11.h>
 #include <dxgi1_5.h>
 #include <windows.h>
@@ -29,7 +32,6 @@ extern IMGUI_IMPL_API LRESULT ImGui_ImplWin32_WndProcHandler(HWND, UINT, WPARAM,
 
 namespace {
 
-constexpr wchar_t k_title[] = L"HaloCoop - Cliente";
 
 ID3D11Device* g_device = nullptr;
 ID3D11DeviceContext* g_context = nullptr;
@@ -148,7 +150,7 @@ void toggle_mute() {
     g_settings.muted = !g_settings.muted;
     apply_audio_settings();
     settings_save(g_settings);
-    toast(g_settings.muted ? "Sonido silenciado (F3)" : "Sonido activado (F3)");
+    toast(g_settings.muted ? T("Sound muted (F3)", "Sonido silenciado (F3)") : T("Sound on (F3)", "Sonido activado (F3)"));
 }
 
 void change_sensitivity(float factor) {
@@ -156,7 +158,7 @@ void change_sensitivity(float factor) {
     net_update_settings(g_settings);
     settings_save(g_settings);
     char text[64];
-    snprintf(text, sizeof(text), "Sensibilidad: %.2fx", g_settings.sensitivity);
+    snprintf(text, sizeof(text), T("Sensitivity: %.2fx", "Sensibilidad: %.2fx"), g_settings.sensitivity);
     toast(text);
 }
 
@@ -209,82 +211,71 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
     return DefWindowProcW(hwnd, msg, wparam, lparam);
 }
 
-void apply_style() {
-    ImGuiStyle& style = ImGui::GetStyle();
-    ImGui::StyleColorsDark();
-    style.WindowRounding = 8;
-    style.FrameRounding = 6;
-    style.GrabRounding = 6;
-    style.FramePadding = ImVec2(10, 7);
-    style.ItemSpacing = ImVec2(10, 10);
-    style.WindowPadding = ImVec2(18, 16);
-    ImVec4* c = style.Colors;
-    c[ImGuiCol_WindowBg] = ImVec4(0.07f, 0.09f, 0.11f, 0.97f);
-    c[ImGuiCol_FrameBg] = ImVec4(0.14f, 0.17f, 0.20f, 1);
-    c[ImGuiCol_FrameBgHovered] = ImVec4(0.18f, 0.22f, 0.26f, 1);
-    c[ImGuiCol_Button] = ImVec4(0.20f, 0.45f, 0.30f, 1);
-    c[ImGuiCol_ButtonHovered] = ImVec4(0.25f, 0.55f, 0.36f, 1);
-    c[ImGuiCol_ButtonActive] = ImVec4(0.17f, 0.38f, 0.25f, 1);
-    c[ImGuiCol_SliderGrab] = ImVec4(0.35f, 0.70f, 0.45f, 1);
-    c[ImGuiCol_CheckMark] = ImVec4(0.35f, 0.70f, 0.45f, 1);
-    c[ImGuiCol_Header] = ImVec4(0.20f, 0.45f, 0.30f, 1);
-    c[ImGuiCol_HeaderHovered] = ImVec4(0.25f, 0.55f, 0.36f, 1);
-}
-
-const ImVec4 k_green(0.45f, 0.80f, 0.55f, 1);
-const ImVec4 k_orange(0.95f, 0.70f, 0.30f, 1);
-const ImVec4 k_red(0.95f, 0.45f, 0.40f, 1);
-
 void sensitivity_slider() {
     ImGui::SetNextItemWidth(-1);
     if (ImGui::SliderFloat("##sens", &g_settings.sensitivity, k_min_sensitivity, k_max_sensitivity,
-                           "Sensibilidad del mouse: %.2fx", ImGuiSliderFlags_Logarithmic))
+                           T("Mouse sensitivity: %.2fx", "Sensibilidad del mouse: %.2fx"), ImGuiSliderFlags_Logarithmic))
         net_update_settings(g_settings);
     if (ImGui::IsItemDeactivatedAfterEdit()) settings_save(g_settings);
 }
 
 void volume_controls() {
-    if (ImGui::Checkbox("Silenciar (F3)", &g_settings.muted)) {
+    if (ImGui::Checkbox(T("Mute (F3)", "Silenciar (F3)"), &g_settings.muted)) {
         apply_audio_settings();
         settings_save(g_settings);
     }
     ImGui::SameLine();
     ImGui::SetNextItemWidth(-1);
     ImGui::BeginDisabled(g_settings.muted);
-    if (ImGui::SliderInt("##volume", &g_settings.volume, 0, 100, "Volumen del juego: %d%%")) apply_audio_settings();
+    if (ImGui::SliderInt("##volume", &g_settings.volume, 0, 100, T("Game volume: %d%%", "Volumen del juego: %d%%"))) apply_audio_settings();
     if (ImGui::IsItemDeactivatedAfterEdit()) settings_save(g_settings);
     ImGui::EndDisabled();
 }
 
 void draw_menu(const NetStatus& status) {
-    ImGui::TextColored(k_green, "HALO CE · COOP 4 JUGADORES");
-    ImGui::TextDisabled("Conéctate al host por Radmin VPN.");
+    ImGui::TextColored(k_green, "%s", T("HALO CE · 4-PLAYER CO-OP", "HALO CE · COOP 4 JUGADORES"));
+    // Idioma, arriba a la derecha.
+    const char* languages[] = {"English", "Español"};
+    float lang_width = 120;
+    ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - lang_width);
+    ImGui::SetNextItemWidth(lang_width);
+    int lang = int(g_settings.lang);
+    if (ImGui::Combo("##lang", &lang, languages, 2)) {
+        g_settings.lang = Lang(lang);
+        g_lang = g_settings.lang;
+        settings_save(g_settings);
+    }
+    ImGui::TextDisabled("%s", T("Connect to the host through Radmin VPN.", "Conéctate al host por Radmin VPN."));
     ImGui::Separator();
 
-    ImGui::Text("IP de Radmin del host");
+    ImGui::TextUnformatted(T("Host's Radmin IP", "IP de Radmin del host"));
     ImGui::SetNextItemWidth(-1);
-    ImGui::InputTextWithHint("##host", "Te la da el host (sale en su HaloCoop Host)", g_host_text, sizeof(g_host_text),
-                             ImGuiInputTextFlags_CharsNoBlank);
-    ImGui::Text("Tu nombre");
+    ImGui::InputTextWithHint("##host", T("The host gives it to you (shown in their HaloCoop Host)",
+                                         "Te la da el host (sale en su HaloCoop Host)"),
+                             g_host_text, sizeof(g_host_text), ImGuiInputTextFlags_CharsNoBlank);
+    ImGui::TextUnformatted(T("Your name", "Tu nombre"));
     ImGui::SetNextItemWidth(-1);
-    ImGui::InputTextWithHint("##name", "Cómo te verán los demás", g_name_text, sizeof(g_name_text));
+    ImGui::InputTextWithHint("##name", T("How the others will see you", "Cómo te verán los demás"), g_name_text,
+                             sizeof(g_name_text));
 
-    ImGui::Text("Jugador");
+    ImGui::TextUnformatted(T("Player", "Jugador"));
     for (int p = 2; p <= 4; ++p) {
         if (p > 2) ImGui::SameLine();
         char label[32];
-        snprintf(label, sizeof(label), "Jugador %d", p);
+        snprintf(label, sizeof(label), T("Player %d", "Jugador %d"), p);
         if (ImGui::RadioButton(label, g_settings.player == p)) g_settings.player = p;
     }
-    ImGui::TextDisabled("J2 = arriba a la derecha · J3 = abajo a la izquierda · J4 = abajo a la derecha");
+    ImGui::TextDisabled("%s", T("P2 = top right · P3 = bottom left · P4 = bottom right",
+                                "J2 = arriba a la derecha · J3 = abajo a la izquierda · J4 = abajo a la derecha"));
 
-    ImGui::Text("Control");
-    if (ImGui::RadioButton("Mando", g_settings.control == ControlMode::gamepad)) g_settings.control = ControlMode::gamepad;
+    ImGui::TextUnformatted("Control");
+    if (ImGui::RadioButton(T("Controller", "Mando"), g_settings.control == ControlMode::gamepad))
+        g_settings.control = ControlMode::gamepad;
     ImGui::SameLine();
-    if (ImGui::RadioButton("Teclado y mouse", g_settings.control == ControlMode::keyboard_mouse))
+    if (ImGui::RadioButton(T("Keyboard and mouse", "Teclado y mouse"), g_settings.control == ControlMode::keyboard_mouse))
         g_settings.control = ControlMode::keyboard_mouse;
     if (g_settings.control == ControlMode::gamepad && !input_gamepad_connected())
-        ImGui::TextColored(k_orange, "No se detecta ningún mando conectado.");
+        ImGui::TextColored(k_orange, "%s", T("No controller detected.", "No se detecta ningún mando conectado."));
     if (g_settings.control == ControlMode::keyboard_mouse) sensitivity_slider();
     volume_controls();
 
@@ -292,7 +283,7 @@ void draw_menu(const NetStatus& status) {
 
     ImGui::Spacing();
     ImGui::BeginDisabled(g_host_text[0] == '\0');
-    if (ImGui::Button("Conectar", ImVec2(-1, 44))) {
+    if (ImGui::Button(T("Connect", "Conectar"), ImVec2(-1, 44))) {
         g_settings.host = g_host_text;
         g_settings.nickname = g_name_text;
         settings_save(g_settings);
@@ -302,46 +293,53 @@ void draw_menu(const NetStatus& status) {
 }
 
 void draw_connecting() {
-    ImGui::TextColored(k_green, "Conectando...");
-    ImGui::Text("Host %s  ·  Jugador %d", g_settings.host.c_str(), g_settings.player);
+    ImGui::TextColored(k_green, "%s", T("Connecting...", "Conectando..."));
+    ImGui::Text(T("Host %s  ·  Player %d", "Host %s  ·  Jugador %d"), g_settings.host.c_str(), g_settings.player);
     ImGui::Spacing();
-    if (ImGui::Button("Cancelar", ImVec2(-1, 40))) net_disconnect();
+    if (ImGui::Button(T("Cancel", "Cancelar"), ImVec2(-1, 40))) net_disconnect();
 }
 
 // Panel de partida (F2, o mientras no llega el video).
 void draw_ingame_panel(const NetStatus& status) {
-    ImGui::TextColored(k_green, "CONECTADO  ·  JUGADOR %d", g_settings.player);
+    ImGui::TextColored(k_green, T("CONNECTED  ·  PLAYER %d", "CONECTADO  ·  JUGADOR %d"), g_settings.player);
     if (status.ping_ms >= 0)
         ImGui::Text("Ping %d ms  ·  video %u fps", status.ping_ms, status.video_fps);
     else
-        ImGui::Text("Midiendo ping...");
+        ImGui::TextUnformatted(T("Measuring ping...", "Midiendo ping..."));
     if (!g_has_video) {
         if (!g_decoder_error.empty())
             ImGui::TextColored(k_red, "%s", g_decoder_error.c_str());
         else
-            ImGui::TextColored(k_orange, "Esperando el video... El host tiene que tener MCC abierto con HaloCoop.");
+            ImGui::TextColored(k_orange, "%s", T("Waiting for video... The host must have MCC open with HaloCoop.",
+                                                 "Esperando el video... El host tiene que tener MCC abierto con HaloCoop."));
     }
     ImGui::Separator();
     volume_controls();
     if (g_settings.control == ControlMode::gamepad) {
         if (input_gamepad_connected())
-            ImGui::Text("Usando tu mando.");
+            ImGui::TextUnformatted(T("Using your controller.", "Usando tu mando."));
         else
-            ImGui::TextColored(k_orange, "No se detecta ningún mando: conéctalo.");
+            ImGui::TextColored(k_orange, "%s", T("No controller detected: plug it in.", "No se detecta ningún mando: conéctalo."));
     } else {
-        ImGui::TextDisabled("Clic en el video para capturar el mouse · Esc lo suelta · + / - sensibilidad");
+        ImGui::TextDisabled("%s", T("Click the video to capture the mouse · Esc releases it · + / - sensitivity",
+                                    "Clic en el video para capturar el mouse · Esc lo suelta · + / - sensibilidad"));
         sensitivity_slider();
-        if (ImGui::CollapsingHeader("Controles del teclado")) {
-            ImGui::TextDisabled(
+        if (ImGui::CollapsingHeader(T("Keyboard controls", "Controles del teclado"))) {
+            ImGui::TextDisabled("%s", T(
+                "WASD move · Mouse aim · Left click shoot · Right click grenade\n"
+                "Space jump · E/R action and reload · F/V melee · Q or wheel switch weapon\n"
+                "G switch grenade · Ctrl/C crouch · Z or middle click zoom\n"
+                "1-4 or arrows d-pad (flashlight, etc.) · Enter pause · Tab scoreboard",
                 "WASD moverse · Mouse apuntar · Clic izq. disparar · Clic der. granada\n"
                 "Espacio saltar · E/R acción y recargar · F/V golpe · Q o rueda cambiar arma\n"
                 "G cambiar granada · Ctrl/C agacharse · Z o clic central zoom\n"
-                "1-4 o flechas cruceta (linterna, etc.) · Enter pausa · Tab marcador");
+                "1-4 o flechas cruceta (linterna, etc.) · Enter pausa · Tab marcador"));
         }
     }
-    ImGui::TextDisabled("F1 estadísticas · F2 este menú · F3 silenciar · F11 pantalla completa");
+    ImGui::TextDisabled("%s", T("F1 stats · F2 this menu · F3 mute · F11 full screen",
+                                "F1 estadísticas · F2 este menú · F3 silenciar · F11 pantalla completa"));
     ImGui::Spacing();
-    if (ImGui::Button("Desconectar", ImVec2(-1, 40))) {
+    if (ImGui::Button(T("Disconnect", "Desconectar"), ImVec2(-1, 40))) {
         input_set_captured(false);
         net_disconnect();
     }
@@ -355,9 +353,9 @@ void draw_stats(const NetStatus& status) {
                      ImGuiWindowFlags_NoSavedSettings);
     ImGui::Text("Ping %d ms", status.ping_ms);
     ImGui::Text("Video %u fps · %.1f Mbps", status.video_fps, status.video_kbps / 1000.0);
-    if (g_decoder) ImGui::Text("Decodificar %.1f ms · %ux%u", g_decoder->last_decode_ms(), g_decoder->width(), g_decoder->height());
-    ImGui::Text("Fotogramas perdidos %u", status.frames_lost);
-    ImGui::Text("Controles %u/s", status.sent_per_second);
+    if (g_decoder) ImGui::Text(T("Decode %.1f ms · %ux%u", "Decodificar %.1f ms · %ux%u"), g_decoder->last_decode_ms(), g_decoder->width(), g_decoder->height());
+    ImGui::Text(T("Lost frames %u", "Fotogramas perdidos %u"), status.frames_lost);
+    ImGui::Text(T("Inputs %u/s", "Controles %u/s"), status.sent_per_second);
     ImGui::End();
 }
 
@@ -383,7 +381,7 @@ void decode_pending_frames() {
                 g_has_video = true;
                 set_fullscreen(true);
                 g_show_menu = false;
-                toast("F2 menú · F1 estadísticas · F3 silenciar · F11 pantalla completa");
+                toast(T("F2 menu · F1 stats · F3 mute · F11 full screen", "F2 menú · F1 estadísticas · F3 silenciar · F11 pantalla completa"));
             }
         } else if (frame.keyframe || g_has_video) {
             net_request_keyframe();
@@ -403,6 +401,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
                                               PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION, 0};
     SetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, &throttling, sizeof(throttling));
     g_settings = settings_load();
+    g_lang = g_settings.lang;
     audio_start();
     apply_audio_settings();
     strncpy_s(g_host_text, g_settings.host.c_str(), _TRUNCATE);
@@ -411,10 +410,10 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     WNDCLASSEXW wc{sizeof(wc), CS_CLASSDC, window_proc, 0, 0, instance, LoadIconW(nullptr, IDI_APPLICATION),
                    LoadCursorW(nullptr, IDC_ARROW), nullptr, nullptr, L"HaloCoopClient", nullptr};
     RegisterClassExW(&wc);
-    g_window = CreateWindowW(wc.lpszClassName, k_title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 640, 680,
+    g_window = CreateWindowW(wc.lpszClassName, T(L"HaloCoop Client", L"HaloCoop Cliente"), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 640, 680,
                              nullptr, nullptr, instance, nullptr);
     if (!create_device(g_window)) {
-        MessageBoxW(nullptr, L"No se pudo iniciar Direct3D 11.", k_title, MB_ICONERROR);
+        MessageBoxW(nullptr, T(L"Could not start Direct3D 11.", L"No se pudo iniciar Direct3D 11."), L"HaloCoop", MB_ICONERROR);
         return 1;
     }
     g_renderer.init(g_device);
@@ -425,13 +424,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = nullptr;
-    static const ImWchar k_ranges[] = {0x0020, 0x00FF, 0x2010, 0x2027, 0};
-    char font[MAX_PATH] = "";
-    GetWindowsDirectoryA(font, MAX_PATH);  // la carpeta de Windows puede no estar en C:
-    strcat_s(font, "\\Fonts\\segoeui.ttf");
-    if (!io.Fonts->AddFontFromFileTTF(font, 19.0f, nullptr, k_ranges))
-        io.Fonts->AddFontDefault();
-    apply_style();
+    ui_load_font(19.0f);
+    ui_apply_style();
     ImGui_ImplWin32_Init(g_window);
     ImGui_ImplDX11_Init(g_device, g_context);
 
@@ -505,7 +499,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
             ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x / 2, io.DisplaySize.y / 2), ImGuiCond_Always,
                                     ImVec2(0.5f, 0.5f));
             ImGui::SetNextWindowSize(ImVec2(std::min(560.0f, io.DisplaySize.x - 40), 0));
-            ImGui::Begin("Menú", &g_show_menu, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
+            ImGui::Begin(T("Menu###menu", "Menú###menu"), &g_show_menu, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings);
             draw_ingame_panel(status);
             ImGui::End();
         }
@@ -528,9 +522,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
 
         ImGui::Render();
         const float clear[4] = {0.0f, 0.0f, 0.0f, 1};
-        const float menu_clear[4] = {0.07f, 0.09f, 0.11f, 1};
         g_context->OMSetRenderTargets(1, &g_target, nullptr);
-        g_context->ClearRenderTargetView(g_target, g_has_video ? clear : menu_clear);
+        g_context->ClearRenderTargetView(g_target, g_has_video ? clear : k_background);
         if (g_has_video && g_decoder)
             g_renderer.draw(g_context, g_decoder->luma(), g_decoder->chroma(), g_decoder->width(),
                             g_decoder->height(), g_width, g_height);

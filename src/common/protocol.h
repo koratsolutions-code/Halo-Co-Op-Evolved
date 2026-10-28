@@ -52,6 +52,13 @@ enum class Reason : uint8_t {
     host_closed = 5,
 };
 
+enum class VideoError : uint8_t {
+    none = 0,
+    nvenc_failed = 1,  // no se pudo iniciar NVENC
+    no_d3d11_4 = 2,    // el juego no usa D3D11.4
+    msaa = 3,          // el juego usa MSAA
+};
+
 #pragma pack(push, 1)
 struct Header {
     uint32_t magic = k_magic;
@@ -137,6 +144,10 @@ struct VideoConfig {
     Header header{k_magic, Type::video_config};
     uint8_t fps = 60;
     VideoTarget targets[3];  // jugadores 2, 3, 4
+    // Nombres sobre los jugadores (los dibuja el DLL en la pantalla del juego).
+    uint8_t name_tags = 1;    // 0: apagados
+    uint8_t name_fov = 70;    // FOV horizontal del juego en grados, para proyectar los nombres
+    char names[4][k_nickname_size] = {};  // jugadores 1..4 (vacío: "Player N")
 };
 
 struct VideoStatus {
@@ -145,7 +156,7 @@ struct VideoStatus {
     uint16_t game_width = 0, game_height = 0;
     uint16_t fps_sent[3] = {};       // por jugador 2, 3, 4
     uint32_t kbps_sent[3] = {};
-    char error[96] = {};
+    VideoError error = VideoError::none;  // el panel lo muestra en el idioma elegido
 };
 #pragma pack(pop)
 

@@ -47,11 +47,13 @@ add_library(HaloCoopGame SHARED
     src/game/proxy_version.cpp
     src/game/video.cpp
     src/game/encoder.cpp
+    src/game/halo1_players.cpp
+    src/game/name_tags.cpp
     src/game/log.cpp
     src/game/version.def
 )
 set_target_properties(HaloCoopGame PROPERTIES OUTPUT_NAME VERSION)
-target_link_libraries(HaloCoopGame PRIVATE minhook nvcodec d3d11 dxgi ws2_32)
+target_link_libraries(HaloCoopGame PRIVATE imgui minhook nvcodec d3d11 dxgi ws2_32)
 
 # Host: crea los mandos de J2-J4, recibe su input por red y muestra el panel.
 add_executable(HaloCoopHost WIN32
@@ -62,8 +64,8 @@ add_executable(HaloCoopHost WIN32
     src/launcher/audio_capture.cpp
     src/launcher/log.cpp
 )
-target_link_libraries(HaloCoopHost PRIVATE ViGEmClient opus setupapi xinput shell32 ws2_32 iphlpapi advapi32
-                                           mmdevapi ole32)
+target_link_libraries(HaloCoopHost PRIVATE ViGEmClient opus imgui d3d11 dxgi d3dcompiler setupapi xinput shell32
+                                           ws2_32 iphlpapi advapi32 mmdevapi ole32)
 
 # Cliente: lo usan los jugadores 2, 3 y 4.
 add_executable(HaloCoopClient WIN32

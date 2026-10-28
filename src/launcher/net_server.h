@@ -24,3 +24,11 @@ void net_server_set_fps(int fps);
 int net_server_fps();
 // false si el DLL del juego no reporta (juego cerrado o sin el DLL instalado).
 bool net_server_video_status(proto::VideoStatus& status);
+
+// Nombres sobre los jugadores: el DLL los dibuja en el juego. Los de J2-J4 son los nicknames de sus clientes.
+struct NameTagOptions {
+    bool enabled = true;
+    int fov = 70;  // FOV horizontal del juego (grados)
+    char host_name[proto::k_nickname_size] = {};  // jugador 1
+};
+void net_server_set_name_tags(const NameTagOptions& options);

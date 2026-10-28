@@ -1,6 +1,8 @@
 #include "game_install.h"
 #include "log.h"
 
+#include "../common/lang.h"
+
 #include <windows.h>
 
 #include <fstream>
@@ -92,17 +94,20 @@ bool game_alpharing_present(const std::wstring& binaries_dir) {
 bool game_install_mod(const std::wstring& binaries_dir, std::wstring& error) {
     std::wstring source = bundled_dll();
     if (!exists(source)) {
-        error = L"Falta VERSION.dll junto a HaloCoopHost.exe. Descarga de nuevo la carpeta host completa.";
+        error = T(L"VERSION.dll is missing next to HaloCoopHost.exe. Download the whole host folder again.",
+                  L"Falta VERSION.dll junto a HaloCoopHost.exe. Descarga de nuevo la carpeta host completa.");
         return false;
     }
     std::wstring target = binaries_dir + L"\\VERSION.dll";
     if (!CopyFileW(source.c_str(), target.c_str(), FALSE)) {
         DWORD code = GetLastError();
         error = code == ERROR_SHARING_VIOLATION || code == ERROR_LOCK_VIOLATION
-            ? L"MCC está abierto: ciérralo y vuelve a intentar."
+            ? T(L"MCC is open: close it and try again.", L"MCC está abierto: ciérralo y vuelve a intentar.")
             : code == ERROR_ACCESS_DENIED
-            ? L"Windows no deja escribir en la carpeta del juego. Copia VERSION.dll a mano en:\n" + binaries_dir
-            : L"No se pudo copiar (error " + std::to_wstring(code) + L").";
+            ? std::wstring(T(L"Windows does not allow writing to the game folder. Copy VERSION.dll by hand to:\n",
+                             L"Windows no deja escribir en la carpeta del juego. Copia VERSION.dll a mano en:\n")) +
+                  binaries_dir
+            : std::wstring(T(L"Could not copy it (error ", L"No se pudo copiar (error ")) + std::to_wstring(code) + L").";
         log_write("No se pudo instalar el mod en el juego (error %lu)", code);
         return false;
     }

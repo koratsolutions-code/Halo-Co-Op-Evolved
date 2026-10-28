@@ -2,6 +2,7 @@
 // como video. No toca los mandos: de eso se encarga HaloCoop Host.
 
 #include "log.h"
+#include "name_tags.h"
 #include "video.h"
 
 #include <d3d11.h>
@@ -26,6 +27,7 @@ HRESULT STDMETHODCALLTYPE hooked_present(IDXGISwapChain* swap_chain, UINT sync, 
             log_write("Pantalla del juego: %ux%u formato %d", desc.BufferDesc.Width, desc.BufferDesc.Height,
                       int(desc.BufferDesc.Format));
         }
+        name_tags_draw(swap_chain);  // antes de capturar: así los nombres también van en el video
         video_on_frame(swap_chain);
     }
     return g_original_present(swap_chain, sync, flags);
@@ -83,6 +85,7 @@ DWORD WINAPI init_thread(LPVOID) {
     }
     Sleep(5000);
     video_start();
+    name_tags_start();
     void* present = find_present();
     MH_STATUS status = MH_Initialize();
     if (present && (status == MH_OK || status == MH_ERROR_ALREADY_INITIALIZED)) {
@@ -97,11 +100,22 @@ DWORD WINAPI init_thread(LPVOID) {
     return 0;
 }
 
+// Solo dentro de MCC (o del juego de prueba). HaloCoopHost.exe está junto a este DLL y Windows también se lo
+// carga como version.dll: ahí tiene que ser solo el proxy, sin hooks ni sockets.
+bool is_game_process() {
+    wchar_t path[MAX_PATH];
+    GetModuleFileNameW(nullptr, path, MAX_PATH);
+    const wchar_t* name = wcsrchr(path, L'\\');
+    name = name ? name + 1 : path;
+    return _wcsicmp(name, L"MCC-Win64-Shipping.exe") == 0 || _wcsicmp(name, L"HaloCoopTestGame.exe") == 0;
+}
+
 }  // namespace
 
 BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
     if (reason == DLL_PROCESS_ATTACH) {
         DisableThreadLibraryCalls(module);
+        if (!is_game_process()) return TRUE;
         // Que nadie pueda descargar el DLL mientras sus hilos y el hook de Present siguen vivos.
         HMODULE pinned = nullptr;
         GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_PIN,

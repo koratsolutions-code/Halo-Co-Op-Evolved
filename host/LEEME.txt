@@ -4,8 +4,10 @@ HALO1-COOP - HOST
 Contenido:
   HaloCoopHost.exe  -> crea los mandos de los jugadores 2, 3 y 4, recibe sus controles y
                        muestra el panel del host.
-  VERSION.dll       -> el mod dentro del juego (captura el video de cada amigo).
-                       HaloCoopHost.exe lo copia solo a la carpeta del juego.
+  VERSION.dll       -> el mod dentro del juego (el video de cada amigo y los nombres sobre los
+                       jugadores). HaloCoopHost.exe lo copia solo a la carpeta del juego.
+
+El panel viene en inglés. Para usarlo en español elige "Español" arriba a la derecha (se guarda).
 
 Antes de la primera vez:
   1. AlphaRing: descarga Release1.0.zip (1.3528.0.0) de
@@ -21,16 +23,20 @@ Cada vez que jueguen:
   1. Desconecta los mandos físicos.
   2. Abre HaloCoopHost.exe PRIMERO, con MCC cerrado (no lo cierres mientras jueguen).
      La primera vez, si Windows pregunta por el firewall, marca redes privadas y públicas.
-  3. Pásales a tus amigos la IP de Radmin que sale arriba en el panel.
-  4. Presiona "Abrir MCC" y elige sin anticheat.
-  5. F4 -> Splitscreen -> Players = 4. Cierra el menú con F4.
-  6. En la misión usa gráficos clásicos (Tab) y deja el juego como ventana activa.
+  3. Pásales a tus amigos la IP de Radmin que sale arriba en el panel ("Copiar" la copia).
+  4. Escribe tu nombre en "Nickname" (tarjeta del jugador 1): sale sobre tu personaje.
+  5. Presiona "Abrir MCC" y elige sin anticheat.
+  6. F4 -> Splitscreen -> Players = 4. Cierra el menú con F4.
+  7. En la misión usa gráficos clásicos (Tab) y deja el juego como ventana activa.
 
 En el panel:
-  - "Video": a los ~10 s de abrir MCC dice "listo" y cuántos FPS/Mbps recibe cada amigo.
+  - Puntos de arriba: verde = listo (mod del juego, AlphaRing, MCC, audio, video).
   - "Video a 30/60/120 FPS": más FPS = menos retraso pero más internet de subida
     (unos 10 Mbps por amigo a 60 FPS).
-  - "Audio: activo": se está mandando el sonido de MCC (solo el del juego) a todos.
-  - "Mover": prueba el mando de ese jugador.  "Expulsar": lo desconecta.
+  - "Mostrar nombres sobre los jugadores": activa o desactiva los nombres. Si no quedan justo
+    sobre los personajes, ajusta "FOV del juego" al campo de visión del juego.
+  - Una tarjeta por jugador, ordenadas como la pantalla dividida: nombre, IP, controles por
+    segundo y el video que recibe cada amigo.
+    "Mover": prueba el mando de ese jugador.  "Expulsar": lo desconecta.
 
 Las instrucciones completas están en el README.es.md del repositorio (English: README.txt).

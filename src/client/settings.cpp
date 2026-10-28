@@ -36,6 +36,7 @@ Settings settings_load() {
     s.sensitivity = std::clamp(float(atof(read(L"sensibilidad", L"1").c_str())), k_min_sensitivity, k_max_sensitivity);
     s.volume = std::clamp(atoi(read(L"volumen", L"100").c_str()), 0, 100);
     s.muted = read(L"silencio", L"no") == "si";
+    s.lang = read(L"idioma", L"en") == "es" ? Lang::es : Lang::en;
     return s;
 }
 
@@ -49,4 +50,5 @@ void settings_save(const Settings& s) {
     write(L"sensibilidad", sensitivity);
     write(L"volumen", std::to_string(s.volume));
     write(L"silencio", s.muted ? "si" : "no");
+    write(L"idioma", s.lang == Lang::es ? "es" : "en");
 }

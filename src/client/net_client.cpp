@@ -2,6 +2,8 @@
 #include "audio_player.h"
 #include "input.h"
 
+#include "../common/lang.h"
+
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <mstcpip.h>
@@ -46,12 +48,12 @@ void set_status(NetState state, const std::string& message = {}) {
 
 const char* reason_text(proto::Reason reason) {
     switch (reason) {
-    case proto::Reason::slot_taken: return "Ese jugador ya está ocupado por otra persona. Elige otro número.";
-    case proto::Reason::bad_version: return "Tu cliente y el del host son de versiones distintas. Actualicen los dos.";
-    case proto::Reason::bad_player: return "Número de jugador inválido (tiene que ser 2, 3 o 4).";
-    case proto::Reason::kicked: return "El host te expulsó. Puedes volver a conectarte.";
-    case proto::Reason::host_closed: return "El host cerró HaloCoop Host.";
-    default: return "Conexión rechazada.";
+    case proto::Reason::slot_taken: return T("That player is already taken by someone else. Pick another number.", "Ese jugador ya está ocupado por otra persona. Elige otro número.");
+    case proto::Reason::bad_version: return T("Your client and the host's are different versions. Update both.", "Tu cliente y el del host son de versiones distintas. Actualicen los dos.");
+    case proto::Reason::bad_player: return T("Invalid player number (it must be 2, 3 or 4).", "Número de jugador inválido (tiene que ser 2, 3 o 4).");
+    case proto::Reason::kicked: return T("The host kicked you. You can connect again.", "El host te expulsó. Puedes volver a conectarte.");
+    case proto::Reason::host_closed: return T("The host closed HaloCoop Host.", "El host cerró HaloCoop Host.");
+    default: return T("Connection refused.", "Conexión rechazada.");
     }
 }
 
@@ -163,7 +165,7 @@ void run(Settings settings) {
     hints.ai_socktype = SOCK_DGRAM;
     addrinfo* result = nullptr;
     if (getaddrinfo(settings.host.c_str(), std::to_string(proto::k_port).c_str(), &hints, &result) != 0 || !result) {
-        set_status(NetState::failed, "No se reconoce la IP del host. Revisa que esté bien escrita.");
+        set_status(NetState::failed, T("The host IP is not valid. Check that it is typed correctly.", "No se reconoce la IP del host. Revisa que esté bien escrita."));
         return;
     }
     sockaddr_in host = *reinterpret_cast<sockaddr_in*>(result->ai_addr);
@@ -273,14 +275,16 @@ void run(Settings settings) {
                 last_hello = now;
             }
             if (now - start > 6000000) {
-                end_message = "El host no responde. Revisa la IP, que Radmin VPN esté conectado y que el host tenga "
-                              "HaloCoop Host abierto.";
+                end_message = T("The host is not responding. Check the IP, that Radmin VPN is connected and that the host "
+                                "has HaloCoop Host open.",
+                                "El host no responde. Revisa la IP, que Radmin VPN esté conectado y que el host tenga "
+                                "HaloCoop Host abierto.");
                 break;
             }
             continue;
         }
         if (now - last_heard > uint64_t(proto::k_timeout_ms) * 1000) {
-            end_message = "Se perdió la conexión con el host.";
+            end_message = T("Lost the connection to the host.", "Se perdió la conexión con el host.");
             break;
         }
         if (now >= next_send) {

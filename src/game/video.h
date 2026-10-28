@@ -1,4 +1,6 @@
 #pragma once
+#include "../common/protocol.h"
+
 #include <dxgi.h>
 
 // Video de los jugadores 2, 3 y 4: cada uno recibe su cuadrante de la pantalla dividida de AlphaRing.
@@ -7,3 +9,5 @@
 
 void video_start();                              // hilo de control (configuración y estado)
 void video_on_frame(IDXGISwapChain* swap_chain);  // desde el hook de Present, hilo de render del juego
+// Última configuración del launcher; false si HaloCoop Host no la manda hace más de 1,5 s.
+bool video_config(proto::VideoConfig& out);

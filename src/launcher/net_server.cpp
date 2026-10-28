@@ -32,16 +32,21 @@ Slot g_slots[k_remote_players];
 std::atomic<int> g_fps{60};
 proto::VideoStatus g_video_status;
 ULONGLONG g_video_status_time = 0;
+NameTagOptions g_name_tags;  // con g_mutex
 
-// Con g_mutex tomado. Le dice al DLL del juego a quién mandar cada cuadrante.
+// Con g_mutex tomado. Le dice al DLL del juego a quién mandar cada cuadrante y qué nombres dibujar.
 void send_video_config() {
     proto::VideoConfig config;
     config.fps = uint8_t(g_fps.load());
+    config.name_tags = g_name_tags.enabled ? 1 : 0;
+    config.name_fov = uint8_t(g_name_tags.fov);
+    memcpy(config.names[0], g_name_tags.host_name, sizeof(config.names[0]));
     for (int i = 0; i < k_remote_players; ++i) {
         config.targets[i].active = g_slots[i].connected ? 1 : 0;
         config.targets[i].ip = g_slots[i].address.sin_addr.s_addr;
         config.targets[i].port = g_slots[i].address.sin_port;
         config.targets[i].keyframe_requests = g_slots[i].keyframe_requests;
+        if (g_slots[i].connected) memcpy(config.names[i + 1], g_slots[i].nickname, sizeof(config.names[i + 1]));
     }
     sockaddr_in game{};
     game.sin_family = AF_INET;
@@ -299,6 +304,12 @@ bool net_server_video_status(proto::VideoStatus& status) {
     if (!g_video_status_time || GetTickCount64() - g_video_status_time > 3000) return false;
     status = g_video_status;
     return true;
+}
+
+void net_server_set_name_tags(const NameTagOptions& options) {
+    std::lock_guard lock(g_mutex);
+    g_name_tags = options;
+    g_name_tags.host_name[sizeof(g_name_tags.host_name) - 1] = '\0';
 }
 
 void net_server_kick(int player) {

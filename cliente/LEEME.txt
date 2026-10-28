@@ -3,7 +3,9 @@ HALO1-COOP - CLIENTE
 
 HaloCoopClient.exe es la app de los jugadores 2, 3 y 4: te muestra tu parte del juego a
 pantalla completa con el sonido del juego y manda tu mando (o teclado y mouse) al PC del
-host por Radmin VPN.
+host por Radmin VPN. Tu nombre sale sobre tu personaje en la pantalla de todos.
+
+La app viene en inglés. Para usarla en español elige "Español" arriba a la derecha (se guarda).
 
 Necesitas
 ---------

@@ -3,7 +3,9 @@ HALO1-COOP - CLIENT
 
 HaloCoopClient.exe is the app for players 2, 3 and 4: it shows your part of the game full
 screen with the game sound, and sends your controller (or keyboard and mouse) to the host's
-PC through Radmin VPN. The interface is in Spanish; translations are in parentheses below.
+PC through Radmin VPN. Your name shows over your character in everyone's screen.
+
+The app is in English. To use it in Spanish pick "Español" at the top right (it is saved).
 
 You need
 --------
@@ -21,8 +23,7 @@ How to play
        Player 2 = top right quadrant
        Player 3 = bottom left quadrant
        Player 4 = bottom right quadrant
-  4. Choose "Mando" (controller) or "Teclado y mouse" (keyboard and mouse) and press
-     "Conectar" (Connect).
+  4. Choose "Controller" or "Keyboard and mouse" and press "Connect".
   5. When the host opens the game, the client switches to full screen with your video.
 
 Client keys
@@ -46,14 +47,12 @@ With KEYBOARD AND MOUSE: click the video to capture the mouse.
 
 Problems
 --------
-  "El host no responde" (host not responding): check the IP, that Radmin VPN is connected
-     (ping the host from Radmin) and that the host has HaloCoop Host open.
-  "Esperando el video..." (waiting for video): the host has not opened MCC yet, or the mod
-     is not installed in their game (their panel says so).
-  "Ese jugador ya está ocupado" (that player is taken): another friend picked your number;
-     pick another one.
-  "Se perdió la conexión" (connection lost): the host closed or Radmin dropped; press
-     Connect again.
+  "The host is not responding": check the IP, that Radmin VPN is connected (ping the host
+     from Radmin) and that the host has HaloCoop Host open.
+  "Waiting for video...": the host has not opened MCC yet, or the mod is not installed in
+     their game (their panel says so).
+  "That player is already taken": another friend picked your number; pick another one.
+  "Lost the connection to the host": the host closed or Radmin dropped; press Connect again.
   Laptop with no video / NVIDIA error: in Windows Settings > Display > Graphics set
      HaloCoopClient.exe to "High performance".
   My character does not move: the host's game must be in the foreground on their PC.

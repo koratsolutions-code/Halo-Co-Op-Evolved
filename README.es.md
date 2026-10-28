@@ -8,9 +8,13 @@ cada uno en su propio PC y con su propia pantalla completa, conectados por **Rad
 El juego corre una sola vez en el PC del host con la pantalla dividida en 4 (AlphaRing). El mod del host
 envía a cada amigo solo su cuarto de pantalla y su sonido, y recibe sus controles de vuelta.
 
-> **Estado actual (fase 4):** el host (`HaloCoopHost.exe` + `VERSION.dll`) crea los mandos de los
+> **Estado actual (fase 5):** el host (`HaloCoopHost.exe` + `VERSION.dll`) crea los mandos de los
 > jugadores 2, 3 y 4, recibe sus controles y les manda su cuadrante del juego como video (NVENC) y el
-> sonido del juego (Opus). Cada amigo lo ve y escucha a pantalla completa en `HaloCoopClient.exe`.
+> sonido del juego (Opus). Cada amigo lo ve y escucha a pantalla completa en `HaloCoopClient.exe`, con el
+> nombre de cada jugador sobre su personaje.
+>
+> Las dos apps vienen en **inglés**. Para usarlas en español elige **Español** en el selector de arriba a
+> la derecha (se guarda). Esta guía usa los textos en español.
 
 ## Compilar desde el código
 
@@ -95,26 +99,35 @@ AlphaRing están instalados; si no pudo copiarlo (permisos), cópialo tú a esa 
 2. Abre `HaloCoopHost.exe`. Arriba muestra tu IP de Radmin (pásasela a tus amigos) y qué Controller
    le tocó a cada jugador (normalmente J2 = Controller 1, J3 = Controller 2, J4 = Controller 3).
    **No lo cierres mientras jueguen.**
-3. Presiona **Abrir MCC** y elige **sin anticheat (EAC desactivado)**.
-4. Presiona **F4** para abrir el menú de AlphaRing → **Splitscreen**:
+3. Escribe tu nombre en **Nickname** (tarjeta del jugador 1): tus amigos lo ven sobre tu personaje.
+4. Presiona **Abrir MCC** y elige **sin anticheat (EAC desactivado)**.
+5. Presiona **F4** para abrir el menú de AlphaRing → **Splitscreen**:
    - **Players = 4**.
    - No cambies las demás opciones. En especial, deja activado *"Use player1's profile"*.
    - AlphaRing **no guarda** la configuración: hay que hacerlo cada vez que se abre el juego.
-5. Cierra el menú con **F4**. Mientras está abierto, **ningún jugador se puede mover**.
-6. En Halo CE activa los **gráficos clásicos** (tecla **Tab** en partida): con los gráficos nuevos
+6. Cierra el menú con **F4**. Mientras está abierto, **ningún jugador se puede mover**.
+7. En Halo CE activa los **gráficos clásicos** (tecla **Tab** en partida): con los gráficos nuevos
    solo se ven 2 jugadores.
-7. Mantén la ventana del juego **activa** (en primer plano) mientras juegan: si cambias a otra
+8. Mantén la ventana del juego **activa** (en primer plano) mientras juegan: si cambias a otra
    ventana, MCC deja de leer los mandos.
 
 ### Video
-El panel muestra la línea **Video**: unos segundos después de abrir MCC dice *listo* con la resolución
-del juego y los FPS y Mbps que recibe cada amigo. Con el selector **Video a 30/60/120 FPS** eliges cuánto
+El panel muestra la línea **Video**: unos segundos después de abrir MCC dice *Video listo* con la
+resolución del juego, y la tarjeta de cada jugador muestra los FPS y Mbps que recibe ese amigo. Con el selector **Video a 30/60/120 FPS** eliges cuánto
 mandar: más FPS = menos retraso, pero más subida de internet. Cada amigo recibe un cuarto de la
 resolución del juego (con el juego a 2560x1440, cada uno ve 1280x720).
 
 ### Audio
 HaloCoop Host captura **solo el sonido de MCC** (no Discord, música ni otras apps) y lo manda igual a
-todos los amigos (~0,1 Mbps cada uno). El panel muestra *Audio: activo* cuando MCC está abierto.
+todos los amigos (~0,1 Mbps cada uno). El panel muestra *Audio activo* cuando MCC está abierto.
+
+### Nombres sobre los jugadores
+El mod del juego dibuja el nombre de cada jugador sobre su personaje, en tu pantalla y en el video de cada
+amigo. Se ven también a través de paredes y se achican y aclaran con la distancia. El nombre del jugador 1
+es el **Nickname** del panel; los jugadores 2-4 usan el nombre que escribieron en su cliente.
+- **Mostrar nombres sobre los jugadores** los activa o desactiva.
+- Si los nombres no quedan justo sobre los personajes, ajusta **FOV del juego** al campo de visión del juego.
+- Los nombres aparecen unos segundos después de que carga cada nivel.
 
 ### Probar los mandos
 En HaloCoop Host, el botón **Mover** de cada jugador hace que su personaje camine hacia adelante,
@@ -128,8 +141,10 @@ tus amigos no pueden conectarse, permite `HaloCoopHost.exe` en *Firewall de Wind
 aplicación*.
 
 ### Panel del host
-Cada jugador conectado aparece con su nombre, su IP y cuántos controles por segundo llegan
-(unos 250 es lo normal). **Expulsar** lo desconecta (puede volver a conectarse).
+Está ordenado como la pantalla dividida: una tarjeta por jugador. Cada amigo conectado muestra su nombre,
+su IP, cuántos controles por segundo llegan (unos 250 es lo normal) y el video que recibe. **Expulsar** lo
+desconecta (puede volver a conectarse). El panel guarda tu nickname, el idioma, los FPS y lo de los
+nombres en `halocoop-host.ini`, junto a `HaloCoopHost.exe`.
 
 ### Problemas frecuentes
 - **Un jugador no se mueve:** cierra MCC, cierra HaloCoop Host, ábrelos de nuevo en ese orden.
@@ -137,7 +152,9 @@ Cada jugador conectado aparece con su nombre, su IP y cuántos controles por seg
   avisa y muestra cuál le tocó a cada jugador; en AlphaRing asigna esos Controller a cada jugador.
 - **HaloCoop Host dice que falta ViGEmBus:** instálalo (paso 2) y reinicia el PC.
 - **Video: el juego no responde:** espera unos 10 segundos tras abrir MCC. Si sigue, revisa que el panel
-  diga *Mod del juego: instalado* y mira `halocoop-juego.log` en la carpeta `mcc\binaries\win64`.
+  muestre *Mod del juego* con punto verde y mira `halocoop-juego.log` en la carpeta `mcc\binaries\win64`.
+- **No salen los nombres:** revisa que *Mostrar nombres sobre los jugadores* esté activado y espera unos
+  segundos después de que cargue el nivel. Los nombres solo funcionan con MCC versión 1.3528.
 
 ### Problemas conocidos de AlphaRing con 4 jugadores
 - Con gráficos remasterizados solo se ven los jugadores 1 y 2 → usar gráficos clásicos (Tab).
@@ -155,6 +172,8 @@ Cada amigo descarga la carpeta `cliente/` y abre `HaloCoopClient.exe`
 2. Elige tu número de jugador: **2** (arriba a la derecha), **3** (abajo a la izquierda) o
    **4** (abajo a la derecha). Cada amigo uno distinto.
 3. Elige **Mando** o **Teclado y mouse** y presiona **Conectar**.
+
+El cliente viene en inglés: para pasarlo a español elige **Español** arriba a la derecha (se guarda).
 
 Cuando llega el video, el cliente pasa a **pantalla completa** con tu cuadrante del juego.
 
