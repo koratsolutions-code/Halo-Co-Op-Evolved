@@ -48,6 +48,7 @@ add_library(HaloCoopGame SHARED
     src/game/video.cpp
     src/game/encoder.cpp
     src/game/halo1_players.cpp
+    src/game/armor_colors.cpp
     src/game/name_tags.cpp
     src/game/log.cpp
     src/game/version.def

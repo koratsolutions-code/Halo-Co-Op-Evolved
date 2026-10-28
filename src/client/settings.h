@@ -15,6 +15,7 @@ struct Settings {
     int volume = 100;          // 0..100
     bool muted = false;
     Lang lang = Lang::en;  // idioma de la interfaz
+    int armor_color = 0;   // índice en k_armor_colors (0: por defecto)
 };
 
 constexpr float k_min_sensitivity = 0.1f;

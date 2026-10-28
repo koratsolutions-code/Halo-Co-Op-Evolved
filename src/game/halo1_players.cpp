@@ -163,6 +163,11 @@ void halo1_players_start() {
     }).detach();
 }
 
+uintptr_t halo1_player_biped(int player) {
+    std::lock_guard lock(g_mutex);
+    return player >= 0 && player < 4 ? biped_address(g_tables, player) : 0;
+}
+
 bool halo1_players_read(Halo1Player out[4]) {
     Tables t;
     {

@@ -9,6 +9,7 @@ struct PlayerInfo {
     char address[64] = {};
     unsigned ms_since_packet = 0;
     unsigned inputs_per_second = 0;
+    int armor_color = 0;  // índice en k_armor_colors
 };
 
 bool net_server_start();   // false si el puerto está ocupado (¿otro HaloCoop Host abierto?)
@@ -25,10 +26,11 @@ int net_server_fps();
 // false si el DLL del juego no reporta (juego cerrado o sin el DLL instalado).
 bool net_server_video_status(proto::VideoStatus& status);
 
-// Nombres sobre los jugadores: el DLL los dibuja en el juego. Los de J2-J4 son los nicknames de sus clientes.
-struct NameTagOptions {
-    bool enabled = true;
-    int fov = 70;  // FOV horizontal del juego (grados)
+// Lo que el host elige para el juego. Nombres y colores de J2-J4 los manda cada cliente.
+struct HostOptions {
+    bool enabled = true;  // nombres sobre los jugadores
+    int fov = 70;         // FOV horizontal del juego (grados), para los nombres
     char host_name[proto::k_nickname_size] = {};  // jugador 1
+    int host_armor_color = 0;                     // jugador 1, índice en k_armor_colors
 };
-void net_server_set_name_tags(const NameTagOptions& options);
+void net_server_set_host_options(const HostOptions& options);

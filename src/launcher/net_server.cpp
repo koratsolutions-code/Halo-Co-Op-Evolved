@@ -2,6 +2,8 @@
 #include "log.h"
 #include "pads.h"
 
+#include "../common/armor_colors.h"
+
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #include <mstcpip.h>
@@ -22,6 +24,7 @@ struct Slot {
     unsigned inputs = 0;             // contador de la ventana actual
     unsigned inputs_per_second = 0;  // último valor medido
     uint32_t keyframe_requests = 0;
+    uint8_t armor_color = 0;  // índice en k_armor_colors (lo manda el cliente)
 };
 
 SOCKET g_socket = INVALID_SOCKET;
@@ -32,21 +35,25 @@ Slot g_slots[k_remote_players];
 std::atomic<int> g_fps{60};
 proto::VideoStatus g_video_status;
 ULONGLONG g_video_status_time = 0;
-NameTagOptions g_name_tags;  // con g_mutex
+HostOptions g_host_options;  // con g_mutex
 
-// Con g_mutex tomado. Le dice al DLL del juego a quién mandar cada cuadrante y qué nombres dibujar.
+// Con g_mutex tomado. Le dice al DLL del juego a quién mandar cada cuadrante y qué nombres y colores poner.
 void send_video_config() {
     proto::VideoConfig config;
     config.fps = uint8_t(g_fps.load());
-    config.name_tags = g_name_tags.enabled ? 1 : 0;
-    config.name_fov = uint8_t(g_name_tags.fov);
-    memcpy(config.names[0], g_name_tags.host_name, sizeof(config.names[0]));
+    config.name_tags = g_host_options.enabled ? 1 : 0;
+    config.name_fov = uint8_t(g_host_options.fov);
+    memcpy(config.names[0], g_host_options.host_name, sizeof(config.names[0]));
+    config.armor_colors[0] = uint8_t(g_host_options.host_armor_color);
     for (int i = 0; i < k_remote_players; ++i) {
         config.targets[i].active = g_slots[i].connected ? 1 : 0;
         config.targets[i].ip = g_slots[i].address.sin_addr.s_addr;
         config.targets[i].port = g_slots[i].address.sin_port;
         config.targets[i].keyframe_requests = g_slots[i].keyframe_requests;
-        if (g_slots[i].connected) memcpy(config.names[i + 1], g_slots[i].nickname, sizeof(config.names[i + 1]));
+        if (g_slots[i].connected) {
+            memcpy(config.names[i + 1], g_slots[i].nickname, sizeof(config.names[i + 1]));
+            config.armor_colors[i + 1] = g_slots[i].armor_color;
+        }
     }
     sockaddr_in game{};
     game.sin_family = AF_INET;
@@ -169,6 +176,13 @@ void server_thread() {
                         send_to(from, pong);
                     }
                     break;
+                case proto::Type::player_options:
+                    if (auto* m = proto::as<proto::PlayerOptions>(buffer, size)) {
+                        int index = slot_of(from);
+                        if (index >= 0 && m->armor_color < k_armor_color_count)
+                            g_slots[index].armor_color = m->armor_color;
+                    }
+                    break;
                 case proto::Type::bye: {
                     int index = slot_of(from);
                     if (index >= 0) release_slot(index, "salió");
@@ -274,6 +288,7 @@ PlayerInfo net_server_player(int player) {
     format_address(slot.address, info.address, sizeof(info.address));
     info.ms_since_packet = unsigned(GetTickCount64() - slot.last_seen);
     info.inputs_per_second = slot.inputs_per_second;
+    info.armor_color = slot.armor_color;
     return info;
 }
 
@@ -306,10 +321,10 @@ bool net_server_video_status(proto::VideoStatus& status) {
     return true;
 }
 
-void net_server_set_name_tags(const NameTagOptions& options) {
+void net_server_set_host_options(const HostOptions& options) {
     std::lock_guard lock(g_mutex);
-    g_name_tags = options;
-    g_name_tags.host_name[sizeof(g_name_tags.host_name) - 1] = '\0';
+    g_host_options = options;
+    g_host_options.host_name[sizeof(g_host_options.host_name) - 1] = '\0';
 }
 
 void net_server_kick(int player) {

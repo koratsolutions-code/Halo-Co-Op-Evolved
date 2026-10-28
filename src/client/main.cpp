@@ -10,6 +10,7 @@
 #include "settings.h"
 
 #include "../common/lang.h"
+#include "../common/ui_armor_color.h"
 #include "../common/ui_style.h"
 
 #include <d3d11.h>
@@ -232,6 +233,17 @@ void volume_controls() {
     ImGui::EndDisabled();
 }
 
+// Color de armadura: se guarda y, si ya está conectado, le llega al host en menos de un segundo.
+void armor_color_control() {
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted(T("Armor color", "Color de armadura"));
+    ImGui::SameLine();
+    if (ui_armor_color_combo("##armor", &g_settings.armor_color, -1)) {
+        net_update_settings(g_settings);
+        settings_save(g_settings);
+    }
+}
+
 void draw_menu(const NetStatus& status) {
     ImGui::TextColored(k_green, "%s", T("HALO CE · 4-PLAYER CO-OP", "HALO CE · COOP 4 JUGADORES"));
     // Idioma, arriba a la derecha.
@@ -257,6 +269,7 @@ void draw_menu(const NetStatus& status) {
     ImGui::SetNextItemWidth(-1);
     ImGui::InputTextWithHint("##name", T("How the others will see you", "Cómo te verán los demás"), g_name_text,
                              sizeof(g_name_text));
+    armor_color_control();
 
     ImGui::TextUnformatted(T("Player", "Jugador"));
     for (int p = 2; p <= 4; ++p) {
@@ -314,6 +327,7 @@ void draw_ingame_panel(const NetStatus& status) {
                                                  "Esperando el video... El host tiene que tener MCC abierto con HaloCoop."));
     }
     ImGui::Separator();
+    armor_color_control();
     volume_controls();
     if (g_settings.control == ControlMode::gamepad) {
         if (input_gamepad_connected())

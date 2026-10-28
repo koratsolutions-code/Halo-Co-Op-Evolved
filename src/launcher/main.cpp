@@ -9,6 +9,7 @@
 #include "pads.h"
 
 #include "../common/lang.h"
+#include "../common/ui_armor_color.h"
 #include "../common/ui_style.h"
 
 #include <winsock2.h>
@@ -45,6 +46,7 @@ struct HostSettings {
     bool name_tags = true;
     int fov = 70;
     int fps = 60;
+    int armor_color = 0;  // jugador 1, índice en k_armor_colors
 };
 HostSettings g_settings;
 
@@ -68,6 +70,8 @@ void settings_load() {
     bool valid_fps = false;
     for (int fps : proto::k_fps_options) valid_fps |= fps == g_settings.fps;
     if (!valid_fps) g_settings.fps = 60;
+    g_settings.armor_color = GetPrivateProfileIntW(L"host", L"armor_color", 0, ini.c_str());
+    if (g_settings.armor_color < 0 || g_settings.armor_color >= k_armor_color_count) g_settings.armor_color = 0;
     g_lang = g_settings.lang;
 }
 
@@ -80,14 +84,16 @@ void settings_save() {
     WritePrivateProfileStringW(L"host", L"name_tags", g_settings.name_tags ? L"1" : L"0", ini.c_str());
     WritePrivateProfileStringW(L"host", L"fov", std::to_wstring(g_settings.fov).c_str(), ini.c_str());
     WritePrivateProfileStringW(L"host", L"fps", std::to_wstring(g_settings.fps).c_str(), ini.c_str());
+    WritePrivateProfileStringW(L"host", L"armor_color", std::to_wstring(g_settings.armor_color).c_str(), ini.c_str());
 }
 
-void apply_name_tags() {
-    NameTagOptions options;
+void apply_host_options() {
+    HostOptions options;
     options.enabled = g_settings.name_tags;
     options.fov = g_settings.fov;
     memcpy(options.host_name, g_settings.nickname, sizeof(options.host_name));
-    net_server_set_name_tags(options);
+    options.host_armor_color = g_settings.armor_color;
+    net_server_set_host_options(options);
 }
 
 // ---------------------------------------------------------------- MCC, Radmin y el mod
@@ -378,13 +384,13 @@ void draw_connection_card() {
 void draw_name_tags_card() {
     ImGui::BeginChild("##names", ImVec2(0, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
     if (ImGui::Checkbox(T("Show names over players", "Mostrar nombres sobre los jugadores"), &g_settings.name_tags)) {
-        apply_name_tags();
+        apply_host_options();
         settings_save();
     }
     ImGui::SameLine(0, 24);
     ImGui::BeginDisabled(!g_settings.name_tags);
     ImGui::SetNextItemWidth(-1);
-    if (ImGui::SliderInt("##fov", &g_settings.fov, 40, 150, T("Game FOV: %d°", "FOV del juego: %d°"))) apply_name_tags();
+    if (ImGui::SliderInt("##fov", &g_settings.fov, 40, 150, T("Game FOV: %d°", "FOV del juego: %d°"))) apply_host_options();
     if (ImGui::IsItemDeactivatedAfterEdit()) settings_save();
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("%s", T("If the names do not sit right over the players, match this to the game's FOV.",
@@ -413,16 +419,25 @@ void draw_player_card(int player, float width, float height) {
         ImGui::SameLine();
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6);
         ImGui::TextColored(k_muted, "·  %s", T("you, on this PC", "tú, en este PC"));
+        // Las dos casillas alineadas a la misma columna.
+        const char* armor_label = T("Armor", "Armadura");
+        float column = std::max(ImGui::CalcTextSize("Nickname").x, ImGui::CalcTextSize(armor_label).x) +
+                       ImGui::GetStyle().ItemSpacing.x * 2;
         ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted("Nickname");
-        ImGui::SameLine();
+        ImGui::SameLine(column);
         ImGui::SetNextItemWidth(-1);
         if (ImGui::InputTextWithHint("##nickname", T("Your name over your character", "Tu nombre sobre tu personaje"),
                                      g_settings.nickname, sizeof(g_settings.nickname)))
-            apply_name_tags();
+            apply_host_options();
         if (ImGui::IsItemDeactivatedAfterEdit()) settings_save();
-        ImGui::TextColored(k_muted, "%s", T("Your friends see it over your character.",
-                                             "Tus amigos lo ven sobre tu personaje."));
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted(armor_label);
+        ImGui::SameLine(column);
+        if (ui_armor_color_combo("##armor", &g_settings.armor_color, -1)) {
+            apply_host_options();
+            settings_save();
+        }
         ImGui::EndChild();
         return;
     }
@@ -436,7 +451,11 @@ void draw_player_card(int player, float width, float height) {
     if (info.connected) {
         status_dot(k_green, info.nickname[0] ? info.nickname : T("(no name)", "(sin nombre)"));
         ImGui::SameLine();
-        ImGui::TextColored(k_muted, "·  %s", info.address);
+        ImGui::TextColored(k_muted, "·  %s  ·", info.address);
+        ImGui::SameLine();
+        ui_armor_swatch(info.armor_color);
+        ImGui::SameLine();
+        ImGui::TextColored(k_muted, "%s", T(k_armor_colors[info.armor_color].name_en, k_armor_colors[info.armor_color].name_es));
         if (g_status.video_ok)
             ImGui::TextColored(k_muted, T("%u inputs/s  ·  video %u fps  ·  %.1f Mbps", "%u controles/s  ·  video %u fps  ·  %.1f Mbps"),
                                info.inputs_per_second, g_status.video.fps_sent[index],
@@ -487,7 +506,7 @@ void draw_panel() {
     float spacing = style.ItemSpacing.x;
     float card_w = (ImGui::GetContentRegionAvail().x - spacing) / 2;
     float card_h = style.WindowPadding.y * 2 + g_big_font->FontSize + ImGui::GetTextLineHeight() * 2 +
-                   ImGui::GetFrameHeight() + style.ItemSpacing.y * 3 + 4;
+                   ImGui::GetFrameHeight() + style.ItemSpacing.y * 3 + 12;
     draw_player_card(1, card_w, card_h);
     ImGui::SameLine();
     draw_player_card(2, card_w, card_h);
@@ -681,7 +700,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
         ShellExecuteW(nullptr, L"open", k_alpharing_url, nullptr, nullptr, SW_SHOWNORMAL);
 
     net_server_set_fps(g_settings.fps);
-    apply_name_tags();
+    apply_host_options();
     if (!net_server_start()) {
         MessageBoxW(nullptr,
                     T(L"Could not open UDP port 27960: another program is using it.\n\nThe controllers work, but your "

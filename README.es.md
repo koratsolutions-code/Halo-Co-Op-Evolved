@@ -11,7 +11,7 @@ envía a cada amigo solo su cuarto de pantalla y su sonido, y recibe sus control
 > **Estado actual (fase 5):** el host (`HaloCoopHost.exe` + `VERSION.dll`) crea los mandos de los
 > jugadores 2, 3 y 4, recibe sus controles y les manda su cuadrante del juego como video (NVENC) y el
 > sonido del juego (Opus). Cada amigo lo ve y escucha a pantalla completa en `HaloCoopClient.exe`, con el
-> nombre de cada jugador sobre su personaje.
+> nombre de cada jugador sobre su personaje y el color de armadura que elige cada uno.
 >
 > Las dos apps vienen en **inglés**. Para usarlas en español elige **Español** en el selector de arriba a
 > la derecha (se guarda). Esta guía usa los textos en español.
@@ -102,7 +102,7 @@ AlphaRing están instalados; si no pudo copiarlo (permisos), cópialo tú a esa 
 2. Abre `HaloCoopHost.exe`. Arriba muestra tu IP de Radmin (pásasela a tus amigos) y qué Controller
    le tocó a cada jugador (normalmente J2 = Controller 1, J3 = Controller 2, J4 = Controller 3).
    **No lo cierres mientras jueguen.**
-3. Escribe tu nombre en **Nickname** (tarjeta del jugador 1): tus amigos lo ven sobre tu personaje.
+3. Escribe tu nombre en **Nickname** y elige tu color en **Armadura** (tarjeta del jugador 1).
 4. Presiona **Abrir MCC** y elige **sin anticheat (EAC desactivado)**.
 5. Presiona **F4** para abrir el menú de AlphaRing → **Splitscreen**:
    - **Players = 4**.
@@ -131,6 +131,13 @@ es el **Nickname** del panel; los jugadores 2-4 usan el nombre que escribieron e
 - **Mostrar nombres sobre los jugadores** los activa o desactiva.
 - Si los nombres no quedan justo sobre los personajes, ajusta **FOV del juego** al campo de visión del juego.
 - Los nombres aparecen unos segundos después de que carga cada nivel.
+
+### Colores de armadura
+La personalización de armadura de MCC solo vale en multijugador, así que el mod del juego pinta la armadura
+de cada jugador en la campaña. El jugador 1 la elige en **Armadura** (tarjeta del jugador 1); los jugadores
+2-4 en **Color de armadura** de su cliente (también en F2 durante la partida). Están los 18 colores de Halo CE
+más **Por defecto** (el verde oliva de siempre). El color se vuelve a poner solo al reaparecer o al cargar
+otro nivel, y cada tarjeta de jugador lo muestra.
 
 ### Probar los mandos
 En HaloCoop Host, el botón **Mover** de cada jugador hace que su personaje camine hacia adelante,

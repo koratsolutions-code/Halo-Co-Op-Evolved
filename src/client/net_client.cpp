@@ -314,6 +314,12 @@ void run(Settings settings) {
             proto::Ping ping;
             ping.client_time_us = now;
             send_message(ping);
+            proto::PlayerOptions options;  // se repite: si se pierde uno, llega el siguiente
+            {
+                std::lock_guard lock(g_mutex);
+                options.armor_color = uint8_t(g_settings.armor_color);
+            }
+            send_message(options);
             last_ping = now;
         }
         if (now - last_rate >= 1000000) {

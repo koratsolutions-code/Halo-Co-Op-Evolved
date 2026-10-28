@@ -24,7 +24,7 @@ Cada vez que jueguen:
   2. Abre HaloCoopHost.exe PRIMERO, con MCC cerrado (no lo cierres mientras jueguen).
      La primera vez, si Windows pregunta por el firewall, marca redes privadas y públicas.
   3. Pásales a tus amigos la IP de Radmin que sale arriba en el panel ("Copiar" la copia).
-  4. Escribe tu nombre en "Nickname" (tarjeta del jugador 1): sale sobre tu personaje.
+  4. En la tarjeta del jugador 1 escribe tu nombre en "Nickname" y elige tu color en "Armadura".
   5. Presiona "Abrir MCC" y elige sin anticheat.
   6. F4 -> Splitscreen -> Players = 4. Cierra el menú con F4.
   7. En la misión usa gráficos clásicos (Tab) y deja el juego como ventana activa.

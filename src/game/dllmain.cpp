@@ -1,6 +1,7 @@
 // HaloCoop dentro del juego (VERSION.dll en mcc\binaries\win64): captura los cuadrantes de J2-J4 y los manda
 // como video. No toca los mandos: de eso se encarga HaloCoop Host.
 
+#include "armor_colors.h"
 #include "log.h"
 #include "name_tags.h"
 #include "video.h"
@@ -86,6 +87,7 @@ DWORD WINAPI init_thread(LPVOID) {
     Sleep(5000);
     video_start();
     name_tags_start();
+    armor_colors_start();
     void* present = find_present();
     MH_STATUS status = MH_Initialize();
     if (present && (status == MH_OK || status == MH_ERROR_ALREADY_INITIALIZED)) {

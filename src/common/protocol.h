@@ -33,6 +33,7 @@ enum class Type : uint8_t {
     video_config = 10,     // launcher -> DLL (local): a quién mandar video, FPS y bitrate
     video_status = 11,     // DLL -> launcher (local): estado del video para el panel
     audio = 12,            // host -> cliente: 10 ms de audio del juego en Opus
+    player_options = 13,   // cliente -> host: color de armadura (con cada ping; un host viejo lo ignora)
 };
 
 // Audio: 48 kHz estéreo, paquetes de 10 ms (480 muestras por canal) comprimidos con Opus.
@@ -102,6 +103,11 @@ struct Pong {
     uint64_t client_time_us = 0;
 };
 
+struct PlayerOptions {
+    Header header{k_magic, Type::player_options};
+    uint8_t armor_color = 0;  // índice en k_armor_colors (0: por defecto)
+};
+
 struct Bye {
     Header header{k_magic, Type::bye};
 };
@@ -148,6 +154,7 @@ struct VideoConfig {
     uint8_t name_tags = 1;    // 0: apagados
     uint8_t name_fov = 70;    // FOV horizontal del juego en grados, para proyectar los nombres
     char names[4][k_nickname_size] = {};  // jugadores 1..4 (vacío: "Player N")
+    uint8_t armor_colors[4] = {};         // jugadores 1..4, índice en k_armor_colors (0: sin cambiar)
 };
 
 struct VideoStatus {

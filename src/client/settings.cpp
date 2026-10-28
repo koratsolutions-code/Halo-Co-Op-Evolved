@@ -1,5 +1,7 @@
 #include "settings.h"
 
+#include "../common/armor_colors.h"
+
 #include <windows.h>
 
 #include <algorithm>
@@ -37,6 +39,7 @@ Settings settings_load() {
     s.volume = std::clamp(atoi(read(L"volumen", L"100").c_str()), 0, 100);
     s.muted = read(L"silencio", L"no") == "si";
     s.lang = read(L"idioma", L"en") == "es" ? Lang::es : Lang::en;
+    s.armor_color = std::clamp(atoi(read(L"color", L"0").c_str()), 0, k_armor_color_count - 1);
     return s;
 }
 
@@ -51,4 +54,5 @@ void settings_save(const Settings& s) {
     write(L"volumen", std::to_string(s.volume));
     write(L"silencio", s.muted ? "si" : "no");
     write(L"idioma", s.lang == Lang::es ? "es" : "en");
+    write(L"color", std::to_string(s.armor_color));
 }

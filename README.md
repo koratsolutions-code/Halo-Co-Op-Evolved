@@ -11,7 +11,7 @@ each friend only their quarter of the screen plus the game sound, and receives t
 > **Current status (phase 5):** the host (`HaloCoopHost.exe` + `VERSION.dll`) creates the controllers
 > for players 2, 3 and 4, receives their input and sends each one their quadrant as video (NVENC) plus
 > the game sound (Opus). Each friend sees and hears it full screen in `HaloCoopClient.exe`, with every
-> player's name over their character.
+> player's name over their character and the armor color each one picks.
 >
 > Both apps are in **English** by default; switch to **Español** with the selector at the top right.
 
@@ -102,7 +102,7 @@ yourself.
 2. Open `HaloCoopHost.exe`. At the top it shows your Radmin IP (give it to your friends) and which
    Controller each player got (usually P2 = Controller 1, P3 = Controller 2, P4 = Controller 3).
    **Do not close it while you play.**
-3. Type your name in **Nickname** (player 1 card): your friends see it over your character.
+3. Type your name in **Nickname** and pick your **Armor** color (player 1 card).
 4. Press **Open MCC** and choose **without anti-cheat (EAC disabled)**.
 5. Press **F4** to open the AlphaRing menu → **Splitscreen**:
    - **Players = 4**.
@@ -131,6 +131,12 @@ Names stay visible through walls and get smaller and fainter with distance. Play
 - **Show names over players** turns them on or off.
 - If the names do not sit right over the characters, set **Game FOV** to the game's field of view.
 - The names show up a few seconds after each level loads.
+
+### Armor colors
+MCC's armor customization only applies to multiplayer, so the game mod paints each player's armor in the
+campaign. Player 1 picks it in **Armor** (player 1 card); players 2-4 in **Armor color** in their client
+(also in F2 while playing). There are the 18 Halo CE colors plus **Default** (the usual olive green). The
+color comes back by itself when a player respawns or a new level loads, and every player card shows it.
 
 ### Testing the controllers
 In HaloCoop Host, each player's **Move** button makes their character walk forward, back,

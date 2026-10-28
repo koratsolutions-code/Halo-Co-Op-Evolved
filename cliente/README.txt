@@ -3,7 +3,8 @@ HALO1-COOP - CLIENT
 
 HaloCoopClient.exe is the app for players 2, 3 and 4: it shows your part of the game full
 screen with the game sound, and sends your controller (or keyboard and mouse) to the host's
-PC through Radmin VPN. Your name shows over your character in everyone's screen.
+PC through Radmin VPN. Your name shows over your character in everyone's screen, with the
+armor color you pick in "Armor color" (you can also change it in F2 while playing).
 
 The app is in English. To use it in Spanish pick "Español" at the top right (it is saved).
 
