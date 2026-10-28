@@ -10,8 +10,9 @@ Contenido:
 Antes de la primera vez:
   1. AlphaRing: descarga Release1.0.zip (1.3528.0.0) de
        https://github.com/wouter51/AlphaRing/releases
-     y copia WTSAPI32.dll en:
-       ...\steamapps\common\Halo The Master Chief Collection\mcc\binaries\win64\
+     y copia WTSAPI32.dll en la carpeta mcc\binaries\win64 del juego.
+     Para encontrarla: en Steam, clic derecho en Halo: The Master Chief Collection ->
+     Administrar -> Ver archivos locales, y dentro abre mcc -> binaries -> win64.
   2. ViGEmBus: instala el driver de
        https://github.com/nefarius/ViGEmBus/releases/latest
      y reinicia el PC.
@@ -32,4 +33,4 @@ En el panel:
   - "Audio: activo": se está mandando el sonido de MCC (solo el del juego) a todos.
   - "Mover": prueba el mando de ese jugador.  "Expulsar": lo desconecta.
 
-Las instrucciones completas están en el README.md del repositorio.
+Las instrucciones completas están en el README.es.md del repositorio (English: README.txt).

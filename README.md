@@ -1,174 +1,185 @@
 # halo1-coop
 
-Campaña de **Halo: Combat Evolved** (Halo: The Master Chief Collection, Steam) para **4 jugadores**,
-cada uno en su propio PC y con su propia pantalla completa, conectados por **Radmin VPN** al PC del host.
+[Español](README.es.md) · **English**
 
-El juego corre una sola vez en el PC del host con la pantalla dividida en 4 (AlphaRing). El mod del host
-envía a cada amigo solo su cuarto de pantalla y recibe sus controles de vuelta.
+**Halo: Combat Evolved** campaign (Halo: The Master Chief Collection, Steam) for **4 players**,
+each on their own PC with their own full screen, connected through **Radmin VPN** to the host's PC.
 
-> **Estado actual (fase 4):** el host (`HaloCoopHost.exe` + `VERSION.dll`) crea los mandos de los
-> jugadores 2, 3 y 4, recibe sus controles y les manda su cuadrante del juego como video (NVENC) y el
-> sonido del juego (Opus). Cada amigo lo ve y escucha a pantalla completa en `HaloCoopClient.exe`.
+The game runs only once, on the host's PC, with the screen split in 4 (AlphaRing). The host mod sends
+each friend only their quarter of the screen plus the game sound, and receives their controls back.
 
-## Compilar desde el código
+> **Current status (phase 4):** the host (`HaloCoopHost.exe` + `VERSION.dll`) creates the controllers
+> for players 2, 3 and 4, receives their input and sends each one their quadrant as video (NVENC) plus
+> the game sound (Opus). Each friend sees and hears it full screen in `HaloCoopClient.exe`.
 
-Requiere Visual Studio 2022 o Build Tools con *Desarrollo para el escritorio con C++* (incluye CMake
-y Ninja). Ejecuta `build.cmd`: compila y deja `HaloCoopHost.exe` y `VERSION.dll` en `host/` y
-`HaloCoopClient.exe` en `cliente/`.
+## Building from source
 
----
-
-## Estructura del repositorio
-
-| Carpeta    | Para quién        | Contenido |
-|------------|-------------------|-----------|
-| `host/`    | El que hospeda    | `HaloCoopHost.exe` (launcher y panel) y `VERSION.dll` (mod del juego, se instala solo) |
-| `cliente/` | Los otros 3 jugadores | `HaloCoopClient.exe` y su `LEEME.txt` |
+Requires Visual Studio 2022 or Build Tools with *Desktop development with C++* (includes CMake and
+Ninja). Run `build.cmd`: it builds and places `HaloCoopHost.exe` and `VERSION.dll` in `host/` and
+`HaloCoopClient.exe` in `cliente/`.
 
 ---
 
-## Requisitos
+## Repository layout
+
+| Folder     | For whom          | Contents |
+|------------|-------------------|----------|
+| `host/`    | The host          | `HaloCoopHost.exe` (launcher and panel), `VERSION.dll` (game mod, installs itself) and instructions (`README.txt` / `LEEME.txt`) |
+| `cliente/` | The other 3 players | `HaloCoopClient.exe` and instructions (`README.txt` / `LEEME.txt`) |
+
+---
+
+## Requirements
 
 **Host**
-- Halo: The Master Chief Collection en **Steam** (versión 1.3528.0.0).
-- GPU NVIDIA (GTX 900 o más nueva) con drivers actualizados: el video se codifica con NVENC.
-- Internet con unos **10 Mbps de subida por amigo a 60 FPS** (30 Mbps para 3 amigos).
-- [Radmin VPN](https://www.radmin-vpn.com/) instalado y conectado a la misma red que los amigos.
+- Halo: The Master Chief Collection on **Steam** (version 1.3528.0.0).
+- NVIDIA GPU (GTX 900 or newer) with up-to-date drivers: video is encoded with NVENC.
+- About **10 Mbps of upload per friend at 60 FPS** (30 Mbps for 3 friends).
+- [Radmin VPN](https://www.radmin-vpn.com/) installed and joined to the same network as your friends.
+- Windows 10 version 2004 or newer (to capture only the game's sound).
 
-**Cada cliente**
-- Windows 10/11 con GPU NVIDIA y drivers actualizados (el video se decodifica con NVDEC).
-- Radmin VPN conectado a la misma red que el host.
-- Mando de Xbox o teclado y mouse.
+**Each client**
+- Windows 10/11 with an NVIDIA GPU and up-to-date drivers (video is decoded with NVDEC).
+- Radmin VPN joined to the same network as the host.
+- Xbox controller, or keyboard and mouse.
 
 ---
 
-## Instalación del host
+## Host installation
 
-### 1. AlphaRing (pantalla dividida para 4 jugadores)
+### Game folder
+Several steps use the game's `mcc\binaries\win64` folder. To find it: in Steam, right-click
+**Halo: The Master Chief Collection → Manage → Browse local files**, then open
+`mcc` → `binaries` → `win64`.
 
-AlphaRing no se incluye en este repositorio: se descarga de su página oficial.
+### 1. AlphaRing (4-player split screen)
 
-1. Descarga `Release1.0.zip` de la release **1.3528.0.0** en
+AlphaRing is not included in this repository: download it from its official page.
+
+1. Download `Release1.0.zip` from release **1.3528.0.0** at
    <https://github.com/wouter51/AlphaRing/releases>.
-2. Descomprime y copia `WTSAPI32.dll` en:
-   `...\steamapps\common\Halo The Master Chief Collection\mcc\binaries\win64\`
-3. (Opcional) Comprueba que es el archivo correcto. En PowerShell:
+2. Unzip it and copy `WTSAPI32.dll` into the game's `mcc\binaries\win64` folder.
+3. (Optional) Check it is the right file: in that folder, Shift + right-click → *Open in Terminal*
+   and run:
    ```powershell
-   Get-FileHash "...\mcc\binaries\win64\WTSAPI32.dll"
+   Get-FileHash .\WTSAPI32.dll
    ```
-   Debe empezar por `091AA64DCC040BB6`.
+   It must start with `091AA64DCC040BB6`.
 
-### 2. Driver de mandos virtuales (ViGEmBus)
+### 2. Virtual controller driver (ViGEmBus)
 
-Instala **ViGEmBus** desde <https://github.com/nefarius/ViGEmBus/releases/latest>
-(archivo `ViGEmBus_..._x64_x86_arm64.exe`) y reinicia el PC. Si falta, `HaloCoopHost.exe` lo avisa
-y abre esa página.
+Install **ViGEmBus** from <https://github.com/nefarius/ViGEmBus/releases/latest>
+(file `ViGEmBus_..._x64_x86_arm64.exe`) and restart the PC. If it is missing, `HaloCoopHost.exe`
+tells you and opens that page.
 
 ### 3. HaloCoop Host
 
-Copia la carpeta `host/` a cualquier lugar de tu PC (no hace falta ponerla en la carpeta del juego).
-Contiene `HaloCoopHost.exe`, que crea los mandos de los jugadores 2, 3 y 4, y `VERSION.dll`, el mod
-que captura el video dentro del juego.
+Copy the `host/` folder anywhere you like (it does not need to go in the game folder).
+It contains `HaloCoopHost.exe`, which creates the controllers for players 2, 3 and 4, and
+`VERSION.dll`, the mod that captures the video inside the game.
 
-Al abrir `HaloCoopHost.exe` (con MCC cerrado) busca MCC en tus bibliotecas de Steam y **copia solo
-`VERSION.dll`** en `mcc\binaries\win64`, o lo actualiza si cambió. El panel muestra si el mod y
-AlphaRing están instalados; si no pudo copiarlo (permisos), cópialo tú a esa carpeta.
+When you open `HaloCoopHost.exe` (with MCC closed) it finds MCC in your Steam libraries and **copies
+`VERSION.dll` by itself** into `mcc\binaries\win64`, or updates it if it changed. The panel shows
+whether the mod and AlphaRing are installed; if it could not copy it (permissions), copy it there
+yourself.
 
 ---
 
-## Cómo jugar (host)
+## How to play (host)
 
-> **Importante:** abre siempre **HaloCoop Host primero** y MCC después. Los mandos de los jugadores
-> 2, 3 y 4 tienen que existir antes de que arranque el juego; si no, esos jugadores no se pueden mover.
-> Si MCC ya está abierto, el launcher te pide cerrarlo.
+> **Important:** always open **HaloCoop Host first** and MCC afterwards. The controllers for players
+> 2, 3 and 4 must exist before the game starts; otherwise those players cannot move.
+> If MCC is already open, the launcher asks you to close it.
 
-1. Desconecta cualquier mando físico (cambia el orden de los mandos). Si quieres jugar con mando
-   como jugador 1, ver *Problemas frecuentes*.
-2. Abre `HaloCoopHost.exe`. Arriba muestra qué Controller le tocó a cada jugador (normalmente
-   J2 = Controller 1, J3 = Controller 2, J4 = Controller 3). **No lo cierres mientras jueguen.**
-3. Presiona **Abrir MCC** y elige **sin anticheat (EAC desactivado)**.
-4. Presiona **F4** para abrir el menú de AlphaRing → **Splitscreen**:
+1. Unplug any physical controller (it changes the controller order). To play as player 1 with a
+   controller, see *Common problems*.
+2. Open `HaloCoopHost.exe`. At the top it shows your Radmin IP (give it to your friends) and which
+   Controller each player got (usually P2 = Controller 1, P3 = Controller 2, P4 = Controller 3).
+   **Do not close it while you play.**
+3. Press **Abrir MCC** (Open MCC) and choose **without anti-cheat (EAC disabled)**.
+4. Press **F4** to open the AlphaRing menu → **Splitscreen**:
    - **Players = 4**.
-   - No cambies las demás opciones. En especial, deja activado *"Use player1's profile"*.
-   - AlphaRing **no guarda** la configuración: hay que hacerlo cada vez que se abre el juego.
-5. Cierra el menú con **F4**. Mientras está abierto, **ningún jugador se puede mover**.
-6. En Halo CE activa los **gráficos clásicos** (tecla **Tab** en partida): con los gráficos nuevos
-   solo se ven 2 jugadores.
-7. Mantén la ventana del juego **activa** (en primer plano) mientras juegan: si cambias a otra
-   ventana, MCC deja de leer los mandos.
+   - Do not change the other options. In particular, keep *"Use player1's profile"* enabled.
+   - AlphaRing **does not save** its settings: do this every time the game is opened.
+5. Close the menu with **F4**. While it is open, **no player can move**.
+6. In Halo CE turn on **classic graphics** (**Tab** key in game): with the new graphics only
+   2 players are shown.
+7. Keep the game window **active** (in the foreground) while you play: if you switch to another
+   window, MCC stops reading the controllers.
 
 ### Video
-El panel muestra la línea **Video**: unos segundos después de abrir MCC dice *listo* con la resolución
-del juego y los FPS y Mbps que recibe cada amigo. Con el selector **Video a 30/60/120 FPS** eliges cuánto
-mandar: más FPS = menos retraso, pero más subida de internet. Cada amigo recibe un cuarto de la
-resolución del juego (con el juego a 2560x1440, cada uno ve 1280x720).
+The panel shows the **Video** line: a few seconds after MCC opens it says *listo* (ready) with the game
+resolution and the FPS and Mbps each friend receives. The **Video a 30/60/120 FPS** selector sets how
+much to send: more FPS = less delay, but more upload bandwidth. Each friend receives a quarter of the
+game resolution (with the game at 2560x1440, each sees 1280x720).
 
 ### Audio
-HaloCoop Host captura **solo el sonido de MCC** (no Discord, música ni otras apps) y lo manda igual a
-todos los amigos (~0,1 Mbps cada uno). El panel muestra *Audio: activo* cuando MCC está abierto.
-Requiere Windows 10 versión 2004 o más nuevo.
+HaloCoop Host captures **only MCC's sound** (not Discord, music or other apps) and sends the same mix
+to every friend (~0.1 Mbps each). The panel shows *Audio: activo* (active) while MCC is open.
 
-### Probar los mandos
-En HaloCoop Host, el botón **Mover** de cada jugador hace que su personaje camine hacia adelante,
-atrás, a los lados, gire y salte (unos 10 segundos). Después de presionarlo, el juego vuelve a quedar
-en primer plano solo.
+### Testing the controllers
+In HaloCoop Host, each player's **Mover** (Move) button makes their character walk forward, back,
+sideways, turn and jump (about 10 seconds). Afterwards the game is brought back to the foreground.
 
-### Problemas frecuentes
-- **Un jugador no se mueve:** cierra MCC, cierra HaloCoop Host, ábrelos de nuevo en ese orden.
-- **Tengo un mando físico conectado:** los virtuales quedan en otros Controller. HaloCoop Host lo
-  avisa y muestra cuál le tocó a cada jugador; en AlphaRing asigna esos Controller a cada jugador.
-- **HaloCoop Host dice que falta ViGEmBus:** instálalo (paso 2) y reinicia el PC.
-- **Video: el juego no responde:** espera unos 10 segundos tras abrir MCC. Si sigue, revisa que el panel
-  diga *Mod del juego: instalado* y mira `halocoop-juego.log` en `mcc\binaries\win64`.
+### First time: firewall
+The first time you open HaloCoop Host, Windows asks whether to allow network access. Tick
+**private and public networks** (Radmin VPN is usually a public network) and accept. If it does not
+appear and your friends cannot connect, allow `HaloCoopHost.exe` in *Windows Firewall → Allow an app*.
 
-### Problemas conocidos de AlphaRing con 4 jugadores
-- Con gráficos remasterizados solo se ven los jugadores 1 y 2 → usar gráficos clásicos (Tab).
-- En algunos niveles (*Assault on the Control Room*, *Keyes*) los jugadores 3 y 4 pueden aparecer fuera del mapa.
-- Al terminar un nivel con 4 jugadores el juego se puede congelar: guarda y reinicia la misión si pasa.
+### Host panel
+Each connected player appears with their name, IP and how many control updates per second arrive
+(about 250 is normal). **Expulsar** (Kick) disconnects them (they can reconnect).
 
----
+### Common problems
+- **A player does not move:** close MCC, close HaloCoop Host, then open them again in that order.
+- **I have a physical controller plugged in:** the virtual ones end up on other Controllers.
+  HaloCoop Host warns you and shows which one each player got; assign those Controllers in AlphaRing.
+- **HaloCoop Host says ViGEmBus is missing:** install it (step 2) and restart the PC.
+- **Video: game not responding:** wait about 10 seconds after opening MCC. If it persists, check that
+  the panel says *Mod del juego: instalado* (game mod installed) and look at `halocoop-juego.log` in
+  the `mcc\binaries\win64` folder.
 
-## Instalación y uso del cliente
-
-Cada amigo descarga la carpeta `cliente/` y abre `HaloCoopClient.exe`
-(si Windows muestra "Windows protegió su PC": *Más información → Ejecutar de todas formas*).
-
-1. Escribe la **IP de Radmin del host** (la ve el host arriba en su HaloCoop Host) y tu nombre.
-2. Elige tu número de jugador: **2** (arriba a la derecha), **3** (abajo a la izquierda) o
-   **4** (abajo a la derecha). Cada amigo uno distinto.
-3. Elige **Mando** o **Teclado y mouse** y presiona **Conectar**.
-
-Cuando llega el video, el cliente pasa a **pantalla completa** con tu cuadrante del juego.
-
-| Tecla | Qué hace |
-|-------|----------|
-| **F2** | Menú: volumen, sensibilidad, controles, desconectar |
-| **F1** | Estadísticas: ping, FPS del video, Mbps, fotogramas perdidos |
-| **F3** | Silenciar / activar el sonido del juego |
-| **F11** o **Alt+Enter** | Pantalla completa / ventana |
-| **Esc** | Suelta el mouse (teclado y mouse) |
-| **+ / -** | Sensibilidad del mouse (0.1x a 99x) |
-
-- Con **mando** no hace falta nada más.
-- Con **teclado y mouse** haz clic en el video para capturar el mouse. La lista de teclas está en
-  `cliente/LEEME.txt`.
-- Si el video se congela un momento al perder paquetes, se recupera solo en menos de medio segundo.
-- El **volumen del juego** se ajusta con la barra del menú principal o de F2 (se guarda); **F3** silencia.
-
-### Primera vez en el host: firewall
-La primera vez que abres HaloCoop Host, Windows pregunta si permite el acceso a la red. Marca
-**redes privadas y públicas** (Radmin VPN suele quedar como red pública) y acepta. Si no aparece y
-tus amigos no pueden conectarse, permite `HaloCoopHost.exe` en *Firewall de Windows → Permitir una
-aplicación*.
-
-### Panel del host
-Cada jugador conectado aparece con su nombre, su IP y cuántos controles por segundo llegan
-(unos 250 es lo normal). **Expulsar** lo desconecta (puede volver a conectarse).
+### Known AlphaRing issues with 4 players
+- With remastered graphics only players 1 and 2 are shown → use classic graphics (Tab).
+- In some levels (*Assault on the Control Room*, *Keyes*) players 3 and 4 may spawn outside the map.
+- Finishing a level with 4 players may freeze the game: save and restart the mission if it happens.
 
 ---
 
-## Desinstalar
+## Client installation and use
 
-Borra de `mcc\binaries\win64\` los archivos `WTSAPI32.dll` (AlphaRing), `VERSION.dll` (este mod) y
-`halocoop-juego.log`.
-Luego, en Steam: clic derecho en MCC → Propiedades → Archivos instalados → **Verificar integridad**.
+Each friend downloads the `cliente/` folder and opens `HaloCoopClient.exe`
+(if Windows shows "Windows protected your PC": *More info → Run anyway*).
+
+1. Type the **host's Radmin IP** (shown at the top of their HaloCoop Host) and your name.
+2. Choose your player number: **2** (top right), **3** (bottom left) or **4** (bottom right).
+   Each friend a different one.
+3. Choose **Mando** (controller) or **Teclado y mouse** (keyboard and mouse) and press **Conectar**
+   (Connect).
+
+When the video arrives, the client switches to **full screen** with your quadrant of the game.
+
+| Key | What it does |
+|-----|--------------|
+| **F2** | Menu: volume, sensitivity, controls, disconnect |
+| **F1** | Stats: ping, video FPS, Mbps, lost frames |
+| **F3** | Mute / unmute the game sound |
+| **F11** or **Alt+Enter** | Full screen / window |
+| **Esc** | Release the mouse (keyboard and mouse) |
+| **+ / -** | Mouse sensitivity (0.1x to 99x) |
+
+- With a **controller** nothing else is needed.
+- With **keyboard and mouse** click the video to capture the mouse. The key list is in
+  `cliente/README.txt`.
+- If the video freezes for a moment after packet loss, it recovers by itself in under half a second.
+- **Game volume** is set with the slider in the main menu or in F2 (it is saved); **F3** mutes.
+
+The client's interface is in Spanish; the words in parentheses above are the translations.
+
+---
+
+## Uninstall
+
+Delete `WTSAPI32.dll` (AlphaRing), `VERSION.dll` (this mod) and `halocoop-juego.log` from the game's
+`mcc\binaries\win64` folder.
+Then in Steam: right-click MCC → Properties → Installed Files → **Verify integrity**.

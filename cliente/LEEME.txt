@@ -57,3 +57,5 @@ Problemas
 
 Tus datos (IP del host, nombre, etc.) se guardan en halocoop-cliente.ini y lo que pasa en
 halocoop-cliente.log (pásaselo al host si algo falla), los dos en esta carpeta.
+
+English: README.txt

@@ -426,7 +426,10 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = nullptr;
     static const ImWchar k_ranges[] = {0x0020, 0x00FF, 0x2010, 0x2027, 0};
-    if (!io.Fonts->AddFontFromFileTTF("C:\\Windows\\Fonts\\segoeui.ttf", 19.0f, nullptr, k_ranges))
+    char font[MAX_PATH] = "";
+    GetWindowsDirectoryA(font, MAX_PATH);  // la carpeta de Windows puede no estar en C:
+    strcat_s(font, "\\Fonts\\segoeui.ttf");
+    if (!io.Fonts->AddFontFromFileTTF(font, 19.0f, nullptr, k_ranges))
         io.Fonts->AddFontDefault();
     apply_style();
     ImGui_ImplWin32_Init(g_window);
