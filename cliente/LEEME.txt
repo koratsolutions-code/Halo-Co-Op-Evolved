@@ -42,8 +42,9 @@ PC, en vez de mover el stick del mando. Si el host todavía no puede usarla, se 
 
   WASD ............ moverse            Mouse ............ apuntar
   Clic izquierdo .. disparar           Clic derecho ..... granada
-  Espacio ......... saltar             E o R ............ acción / recargar
-  F o V ........... golpe              Q o rueda ........ cambiar arma
+  Espacio ......... saltar             E ................ acción (RB): vehículos, recoger
+  R ............... recargar           F o V ............ golpe
+  Q o rueda ....... cambiar arma
   G ............... cambiar granada    Ctrl o C ......... agacharse
   Z o clic central  zoom               1-4 o flechas .... cruceta (linterna, etc.)
   Enter ........... pausa              Tab .............. marcador

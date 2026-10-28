@@ -149,7 +149,8 @@ proto::GamepadState input_read(ControlMode mode, float sensitivity, bool direct_
     uint16_t b = 0;
     if (key(VK_SPACE)) b |= XINPUT_GAMEPAD_A;                              // saltar
     if (key('F') || key('V')) b |= XINPUT_GAMEPAD_B;                      // golpe cuerpo a cuerpo
-    if (key('E') || key('R')) b |= XINPUT_GAMEPAD_X;                      // acción / recargar
+    if (key('E')) b |= XINPUT_GAMEPAD_RIGHT_SHOULDER;                     // acción: vehículos, recoger armas
+    if (key('R')) b |= XINPUT_GAMEPAD_X;                                  // recargar
     if (key('Q')) b |= XINPUT_GAMEPAD_Y;                                  // cambiar arma
     if (key('G')) b |= XINPUT_GAMEPAD_LEFT_SHOULDER;                      // cambiar granada
     if (key(VK_LCONTROL) || key('C')) b |= XINPUT_GAMEPAD_LEFT_THUMB;     // agacharse

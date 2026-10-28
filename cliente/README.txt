@@ -42,8 +42,9 @@ instead of moving the controller's stick. If the host cannot use it yet, the sti
 
   WASD ............ move               Mouse ............ aim
   Left click ...... shoot              Right click ...... grenade
-  Space ........... jump               E or R ........... action / reload
-  F or V .......... melee              Q or wheel ....... switch weapon
+  Space ........... jump               E ................ action (RB): vehicles, pick up
+  R ............... reload             F or V ........... melee
+  Q or wheel ...... switch weapon
   G ............... switch grenade     Ctrl or C ........ crouch
   Z or middle click zoom               1-4 or arrows .... d-pad (flashlight, etc.)
   Enter ........... pause              Tab .............. scoreboard

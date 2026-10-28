@@ -364,11 +364,11 @@ void draw_ingame_panel(const NetStatus& status) {
         if (ImGui::CollapsingHeader(T("Keyboard controls", "Controles del teclado"))) {
             ImGui::TextDisabled("%s", T(
                 "WASD move · Mouse aim · Left click shoot · Right click grenade\n"
-                "Space jump · E/R action and reload · F/V melee · Q or wheel switch weapon\n"
+                "Space jump · E action (vehicles, pick up) · R reload · F/V melee · Q or wheel switch weapon\n"
                 "G switch grenade · Ctrl/C crouch · Z or middle click zoom\n"
                 "1-4 or arrows d-pad (flashlight, etc.) · Enter pause · Tab scoreboard",
                 "WASD moverse · Mouse apuntar · Clic izq. disparar · Clic der. granada\n"
-                "Espacio saltar · E/R acción y recargar · F/V golpe · Q o rueda cambiar arma\n"
+                "Espacio saltar · E acción (vehículos, recoger) · R recargar · F/V golpe · Q o rueda cambiar arma\n"
                 "G cambiar granada · Ctrl/C agacharse · Z o clic central zoom\n"
                 "1-4 o flechas cruceta (linterna, etc.) · Enter pausa · Tab marcador"));
         }
