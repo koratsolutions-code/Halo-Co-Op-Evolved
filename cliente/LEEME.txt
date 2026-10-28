@@ -1,13 +1,51 @@
 HALO1-COOP - CLIENTE
 ====================
 
-Aquí irá HaloCoopClient.exe, la app que usan los jugadores 2, 3 y 4 para ver su
-pantalla y mandar sus controles al host.
+HaloCoopClient.exe es la app de los jugadores 2, 3 y 4: manda tu mando (o teclado y mouse)
+al PC del host por Radmin VPN.
 
-Todavía no está disponible: el proyecto se reinició desde cero.
+NOTA (versión actual): todavía no muestra el video del juego. Mientras tanto, mira la
+pantalla del host por otro medio (por ejemplo, que el host transmita por Discord).
 
-Lo que vas a necesitar:
-  - Windows 10/11 con GPU NVIDIA.
+Necesitas
+---------
+  - Windows 10/11.
   - Radmin VPN conectado a la misma red que el host.
-  - La IP de Radmin del host (te la da el host; no se publica aquí).
-  - Mando de Xbox, o teclado y mouse.
+  - La IP de Radmin del host: te la da el host (sale arriba en su HaloCoop Host).
+  - Mando de Xbox (recomendado) o teclado y mouse.
+
+Cómo jugar
+----------
+  1. Copia esta carpeta donde quieras y abre HaloCoopClient.exe.
+     (Si Windows muestra "Windows protegió su PC": Más información -> Ejecutar de todas formas.)
+  2. Escribe la IP de Radmin del host y tu nombre.
+  3. Elige tu número de jugador (cada amigo uno distinto, siempre el mismo):
+       Jugador 2 = cuadro de arriba a la derecha
+       Jugador 3 = cuadro de abajo a la izquierda
+       Jugador 4 = cuadro de abajo a la derecha
+  4. Elige Mando o Teclado y mouse y presiona Conectar.
+
+  Con MANDO: funciona aunque la ventana del cliente no esté activa (puedes tener Discord
+  delante).
+  Con TECLADO Y MOUSE: haz clic en la ventana del cliente para capturar el mouse.
+  Esc lo suelta. + y - cambian la sensibilidad (también la barra, de 0.1x a 99x).
+
+Teclado y mouse
+---------------
+  WASD ............ moverse            Mouse ............ apuntar
+  Clic izquierdo .. disparar           Clic derecho ..... granada
+  Espacio ......... saltar             E o R ............ acción / recargar
+  F o V ........... golpe              Q o rueda ........ cambiar arma
+  G ............... cambiar granada    Ctrl o C ......... agacharse
+  Z o clic central  zoom               1-4 o flechas .... cruceta (linterna, etc.)
+  Enter ........... pausa              Tab .............. marcador
+
+Problemas
+---------
+  "El host no responde": revisa la IP, que Radmin VPN esté conectado (ping al host
+     desde Radmin) y que el host tenga HaloCoop Host abierto.
+  "Ese jugador ya está ocupado": otro amigo eligió tu número; elige otro.
+  "Se perdió la conexión": el host cerró o se cortó Radmin; vuelve a Conectar.
+  Mi personaje no se mueve: el juego del host tiene que estar en primer plano en su PC.
+
+Tus datos (IP del host, nombre, etc.) se guardan en halocoop-cliente.ini, en esta carpeta.

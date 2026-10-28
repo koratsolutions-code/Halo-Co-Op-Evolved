@@ -3,13 +3,18 @@
 // se mueven) y muestra el panel del host.
 
 #include "log.h"
+#include "net_server.h"
 #include "pads.h"
 
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#include <iphlpapi.h>
 #include <windows.h>
 #include <shellapi.h>
 #include <tlhelp32.h>
 
 #include <cstdio>
+#include <string>
 
 static constexpr wchar_t k_title[] = L"HaloCoop Host";
 static constexpr wchar_t k_mcc_exe[] = L"MCC-Win64-Shipping.exe";
@@ -19,14 +24,37 @@ static constexpr wchar_t k_vigembus_url[] = L"https://github.com/nefarius/ViGEmB
 static constexpr UINT_PTR k_refresh_timer = 1;
 static constexpr int k_id_launch = 100;
 static constexpr int k_id_move = 200;  // +0, +1, +2 para jugadores 2, 3, 4
+static constexpr int k_id_kick = 300;  // +0, +1, +2 para jugadores 2, 3, 4
 
 struct Ui {
     HWND window = nullptr;
     HWND pads_label = nullptr;
+    HWND ip_label = nullptr;
     HWND mcc_label = nullptr;
     HWND launch_button = nullptr;
+    HWND player_labels[k_remote_players]{};
+    HWND kick_buttons[k_remote_players]{};
 };
 static Ui g_ui;
+
+// La IP que los amigos ponen en su cliente: la del adaptador de Radmin VPN.
+static std::wstring find_radmin_ip() {
+    ULONG size = 32 * 1024;
+    std::string buffer(size, '\0');
+    auto* adapters = reinterpret_cast<IP_ADAPTER_ADDRESSES*>(buffer.data());
+    if (GetAdaptersAddresses(AF_INET, GAA_FLAG_SKIP_ANYCAST | GAA_FLAG_SKIP_MULTICAST | GAA_FLAG_SKIP_DNS_SERVER,
+                             nullptr, adapters, &size) != NO_ERROR)
+        return L"";
+    for (auto* a = adapters; a; a = a->Next) {
+        if (!wcsstr(a->Description, L"Radmin") || a->OperStatus != IfOperStatusUp || !a->FirstUnicastAddress)
+            continue;
+        auto* sin = reinterpret_cast<sockaddr_in*>(a->FirstUnicastAddress->Address.lpSockaddr);
+        wchar_t ip[INET_ADDRSTRLEN];
+        InetNtopW(AF_INET, &sin->sin_addr, ip, INET_ADDRSTRLEN);
+        return ip;
+    }
+    return L"";
+}
 
 static DWORD find_mcc_pid() {
     DWORD pid = 0;
@@ -91,6 +119,33 @@ static void refresh() {
         ? L"MCC: abierto. Mantén la ventana del juego activa mientras juegan."
         : L"MCC: cerrado. Ábrelo con el botón y elige \"sin anticheat\".");
     EnableWindow(g_ui.launch_button, !mcc_open);
+
+    static ULONGLONG last_ip_check = 0;
+    if (GetTickCount64() - last_ip_check > 5000) {
+        last_ip_check = GetTickCount64();
+        std::wstring ip = find_radmin_ip();
+        std::wstring text = ip.empty()
+            ? L"Radmin VPN no está conectado: tus amigos no podrán entrar."
+            : L"Tu IP de Radmin (pásasela a tus amigos):  " + ip + L"    ·  puerto UDP " + std::to_wstring(proto::k_port);
+        SetWindowTextW(g_ui.ip_label, text.c_str());
+    }
+
+    for (int i = 0; i < k_remote_players; ++i) {
+        int player = i + k_first_remote_player;
+        PlayerInfo info = net_server_player(player);
+        wchar_t text[256];
+        if (info.connected) {
+            wchar_t name[64], address[64];
+            MultiByteToWideChar(CP_UTF8, 0, info.nickname, -1, name, 64);
+            MultiByteToWideChar(CP_UTF8, 0, info.address, -1, address, 64);
+            swprintf_s(text, L"Jugador %d (Controller %d):  %s  ·  %s  ·  %u controles/s", player,
+                       pads_slot(player) + 1, name[0] ? name : L"(sin nombre)", address, info.inputs_per_second);
+        } else {
+            swprintf_s(text, L"Jugador %d (Controller %d):  libre", player, pads_slot(player) + 1);
+        }
+        SetWindowTextW(g_ui.player_labels[i], text);
+        EnableWindow(g_ui.kick_buttons[i], info.connected);
+    }
 }
 
 static LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) {
@@ -106,13 +161,17 @@ static LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM l
         } else if (id >= k_id_move && id < k_id_move + k_remote_players) {
             pads_move_test(id - k_id_move + k_first_remote_player);
             focus_mcc();
+        } else if (id >= k_id_kick && id < k_id_kick + k_remote_players) {
+            net_server_kick(id - k_id_kick + k_first_remote_player);  // puede volver a conectarse
+            refresh();
+            focus_mcc();
         }
         return 0;
     }
     case WM_CLOSE:
         if (find_mcc_pid() &&
-            MessageBoxW(hwnd, L"MCC sigue abierto. Si cierras HaloCoop Host, los jugadores 2, 3 y 4 pierden sus "
-                              L"mandos.\n\n¿Cerrar de todas formas?",
+            MessageBoxW(hwnd, L"MCC sigue abierto. Si cierras HaloCoop Host, los jugadores 2, 3 y 4 se "
+                              L"desconectan y pierden sus mandos.\n\n¿Cerrar de todas formas?",
                         k_title, MB_YESNO | MB_ICONWARNING) != IDYES)
             return 0;
         DestroyWindow(hwnd);
@@ -130,8 +189,8 @@ static void create_ui(HINSTANCE instance) {
                  L"HaloCoopHost"};
     RegisterClassW(&wc);
 
-    const int width = 560, margin = 12, row_h = 32;
-    RECT rect{0, 0, width, margin * 2 + row_h * (k_remote_players + 4) + 20};
+    const int width = 720, margin = 12, row_h = 32;
+    RECT rect{0, 0, width, margin * 2 + row_h * (k_remote_players + 5) + 20};
     DWORD style = WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX;
     AdjustWindowRect(&rect, style, FALSE);
     g_ui.window = CreateWindowW(L"HaloCoopHost", k_title, style, CW_USEDEFAULT, CW_USEDEFAULT,
@@ -151,6 +210,8 @@ static void create_ui(HINSTANCE instance) {
                pads_slot(2) + 1, pads_slot(3) + 1, pads_slot(4) + 1);
     g_ui.pads_label = make(L"STATIC", text, SS_LEFT, margin, y + 4, width - 2 * margin, 20, 0);
     y += row_h;
+    g_ui.ip_label = make(L"STATIC", L"", SS_LEFT, margin, y + 4, width - 2 * margin, 20, 0);
+    y += row_h;
     g_ui.mcc_label = make(L"STATIC", L"", SS_LEFT, margin, y + 6, width - 2 * margin - 140, 20, 0);
     g_ui.launch_button = make(L"BUTTON", L"Abrir MCC", BS_PUSHBUTTON, width - margin - 130, y, 130, 26, k_id_launch);
     y += row_h + 8;
@@ -158,10 +219,10 @@ static void create_ui(HINSTANCE instance) {
          SS_LEFT, margin, y, width - 2 * margin, 20, 0);
     y += row_h;
     for (int i = 0; i < k_remote_players; ++i, y += row_h) {
-        int player = i + k_first_remote_player;
-        swprintf_s(text, L"Jugador %d  (Controller %d)", player, pads_slot(player) + 1);
-        make(L"STATIC", text, SS_LEFT, margin, y + 6, width - 2 * margin - 140, 20, 0);
-        make(L"BUTTON", L"Mover", BS_PUSHBUTTON, width - margin - 130, y, 130, 26, k_id_move + i);
+        g_ui.player_labels[i] = make(L"STATIC", L"", SS_LEFT, margin, y + 6, width - 2 * margin - 200, 20, 0);
+        make(L"BUTTON", L"Mover", BS_PUSHBUTTON, width - margin - 190, y, 90, 26, k_id_move + i);
+        g_ui.kick_buttons[i] = make(L"BUTTON", L"Expulsar", BS_PUSHBUTTON, width - margin - 90, y, 90, 26,
+                                    k_id_kick + i);
     }
 
     refresh();
@@ -212,12 +273,19 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
                     k_title, MB_ICONWARNING);
     }
 
+    if (!net_server_start()) {
+        MessageBoxW(nullptr, L"No se pudo abrir el puerto UDP 27960: otro programa lo está usando.\n\nLos mandos "
+                             L"funcionan, pero tus amigos no podrán conectarse.",
+                    k_title, MB_ICONWARNING);
+    }
+
     create_ui(instance);
     MSG msg;
     while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
         TranslateMessage(&msg);
         DispatchMessageW(&msg);
     }
+    net_server_stop();
     pads_shutdown();
     log_write("HaloCoop Host cerrado");
     if (single) CloseHandle(single);

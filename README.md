@@ -6,14 +6,14 @@ cada uno en su propio PC y con su propia pantalla completa, conectados por **Rad
 El juego corre una sola vez en el PC del host con la pantalla dividida en 4 (AlphaRing). El mod del host
 envía a cada amigo solo su cuarto de pantalla y recibe sus controles de vuelta.
 
-> **Estado actual (fase 1):** el host ya tiene `HaloCoopHost.exe`, que crea los mandos de los
-> jugadores 2, 3 y 4 y permite probarlos. Todavía no hay conexión por red ni app del cliente:
-> se irán agregando por fases.
+> **Estado actual (fase 2):** el host (`HaloCoopHost.exe`) crea los mandos de los jugadores 2, 3 y 4
+> y recibe por Radmin VPN el mando o teclado y mouse de cada amigo (`HaloCoopClient.exe`).
+> Todavía no se envía el video: eso es la siguiente fase.
 
 ## Compilar desde el código
 
 Requiere Visual Studio 2022 o Build Tools con *Desarrollo para el escritorio con C++* (incluye CMake
-y Ninja). Ejecuta `build.cmd`: compila y deja `HaloCoopHost.exe` en `host/`.
+y Ninja). Ejecuta `build.cmd`: compila y deja `HaloCoopHost.exe` en `host/` y `HaloCoopClient.exe` en `cliente/`.
 
 ---
 
@@ -110,7 +110,30 @@ en primer plano solo.
 
 ## Instalación y uso del cliente
 
-*Pendiente: se agregará `HaloCoopClient.exe` en `cliente/`. Las instrucciones estarán en `cliente/LEEME.txt`.*
+Cada amigo descarga la carpeta `cliente/` y abre `HaloCoopClient.exe`
+(si Windows muestra "Windows protegió su PC": *Más información → Ejecutar de todas formas*).
+
+1. Escribe la **IP de Radmin del host** (la ve el host arriba en su HaloCoop Host) y tu nombre.
+2. Elige tu número de jugador: **2** (arriba a la derecha), **3** (abajo a la izquierda) o
+   **4** (abajo a la derecha). Cada amigo uno distinto.
+3. Elige **Mando** o **Teclado y mouse** y presiona **Conectar**.
+
+- Con **mando** funciona aunque la ventana del cliente no esté activa.
+- Con **teclado y mouse** haz clic en la ventana para capturar el mouse; **Esc** lo suelta y
+  **+ / -** cambian la sensibilidad (0.1x a 99x). La lista de teclas está en `cliente/LEEME.txt`.
+
+> Por ahora el cliente **no muestra video**: miren la pantalla del host por otro medio
+> (por ejemplo, transmisión de Discord) hasta la siguiente fase.
+
+### Primera vez en el host: firewall
+La primera vez que abres HaloCoop Host, Windows pregunta si permite el acceso a la red. Marca
+**redes privadas y públicas** (Radmin VPN suele quedar como red pública) y acepta. Si no aparece y
+tus amigos no pueden conectarse, permite `HaloCoopHost.exe` en *Firewall de Windows → Permitir una
+aplicación*.
+
+### Panel del host
+Cada jugador conectado aparece con su nombre, su IP y cuántos controles por segundo llegan
+(unos 250 es lo normal). **Expulsar** lo desconecta (puede volver a conectarse).
 
 ---
 
