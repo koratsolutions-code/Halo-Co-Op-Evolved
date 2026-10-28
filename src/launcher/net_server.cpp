@@ -63,6 +63,26 @@ void send_video_config() {
            sizeof(game));
 }
 
+// Solo se atiende a Radmin VPN (26.0.0.0/8), redes locales y este PC. Así, aunque el puerto quede abierto a
+// internet (firewall en "redes públicas", reenvío de puertos del router), nadie de afuera puede tomar un jugador.
+bool allowed_source(const sockaddr_in& from) {
+    uint32_t ip = ntohl(from.sin_addr.s_addr);
+    auto in = [ip](uint32_t net, int bits) { return (ip >> (32 - bits)) == (net >> (32 - bits)); };
+    bool allowed = in(0x7F000000, 8) ||   // 127.0.0.0/8: este PC
+                   in(0x1A000000, 8) ||   // 26.0.0.0/8: Radmin VPN
+                   in(0x0A000000, 8) ||   // 10.0.0.0/8
+                   in(0xAC100000, 12) ||  // 172.16.0.0/12
+                   in(0xC0A80000, 16);    // 192.168.0.0/16
+    if (!allowed) {
+        static ULONGLONG last_log = 0;  // sin inundar el log si alguien insiste
+        if (GetTickCount64() - last_log > 60000) {
+            last_log = GetTickCount64();
+            log_write("Ignorado un paquete de una dirección fuera de Radmin VPN y de la red local");
+        }
+    }
+    return allowed;
+}
+
 bool same_address(const sockaddr_in& a, const sockaddr_in& b) {
     return a.sin_addr.s_addr == b.sin_addr.s_addr && a.sin_port == b.sin_port;
 }
@@ -158,7 +178,7 @@ void server_thread() {
         int from_size = sizeof(from);
         int size = recvfrom(g_socket, buffer, sizeof(buffer), 0, reinterpret_cast<sockaddr*>(&from), &from_size);
         std::lock_guard lock(g_mutex);
-        if (size > 0) {
+        if (size > 0 && allowed_source(from)) {
             if (const proto::Header* header = proto::header_of(buffer, size)) {
                 switch (header->type) {
                 case proto::Type::hello:

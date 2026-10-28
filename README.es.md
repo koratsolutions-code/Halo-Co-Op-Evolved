@@ -150,6 +150,17 @@ La primera vez que abres HaloCoop Host, Windows pregunta si permite el acceso a 
 tus amigos no pueden conectarse, permite `HaloCoopHost.exe` en *Firewall de Windows → Permitir una
 aplicación*.
 
+### Seguridad
+- HaloCoop Host solo responde a **Radmin VPN** (26.x.x.x), a tu **red local** y a tu propio PC. Los paquetes
+  de internet se ignoran, aunque el puerto esté abierto en el firewall o reenviado en tu router. No hace falta
+  (ni conviene) reenviar ningún puerto.
+- Cualquiera de tu red de Radmin puede tomar un jugador libre: protege la red de Radmin con contraseña y
+  compártela solo con tus amigos. **Expulsar** saca a alguien en cualquier momento.
+- El mod del juego solo lee la memoria de Halo 1, salvo los colores de armadura de los 4 jugadores. No toca
+  tus archivos, tu cuenta de Steam ni tu perfil de MCC.
+- `halocoop-host.log` y `halocoop-cliente.log` guardan los nombres e IPs de Radmin de tus amigos. Se quedan
+  en tu PC: no los publiques.
+
 ### Panel del host
 Está ordenado como la pantalla dividida: una tarjeta por jugador. Cada amigo conectado muestra su nombre,
 su IP, cuántos controles por segundo llegan (unos 250 es lo normal) y el video que recibe. **Expulsar** lo
@@ -173,34 +184,57 @@ nombres en `halocoop-host.ini`, junto a `HaloCoopHost.exe`.
 
 ---
 
-## Instalación y uso del cliente
+## Cómo jugar (cliente)
 
-Cada amigo descarga la carpeta `cliente/` y abre `HaloCoopClient.exe`
-(si Windows muestra "Windows protegió su PC": *Más información → Ejecutar de todas formas*).
+Para los jugadores 2, 3 y 4. **No** necesitas Halo, Steam ni MCC: el juego corre en el PC del host.
 
-1. Escribe la **IP de Radmin del host** (la ve el host arriba en su HaloCoop Host) y tu nombre.
-2. Elige tu número de jugador: **2** (arriba a la derecha), **3** (abajo a la izquierda) o
-   **4** (abajo a la derecha). Cada amigo uno distinto.
-3. Elige **Mando** o **Teclado y mouse** y presiona **Conectar**.
+### Antes de la primera vez
+1. **Radmin VPN:** instala [Radmin VPN](https://www.radmin-vpn.com/) y únete a la red del host
+   (*Red → Unirse a una red existente*, con el nombre y la contraseña de red que te da el host).
+2. **Drivers de NVIDIA:** actualiza los drivers de tu GPU NVIDIA (GeForce Experience / NVIDIA App, o nvidia.com).
+3. **El cliente:** descarga el repositorio (*Descarga*) y copia la carpeta `cliente/` donde quieras.
+   No hay que instalar nada más.
 
-El cliente viene en inglés: para pasarlo a español elige **Español** arriba a la derecha (se guarda).
+### Cada vez que jueguen
+1. Revisa que Radmin VPN esté **encendido** y que el host aparezca conectado en tu red de Radmin.
+2. Abre `HaloCoopClient.exe`. La primera vez Windows puede mostrar "Windows protegió su PC":
+   *Más información → Ejecutar de todas formas*.
+3. Llena el menú (se guarda todo para la próxima vez):
+   - **IP de Radmin del host:** el host la ve arriba en su HaloCoop Host (botón *Copiar*).
+   - **Tu nombre:** sale sobre tu personaje para todos.
+   - **Color de armadura:** tu color en la campaña.
+   - **Jugador:** **2** (arriba a la derecha), **3** (abajo a la izquierda) o **4** (abajo a la derecha).
+     Cada amigo uno distinto; usa siempre el mismo.
+   - **Mando** o **Teclado y mouse**.
+4. Presiona **Conectar**. Cuando el host abre el juego, el cliente pasa a **pantalla completa** con tu parte
+   de la pantalla y el sonido del juego.
+5. Para salir: **F2 → Desconectar**, o cierra la ventana.
 
-Cuando llega el video, el cliente pasa a **pantalla completa** con tu cuadrante del juego.
-
+### Teclas
 | Tecla | Qué hace |
 |-------|----------|
-| **F2** | Menú: volumen, sensibilidad, controles, desconectar |
+| **F2** | Menú: color de armadura, volumen, sensibilidad, controles, desconectar |
 | **F1** | Estadísticas: ping, FPS del video, Mbps, fotogramas perdidos |
 | **F3** | Silenciar / activar el sonido del juego |
 | **F11** o **Alt+Enter** | Pantalla completa / ventana |
 | **Esc** | Suelta el mouse (teclado y mouse) |
 | **+ / -** | Sensibilidad del mouse (0.1x a 99x) |
 
-- Con **mando** no hace falta nada más.
-- Con **teclado y mouse** haz clic en el video para capturar el mouse. La lista de teclas está en
-  `cliente/LEEME.txt`.
+- Con **mando** no hace falta nada más (se recomienda mando de Xbox).
+- Con **teclado y mouse** haz clic en el video para capturar el mouse. La lista completa de teclas está en
+  `cliente/LEEME.txt` y en F2 → *Controles del teclado*.
 - Si el video se congela un momento al perder paquetes, se recupera solo en menos de medio segundo.
 - El **volumen del juego** se ajusta con la barra del menú principal o de F2 (se guarda); **F3** silencia.
+
+### Problemas frecuentes (cliente)
+- **"El host no responde":** revisa la IP, que Radmin VPN esté conectado (ping al host desde Radmin) y que el
+  host tenga HaloCoop Host abierto.
+- **"Esperando el video...":** el host todavía no abrió MCC, o su panel muestra que falta el mod del juego.
+- **"Ese jugador ya está ocupado":** otro amigo eligió tu número; elige otro.
+- **Pantalla negra o error de NVIDIA en laptop:** *Configuración de Windows → Pantalla → Gráficos* → pon
+  `HaloCoopClient.exe` en **Alto rendimiento**.
+- **Tu personaje no se mueve:** el juego tiene que estar en primer plano en el PC del host; avísale.
+- Si algo falla, mándale al host tu `halocoop-cliente.log` (en la carpeta del cliente) por privado.
 
 ---
 

@@ -63,7 +63,10 @@ class FrameAssembler {
 public:
     // Devuelve true si hay que pedir un fotograma completo.
     bool add(const proto::VideoHeader& h, const uint8_t* payload, size_t size, uint64_t now) {
-        if (h.fragment_count == 0 || h.fragment_index >= h.fragment_count) return false;
+        // Paquetes mal formados (o de alguien que no es el host): no se escribe fuera del búfer ni se reserva de más.
+        if (h.fragment_count == 0 || h.fragment_count > k_max_fragments || h.fragment_index >= h.fragment_count ||
+            size == 0 || size > proto::k_video_payload)
+            return false;
         if (m_has_delivered && int32_t(h.frame_id - m_last_delivered) <= 0) return false;  // viejo o repetido
         Partial& p = m_partials[h.frame_id];
         if (p.received.empty()) {
@@ -130,6 +133,8 @@ public:
     unsigned delivered() const { return m_delivered; }
 
 private:
+    static constexpr uint16_t k_max_fragments = 4096;  // ~4.8 MB: más que cualquier fotograma completo real
+
     struct Partial {
         std::vector<uint8_t> data;
         std::vector<bool> received;

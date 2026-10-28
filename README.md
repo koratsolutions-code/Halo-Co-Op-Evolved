@@ -147,6 +147,17 @@ The first time you open HaloCoop Host, Windows asks whether to allow network acc
 **private and public networks** (Radmin VPN is usually a public network) and accept. If it does not
 appear and your friends cannot connect, allow `HaloCoopHost.exe` in *Windows Firewall → Allow an app*.
 
+### Security
+- HaloCoop Host only answers **Radmin VPN** (26.x.x.x), your **local network** and your own PC. Packets from
+  the internet are ignored, even if the port is open in the firewall or forwarded on your router. You do not
+  need to (and should not) forward any port.
+- Anyone in your Radmin network can take a free player slot: protect the Radmin network with a password and
+  only share it with your friends. **Kick** removes someone at any time.
+- The game mod only reads Halo 1's memory, except for the armor colors of the 4 players. It does not touch
+  your files, your Steam account or your MCC profile.
+- `halocoop-host.log` and `halocoop-cliente.log` record your friends' names and Radmin IPs. They stay on your
+  PC: do not post them publicly.
+
 ### Host panel
 It is laid out like the split screen: one card per player. Each connected friend shows their name, IP,
 how many control updates per second arrive (about 250 is normal) and the video they receive.
@@ -171,32 +182,57 @@ name settings in `halocoop-host.ini`, next to `HaloCoopHost.exe`.
 
 ---
 
-## Client installation and use
+## How to play (client)
 
-Each friend downloads the `cliente/` folder and opens `HaloCoopClient.exe`
-(if Windows shows "Windows protected your PC": *More info → Run anyway*).
+For players 2, 3 and 4. You do **not** need Halo, Steam or MCC: the game runs on the host's PC.
 
-1. Type the **host's Radmin IP** (shown at the top of their HaloCoop Host) and your name.
-2. Choose your player number: **2** (top right), **3** (bottom left) or **4** (bottom right).
-   Each friend a different one.
-3. Choose **Controller** or **Keyboard and mouse** and press **Connect**.
+### Before the first time
+1. **Radmin VPN:** install [Radmin VPN](https://www.radmin-vpn.com/) and join the host's network
+   (*Network → Join an existing network*, with the network name and password the host gives you).
+2. **NVIDIA drivers:** update your NVIDIA GPU drivers (GeForce Experience / NVIDIA App, or nvidia.com).
+3. **The client:** download the repository (*Download*) and copy the `cliente/` folder anywhere you like.
+   Nothing else needs installing.
 
-When the video arrives, the client switches to **full screen** with your quadrant of the game.
+### Every time you play
+1. Check that Radmin VPN is **on** and that the host shows as connected in your Radmin network.
+2. Open `HaloCoopClient.exe`. The first time Windows may show "Windows protected your PC":
+   *More info → Run anyway*.
+3. Fill in the menu (it is all remembered for next time):
+   - **Host's Radmin IP:** the host sees it at the top of their HaloCoop Host (button *Copy*).
+   - **Your name:** shown over your character to everyone.
+   - **Armor color:** your color in the campaign.
+   - **Player:** **2** (top right), **3** (bottom left) or **4** (bottom right). Each friend a different
+     one; keep the same one every time.
+   - **Controller** or **Keyboard and mouse**.
+4. Press **Connect**. When the host opens the game, the client switches to **full screen** with your part
+   of the screen and the game sound.
+5. To leave: **F2 → Disconnect**, or close the window.
 
+### Keys
 | Key | What it does |
 |-----|--------------|
-| **F2** | Menu: volume, sensitivity, controls, disconnect |
+| **F2** | Menu: armor color, volume, sensitivity, controls, disconnect |
 | **F1** | Stats: ping, video FPS, Mbps, lost frames |
 | **F3** | Mute / unmute the game sound |
 | **F11** or **Alt+Enter** | Full screen / window |
 | **Esc** | Release the mouse (keyboard and mouse) |
 | **+ / -** | Mouse sensitivity (0.1x to 99x) |
 
-- With a **controller** nothing else is needed.
-- With **keyboard and mouse** click the video to capture the mouse. The key list is in
-  `cliente/README.txt`.
+- With a **controller** nothing else is needed (Xbox controller recommended).
+- With **keyboard and mouse** click the video to capture the mouse. The full key list is in
+  `cliente/README.txt` and in F2 → *Keyboard controls*.
 - If the video freezes for a moment after packet loss, it recovers by itself in under half a second.
 - **Game volume** is set with the slider in the main menu or in F2 (it is saved); **F3** mutes.
+
+### Common problems (client)
+- **"The host is not responding":** check the IP, that Radmin VPN is connected (ping the host from Radmin)
+  and that the host has HaloCoop Host open.
+- **"Waiting for video...":** the host has not opened MCC yet, or their panel shows the game mod missing.
+- **"That player is already taken":** another friend picked your number; pick another one.
+- **Black screen or NVIDIA error on a laptop:** *Windows Settings → Display → Graphics* → set
+  `HaloCoopClient.exe` to **High performance**.
+- **Your character does not move:** the game must be the active window on the host's PC; tell the host.
+- If something fails, send the host your `halocoop-cliente.log` (in the client folder) privately.
 
 ---
 
