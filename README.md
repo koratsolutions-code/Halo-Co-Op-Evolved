@@ -6,9 +6,14 @@ cada uno en su propio PC y con su propia pantalla completa, conectados por **Rad
 El juego corre una sola vez en el PC del host con la pantalla dividida en 4 (AlphaRing). El mod del host
 envía a cada amigo solo su cuarto de pantalla y recibe sus controles de vuelta.
 
-> **Estado actual:** proyecto reiniciado desde cero. Por ahora solo está documentada la instalación de
-> AlphaRing en el host (paso 1). El mod del host y la app del cliente se irán agregando a las carpetas
-> `host/` y `cliente/`.
+> **Estado actual (fase 1):** el host ya tiene `HaloCoopHost.exe`, que crea los mandos de los
+> jugadores 2, 3 y 4 y permite probarlos. Todavía no hay conexión por red ni app del cliente:
+> se irán agregando por fases.
+
+## Compilar desde el código
+
+Requiere Visual Studio 2022 o Build Tools con *Desarrollo para el escritorio con C++* (incluye CMake
+y Ninja). Ejecuta `build.cmd`: compila y deja `HaloCoopHost.exe` en `host/`.
 
 ---
 
@@ -51,23 +56,50 @@ AlphaRing no se incluye en este repositorio: se descarga de su página oficial.
    ```
    Debe empezar por `091AA64DCC040BB6`.
 
-### 2. Mod del host
+### 2. Driver de mandos virtuales (ViGEmBus)
 
-*Pendiente: se agregará en `host/`.*
+Instala **ViGEmBus** desde <https://github.com/nefarius/ViGEmBus/releases/latest>
+(archivo `ViGEmBus_..._x64_x86_arm64.exe`) y reinicia el PC. Si falta, `HaloCoopHost.exe` lo avisa
+y abre esa página.
+
+### 3. HaloCoop Host
+
+Copia la carpeta `host/` a cualquier lugar de tu PC (no hace falta ponerla en la carpeta del juego).
+Contiene `HaloCoopHost.exe`, que crea los mandos de los jugadores 2, 3 y 4.
 
 ---
 
 ## Cómo jugar (host)
 
-1. Abre MCC desde Steam eligiendo **sin anticheat (EAC desactivado)**.
-2. Presiona **F4** para abrir el menú de AlphaRing → **Splitscreen**:
+> **Importante:** abre siempre **HaloCoop Host primero** y MCC después. Los mandos de los jugadores
+> 2, 3 y 4 tienen que existir antes de que arranque el juego; si no, esos jugadores no se pueden mover.
+> Si MCC ya está abierto, el launcher te pide cerrarlo.
+
+1. Desconecta cualquier mando físico (cambia el orden de los mandos). Si quieres jugar con mando
+   como jugador 1, ver *Problemas frecuentes*.
+2. Abre `HaloCoopHost.exe`. Arriba muestra qué Controller le tocó a cada jugador (normalmente
+   J2 = Controller 1, J3 = Controller 2, J4 = Controller 3). **No lo cierres mientras jueguen.**
+3. Presiona **Abrir MCC** y elige **sin anticheat (EAC desactivado)**.
+4. Presiona **F4** para abrir el menú de AlphaRing → **Splitscreen**:
    - **Players = 4**.
    - No cambies las demás opciones. En especial, deja activado *"Use player1's profile"*.
    - AlphaRing **no guarda** la configuración: hay que hacerlo cada vez que se abre el juego.
-3. Cierra el menú con **F4**. Mientras está abierto, **ningún jugador se puede mover**.
-4. En Halo CE activa los **gráficos clásicos** (tecla **Tab** en partida): con los gráficos nuevos
+5. Cierra el menú con **F4**. Mientras está abierto, **ningún jugador se puede mover**.
+6. En Halo CE activa los **gráficos clásicos** (tecla **Tab** en partida): con los gráficos nuevos
    solo se ven 2 jugadores.
-5. Mantén la ventana del juego **activa** (en primer plano) mientras juegan.
+7. Mantén la ventana del juego **activa** (en primer plano) mientras juegan: si cambias a otra
+   ventana, MCC deja de leer los mandos.
+
+### Probar los mandos
+En HaloCoop Host, el botón **Mover** de cada jugador hace que su personaje camine hacia adelante,
+atrás, a los lados, gire y salte (unos 10 segundos). Después de presionarlo, el juego vuelve a quedar
+en primer plano solo.
+
+### Problemas frecuentes
+- **Un jugador no se mueve:** cierra MCC, cierra HaloCoop Host, ábrelos de nuevo en ese orden.
+- **Tengo un mando físico conectado:** los virtuales quedan en otros Controller. HaloCoop Host lo
+  avisa y muestra cuál le tocó a cada jugador; en AlphaRing asigna esos Controller a cada jugador.
+- **HaloCoop Host dice que falta ViGEmBus:** instálalo (paso 2) y reinicia el PC.
 
 ### Problemas conocidos de AlphaRing con 4 jugadores
 - Con gráficos remasterizados solo se ven los jugadores 1 y 2 → usar gráficos clásicos (Tab).

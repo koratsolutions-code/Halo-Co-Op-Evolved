@@ -1,14 +1,25 @@
 HALO1-COOP - HOST
 =================
 
-Esta carpeta tendrá el mod del host (lo que va en la carpeta del juego).
+Contenido:
+  HaloCoopHost.exe  -> crea los mandos de los jugadores 2, 3 y 4 y muestra el panel del host.
 
-Por ahora solo hace falta AlphaRing, que se descarga de su página oficial
-(no se incluye aquí):
+Antes de la primera vez:
+  1. AlphaRing: descarga Release1.0.zip (1.3528.0.0) de
+       https://github.com/wouter51/AlphaRing/releases
+     y copia WTSAPI32.dll en:
+       ...\steamapps\common\Halo The Master Chief Collection\mcc\binaries\win64\
+  2. ViGEmBus: instala el driver de
+       https://github.com/nefarius/ViGEmBus/releases/latest
+     y reinicia el PC.
 
-  https://github.com/wouter51/AlphaRing/releases  ->  1.3528.0.0  ->  Release1.0.zip
+Cada vez que jueguen:
+  1. Desconecta los mandos físicos.
+  2. Abre HaloCoopHost.exe PRIMERO (no lo cierres mientras jueguen).
+  3. Presiona "Abrir MCC" y elige sin anticheat.
+  4. F4 -> Splitscreen -> Players = 4. Cierra el menú con F4.
+  5. En la misión usa gráficos clásicos (Tab) y deja el juego como ventana activa.
 
-Copia WTSAPI32.dll en:
-  ...\steamapps\common\Halo The Master Chief Collection\mcc\binaries\win64\
+Para probar: botón "Mover" de cada jugador en HaloCoop Host.
 
-Las instrucciones completas de uso están en el README.md del repositorio.
+Las instrucciones completas están en el README.md del repositorio.
