@@ -16,6 +16,7 @@ struct Settings {
     bool muted = false;
     Lang lang = Lang::en;  // idioma de la interfaz
     int armor_color = 0;   // índice en k_armor_colors (0: por defecto)
+    int skin = 0;          // índice en k_skins (0: Master Chief)
     bool direct_aim = false;  // teclado y mouse: el mouse mueve la cámara directo (sin pasar por el stick)
 };
 

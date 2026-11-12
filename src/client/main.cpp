@@ -11,6 +11,7 @@
 
 #include "../common/lang.h"
 #include "../common/ui_armor_color.h"
+#include "../common/ui_skin.h"
 #include "../common/ui_style.h"
 
 #include <d3d11.h>
@@ -263,6 +264,17 @@ void armor_color_control() {
     }
 }
 
+// Skin: se guarda y, si ya está conectado, le llega al host en menos de un segundo.
+void skin_control(const NetStatus& status) {
+    ImGui::AlignTextToFramePadding();
+    ImGui::TextUnformatted("Skin");
+    ImGui::SameLine();
+    if (ui_skin_combo("##skin", &g_settings.skin, -1, status.skins_available)) {
+        net_update_settings(g_settings);
+        settings_save(g_settings);
+    }
+}
+
 void draw_menu(const NetStatus& status) {
     ImGui::TextColored(k_green, "%s", "HALO: CO OP EVOLVED");
     // Idioma, arriba a la derecha.
@@ -289,6 +301,7 @@ void draw_menu(const NetStatus& status) {
     ImGui::InputTextWithHint("##name", T("How the others will see you", "Cómo te verán los demás"), g_name_text,
                              sizeof(g_name_text));
     armor_color_control();
+    skin_control(status);
 
     ImGui::TextUnformatted(T("Player", "Jugador"));
     for (int p = 2; p <= 4; ++p) {
@@ -350,6 +363,7 @@ void draw_ingame_panel(const NetStatus& status) {
     }
     ImGui::Separator();
     armor_color_control();
+    skin_control(status);
     volume_controls();
     if (g_settings.control == ControlMode::gamepad) {
         if (input_gamepad_connected())
@@ -447,14 +461,14 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     WNDCLASSEXW wc{sizeof(wc), CS_CLASSDC, window_proc, 0, 0, instance, LoadIconW(nullptr, IDI_APPLICATION),
                    LoadCursorW(nullptr, IDC_ARROW), nullptr, nullptr, L"CoOpEvolvedClient", nullptr};
     RegisterClassExW(&wc);
-    g_window = CreateWindowW(wc.lpszClassName, T(L"Halo: Co Op Evolved - Client", L"Halo: Co Op Evolved - Cliente"), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 640, 680,
+    g_window = CreateWindowW(wc.lpszClassName, T(L"Halo: Co Op Evolved - Client", L"Halo: Co Op Evolved - Cliente"), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 640, 740,
                              nullptr, nullptr, instance, nullptr);
     if (!create_device(g_window)) {
         MessageBoxW(nullptr, T(L"Could not start Direct3D 11.", L"No se pudo iniciar Direct3D 11."), L"Halo: Co Op Evolved", MB_ICONERROR);
         return 1;
     }
     g_renderer.init(g_device);
-    ShowWindow(g_window, SW_SHOWDEFAULT);
+    ShowWindow(g_window, SW_SHOWMAXIMIZED);  // siempre maximizada
     input_init(g_window);
 
     IMGUI_CHECKVERSION();

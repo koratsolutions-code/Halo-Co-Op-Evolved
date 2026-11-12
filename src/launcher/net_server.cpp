@@ -3,6 +3,7 @@
 #include "pads.h"
 
 #include "../common/armor_colors.h"
+#include "../common/skins.h"
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -26,6 +27,7 @@ struct Slot {
     unsigned inputs_per_second = 0;  // último valor medido
     uint32_t keyframe_requests = 0;
     uint8_t armor_color = 0;  // índice en k_armor_colors (lo manda el cliente)
+    uint8_t skin = 0;         // índice en k_skins (lo manda el cliente)
     // Mira directa con mouse: último total recibido (el primero de cada conexión solo marca el punto de partida).
     bool look_started = false;
     uint32_t look_sequence = 0;
@@ -51,6 +53,7 @@ void send_video_config() {
     config.name_fov = uint8_t(g_host_options.fov);
     memcpy(config.names[0], g_host_options.host_name, sizeof(config.names[0]));
     config.armor_colors[0] = uint8_t(g_host_options.host_armor_color);
+    config.skins[0] = uint8_t(g_host_options.host_skin);
     config.p1_fullscreen = g_host_options.p1_fullscreen ? 1 : 0;
     for (int i = 0; i < k_remote_players; ++i) {
         config.targets[i].active = g_slots[i].connected ? 1 : 0;
@@ -60,6 +63,7 @@ void send_video_config() {
         if (g_slots[i].connected) {
             memcpy(config.names[i + 1], g_slots[i].nickname, sizeof(config.names[i + 1]));
             config.armor_colors[i + 1] = g_slots[i].armor_color;
+            config.skins[i + 1] = g_slots[i].skin;
         }
     }
     sockaddr_in game{};
@@ -229,8 +233,9 @@ void server_thread() {
                         if (index >= 0) g_slots[index].last_seen = GetTickCount64();
                         proto::Pong pong;
                         pong.client_time_us = m->client_time_us;
-                        pong.direct_aim_ready = g_video_status_time && GetTickCount64() - g_video_status_time < 3000 &&
-                                                g_video_status.aim_ready;
+                        bool game = g_video_status_time && GetTickCount64() - g_video_status_time < 3000;
+                        pong.direct_aim_ready = game && g_video_status.aim_ready;
+                        pong.skins_available = game ? g_video_status.skins_available : 0;
                         send_to(from, pong);
                     }
                     break;
@@ -242,6 +247,7 @@ void server_thread() {
                         int index = slot_of(from);
                         if (index >= 0 && m->armor_color < k_armor_color_count)
                             g_slots[index].armor_color = m->armor_color;
+                        if (index >= 0 && m->skin < k_skin_count) g_slots[index].skin = m->skin;
                     }
                     break;
                 case proto::Type::bye: {
@@ -350,6 +356,7 @@ PlayerInfo net_server_player(int player) {
     info.ms_since_packet = unsigned(GetTickCount64() - slot.last_seen);
     info.inputs_per_second = slot.inputs_per_second;
     info.armor_color = slot.armor_color;
+    info.skin = slot.skin;
     info.direct_aim = slot.last_look && GetTickCount64() - slot.last_look < 2000;
     return info;
 }

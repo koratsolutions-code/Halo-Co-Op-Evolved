@@ -37,11 +37,11 @@ Internal notes for people working on Halo: Co Op Evolved. Players only need [REA
   their input over UDP, captures MCC's audio (Opus) and shows the panel. It tells the game mod over
   127.0.0.1:27961 where to send video and the players' names, colours and options.
 - **Game mod (`src/game`, built as `VERSION.dll`)**: hooks `IDXGISwapChain::Present`, encodes each quadrant with
-  NVENC and sends it to its player. It also draws name tags, armor colours, player 1 full screen (F6) and direct
-  mouse aim.
+  NVENC and sends it to its player. It also draws name tags, armor colours, player 1 full screen (F6), direct
+  mouse aim and skins.
 - **Client (`src/client`)**: decodes the video with NVDEC, plays the audio and sends controller or keyboard/mouse
   input.
-- **Protocol (`src/common/protocol.h`)**: version 4. Bump `k_version` whenever a message changes size.
+- **Protocol (`src/common/protocol.h`)**: version 5. Bump `k_version` whenever a message changes size.
 
 ## What we know about halo1.dll (MCC Steam 1.3528)
 
@@ -68,55 +68,73 @@ RVAs are relative to `halo1.dll`, which loads when Halo CE is opened from the MC
   +0x10 name pointer, +0x14 data pointer. 32-bit tag pointers resolve as `block + (pointer - 0x50000000)`.
 - Tag reference inside tag data: class, name pointer, 0, tag ID (16 bytes).
 - Biped tag data: +0x28 model reference (`'mod2'`); the animation reference (`'antr'`) is found by scanning.
+- Model tag (`mod2`): +0x04 node-list checksum, nodes block at +0xB8. Chief has 19 nodes, marine / armored marine /
+  crewman 20 (checksum `9F34D329`, ponytail at node 16), pilot 21 (adds a frame visor), Elite 26.
+- **Tag lookup** `halo1.dll+0xA9B648` (`tag_get`): index = (int16)ecx; returns the tag's data address. Everything
+  that needs an object's definition does `ecx = object+0; call tag_get` and then reads the model at data+0x34 —
+  the render thread about 4000 times per second. So the model is **not** cached: it is looked up every frame.
 
 ### Spawning
 - `halo1.dll+0xAD2404` sets or clears a player's unit (called on death and on spawn).
 - `halo1.dll+0xAD4184` creates a player's unit (it calls the one above when spawning); `+0xAD03C0` is the
-  respawn loop that calls it.
-- The game reads a biped's model and animations **when the object is created**, not afterwards.
+  respawn loop that calls it. One of its first four arguments identifies the player: low 16 bits = player index,
+  high 16 bits = the salt at the start of the player record. In a30 it is retried every ~33 ms for player 4 for
+  about 9 s at mission start (no room in the drop pod).
+- Bodies placed by a mission's opening cutscene (a30, the drop pod) are created by another path, not `+0xAD4184`.
+- When an object is created the game sizes its per-node buffers for the model it has **at that moment** (offsets
+  at object +0x1A4…+0x1AC: 0x260 = 19 nodes × 0x20 for Chief, 0x280 for a 20-node marine). They are never resized.
 
-## Skins (in progress)
+## Skins
 
-Goal: each player looks like another character but keeps Master Chief's hitbox, speed, jump and physics.
+Each player looks like another character but keeps Master Chief's hitbox, speed, jump and physics. The player picks
+it in the client (menu and F2) or, for player 1, in the host panel. Protocol v5: `PlayerOptions.skin` (client →
+host), `VideoConfig.skins[4]` (host → mod), `VideoStatus.skins_available` (mod → host, bit i = skin i is in the
+mission) and `Pong.skins_available` (host → clients, to grey out missing ones). The list is `src/common/skins.h`.
 
-- How: just before `+0xAD4184` creates player N, put the chosen character's model **and** animation references
-  into Master Chief's biped tag, and restore them right after. Model and animations must change together: Chief's
-  animations on another skeleton leave the model in T-pose.
-- Swapping the whole biped (the globals player unit) was tried and rejected: the player gets the other
-  character's size, speed and limits.
-- A skin only exists in missions that load that character. No modified maps or external tools: if a skin is not in
-  the mission, the player spawns as Master Chief.
+How it works (`src/game/skins.cpp`):
+1. When a mission loads, find Chief's biped and every skin's biped by name; read their model and animation
+   references. Skins marked "marine animations" (crewman, Keyes, Jenkins: their own animation graphs lack weapon
+   animations) use the marine's graph, but only if their model's node checksum equals the marine's.
+2. The first time someone uses a skin: copy the tag array into a bigger buffer of our own, with 16 extra entries
+   (index `count + 1 + skin`) that copy Chief's entry; make one **clone of Chief's biped data per skin** (0x1000
+   bytes, in our own `VirtualAlloc` memory) with that skin's model and animation references; swap the pointer at
+   `+0x1C34FB0` to our array.
+3. A hand-written machine-code hook at the start of `tag_get` (touches only rax, rdx and flags, like the original)
+   returns the clone for those 16 indices; the extra entries still point to Chief's data, as a fallback for anything
+   that reads the array directly.
+4. A MinHook on `+0xAD4184`: while it creates the body of a player with a skin, `tag_get` for **Chief's** index
+   returns that skin's clone, so the body is **born** with the skin (right node buffers). Right after, the body's
+   object+0 is set to the clone's tag ID so it keeps the skin every frame for the rest of its life.
+5. Picking another skin only changes what the next body is born with. Nothing is freed: other game threads may be
+   reading it.
 
-| Skin | Biped tag | Missions |
-|---|---|---|
-| Master Chief | `characters\cyborg\cyborg` | all |
-| Marine | `characters\marine\marine` | a10 a30 a50 b30 b40 c10 |
-| Armored marine (tested) | `characters\marine_armored\marine_armored` | a10 a30 a50 b30 b40 c10 |
-| Sergeant Johnson | marine_armored with Johnson's face permutation (extra work) | a10 a30 a50 b30 b40 c10 |
-| Crewman | `characters\crewman\crewman` | a10 a30 |
-| Pilot | `characters\pilot\pilot` | a10 a30 |
-| Captain Keyes (fatigues) | `characters\captain_ingame\captain_ingame` | a50 c10 |
-| Captain Keyes (dress) | `characters\captain\captain` | a10 a50 c10 d40 |
-| Jenkins | `characters\marine_cinematic\jenkins\jenkins` | c10 |
-| Flood marine | `characters\floodcombat_human\floodcombat_human` | c10 c20 c40 d20 d40 |
-| Elite | `characters\elite\elite` | a10 a30 a50 b30 b40 c40 d20 d40 |
+Findings that shaped this:
+- Swapping Chief's tag model around the spawn call does not work (the model is read every frame), and swapping the
+  whole biped brings the other character's size, speed and limits (rejected).
+- Clones placed near the game's tag data crashed: the game frees that range. Keep them in our own memory.
+- **A body must be born with its skin.** Retagging a body born as Chief gives T-pose on its first appearance and,
+  after standing still, the hand holding the weapon drifts (the 20th node has no buffer). Hence: a skin picked
+  mid-game shows on the next respawn, and players placed by an opening cutscene start as Master Chief.
+- Putting another mesh on Chief's skeleton is impossible: vertex bone indices are already in GPU buffers.
+- Pilot was dropped: its own animations crash the game (`+0xAFE7B4`, no weapon animations) and its 21-node
+  skeleton does not fit the marine's.
+- Tested in MCC in a30 (respawn and mid-game change). Not tested yet: Flood marine, Keyes, Jenkins, checkpoint
+  revert, level change.
 
-### Roadmap
-1. ✅ Find the tag array instantly (pointers above).
-2. ✅ Find the spawn function (hardware write watch on player record +0x64).
-3. 🧪 Per-player skins at spawn: `skins.cpp` hooks `+0xAD4184`. **F10** toggles a test with fixed skins
-   (J2 armored marine, J3 marine, J4 crewman). **Not yet tested in MCC.** It identifies the player from the
-   arguments (low 16 bits = player index, high 16 bits = the salt at the start of the record) and logs them.
-4. Choosing the skin: the client (menu and F2, next to armor colour) and the host panel for player 1. The host
-   reports which skins the current mission has; missing ones fall back to Master Chief. Protocol v5.
-5. Edge cases (checkpoint revert, cinematics, level change, other missions), remove the diagnostics, update the
-   READMEs.
+| Skin | Biped tag | Animations | Missions |
+|---|---|---|---|
+| Master Chief | `characters\cyborg\cyborg` | own | all |
+| Marine | `characters\marine\marine` | own | a10 a30 a50 b30 b40 c10 |
+| Armored marine | `characters\marine_armored\marine_armored` | own | a10 a30 a50 b30 b40 c10 |
+| Crewman | `characters\crewman\crewman` | marine | a10 a30 |
+| Captain Keyes (fatigues) | `characters\captain_ingame\captain_ingame` | marine | a50 c10 |
+| Captain Keyes (dress) | `characters\captain\captain` | marine | a10 a50 c10 d40 |
+| Jenkins | `characters\marine_cinematic\jenkins\jenkins` | marine | c10 |
+| Flood marine | `characters\floodcombat_human\floodcombat_human` | own | c10 c20 c40 d20 d40 |
+| Elite | `characters\elite\elite` | own | a10 a30 a50 b30 b40 c40 d20 d40 |
 
-### Diagnostics in develop (remove before merging to main)
-- **F9** (`character_probe.cpp`, read-only): lists the mission's biped tags and the halo1.dll pointers to the tag
-  array.
-- **F11** (`spawn_probe.cpp`): hardware write watch on player 2's unit handle; logs the writing instruction and
-  call chain.
+Ideas not done: Sergeant Johnson (marine_armored with Johnson's face permutation); bodies placed by opening
+cutscenes born with the skin (needs that creation path).
 
 ## Other ideas (not started)
 - Own mod instead of AlphaRing (feasibility study first; AlphaRing has no licence, so nothing can be copied).

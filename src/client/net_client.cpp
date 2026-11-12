@@ -245,6 +245,7 @@ void run(Settings settings) {
                     std::lock_guard lock(g_mutex);
                     g_status.ping_ms = int((now - pong->client_time_us + 500) / 1000);
                     g_status.host_aim_ready = pong->direct_aim_ready != 0;
+                    g_status.skins_available = pong->skins_available;
                 }
                 break;
             case proto::Type::kicked:
@@ -334,6 +335,7 @@ void run(Settings settings) {
             {
                 std::lock_guard lock(g_mutex);
                 options.armor_color = uint8_t(g_settings.armor_color);
+                options.skin = uint8_t(g_settings.skin);
             }
             send_message(options);
             last_ping = now;

@@ -14,7 +14,7 @@ constexpr uint16_t k_port = 27960;
 // Puerto local (solo 127.0.0.1) del DLL del juego: ahí el launcher le dice a quién mandar el video.
 constexpr uint16_t k_video_control_port = 27961;
 constexpr uint32_t k_magic = 0x50434F48;  // "HOCP"
-constexpr uint16_t k_version = 4;
+constexpr uint16_t k_version = 5;
 constexpr int k_nickname_size = 24;       // UTF-8 con '\0'
 
 // Si el host no recibe nada de un cliente en este tiempo, libera su lugar y suelta su mando.
@@ -33,7 +33,7 @@ enum class Type : uint8_t {
     video_config = 10,     // launcher -> DLL (local): a quién mandar video, FPS y bitrate
     video_status = 11,     // DLL -> launcher (local): estado del video para el panel
     audio = 12,            // host -> cliente: 10 ms de audio del juego en Opus
-    player_options = 13,   // cliente -> host: color de armadura (con cada ping; un host viejo lo ignora)
+    player_options = 13,   // cliente -> host: color de armadura y skin (con cada ping)
     mouse_look = 14,       // cliente -> host: mira directa con mouse (giro y altura acumulados)
     aim = 15,              // launcher -> DLL (local): cuánto girar la cámara de J2-J4
 };
@@ -104,6 +104,7 @@ struct Pong {
     Header header{k_magic, Type::pong};
     uint64_t client_time_us = 0;
     uint8_t direct_aim_ready = 0;  // 1: el mod del juego puede mover la cámara directo (mira directa con mouse)
+    uint16_t skins_available = 0;  // bit i: la skin i de k_skins está en la misión actual (0: aún no se sabe)
 };
 
 // Mira directa con mouse: totales acumulados desde que el cliente se conectó, en radianes (giro: + a la
@@ -118,6 +119,7 @@ struct MouseLook {
 struct PlayerOptions {
     Header header{k_magic, Type::player_options};
     uint8_t armor_color = 0;  // índice en k_armor_colors (0: por defecto)
+    uint8_t skin = 0;         // índice en k_skins (0: Master Chief)
 };
 
 struct Bye {
@@ -168,6 +170,7 @@ struct VideoConfig {
     char names[4][k_nickname_size] = {};  // jugadores 1..4 (vacío: "Player N")
     uint8_t armor_colors[4] = {};         // jugadores 1..4, índice en k_armor_colors (0: sin cambiar)
     uint8_t p1_fullscreen = 0;            // 1: el host ve solo su cuadrante a pantalla completa (F6 lo cambia)
+    uint8_t skins[4] = {};                // jugadores 1..4, índice en k_skins (0: Master Chief)
 };
 
 // El launcher lo manda al DLL apenas llega movimiento de un cliente: radianes a sumar a la cámara.
@@ -184,6 +187,7 @@ struct VideoStatus {
     uint32_t kbps_sent[3] = {};
     VideoError error = VideoError::none;  // el panel lo muestra en el idioma elegido
     uint8_t aim_ready = 0;  // 1: encontró las cámaras de los jugadores (mira directa con mouse disponible)
+    uint16_t skins_available = 0;  // bit i: la skin i de k_skins está en la misión actual (0: sin misión)
 };
 #pragma pack(pop)
 

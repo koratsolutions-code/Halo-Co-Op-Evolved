@@ -67,11 +67,11 @@ of the screen as low-latency video plus the game sound, and their controller or 
 virtual pad. Lowest latency is the top priority.
 
 - `src/launcher` → **CoOpEvolvedHost.exe**: creates the virtual pads for players 2–4 *before* MCC opens, receives
-  input over UDP 27960, captures MCC's audio, ImGui panel (players, names, armor colours, options).
+  input over UDP 27960, captures MCC's audio, ImGui panel (players, names, armor colours, skins, options).
 - `src/game` → **VERSION.dll** (proxy DLL loaded by MCC): Present hook, NVENC video per quadrant, name tags, armor
-  colours, player 1 full screen, direct mouse aim, skins (in progress). Talks to the host over 127.0.0.1:27961.
+  colours, player 1 full screen, direct mouse aim, skins. Talks to the host over 127.0.0.1:27961.
 - `src/client` → **CoOpEvolvedClient.exe**: NVDEC video, audio, controller or keyboard/mouse input.
-- `src/common/protocol.h`: UDP protocol, **version 4**. Bump `k_version` whenever a message changes size.
+- `src/common/protocol.h`: UDP protocol, **version 5**. Bump `k_version` whenever a message changes size.
 - `tools/test_game.cpp`: the test game.
 
 ## 4. What is done (all on main unless noted)
@@ -88,30 +88,23 @@ virtual pad. Lowest latency is the top priority.
 | Player 1 full screen | F6 or a panel option; stretches the top-left quadrant on the host's monitor |
 | Direct mouse aim (beta) | Client option; the mouse turns the camera directly (protocol v4). Tested OK |
 | Keyboard E = RB | Enter vehicles / pick up weapons |
-| **Skins (develop only)** | Steps 1–2 done, step 3 written but **not tested in MCC**; see below |
+| **Skins (develop only)** | Per-player skin selector (client and host panel), protocol v5. Tested in MCC (a30) |
 
-## 5. Current work: per-player skins
+## 5. Per-player skins (develop)
 
-Goal: each player looks like another character (marine, crewman, Elite…) but keeps Master Chief's hitbox, speed,
-jump and physics. Each friend chooses in their client; player 1 in the host panel. If the chosen character is not in
-the current mission, that player spawns as Master Chief (the owner decided: no modified maps or external tools).
+Each player looks like another character (marine, crewman, Elite…) but keeps Master Chief's hitbox, speed, jump and
+physics. Each friend chooses in their client (menu and F2); player 1 in the host panel. If the chosen character is not
+in the current mission, that player is Master Chief (the owner decided: no modified maps or external tools).
 
-How it works: right before the game creates player N's body (`halo1.dll+0xAD4184`), `src/game/skins.cpp` puts the
-chosen character's **model and animations** into Master Chief's definition, and restores them right after. The
-full list of skins per mission and all addresses are in docs/DEVELOPMENT.md.
+How it works (`src/game/skins.cpp`, details in docs/DEVELOPMENT.md): one clone of Chief's biped data per skin, with
+that skin's model and animations, added to a copy of the tag array; a machine-code hook on the tag lookup returns the
+clones. A hook on the spawn function makes the new body be **born** with its player's skin — a body born as Chief
+cannot take another model later (T-pose, hand glitch). So a skin picked mid-game shows on the next respawn, and
+players placed by an opening cutscene (e.g. a30) start as Master Chief.
 
 Next steps:
-1. **Test step 3 in MCC.** In a mission (e.g. Pillar of Autumn) press **F10** (turns the test on), then kill
-   players 2, 3 and 4. Expected: J2 armored marine, J3 marine, J4 crewman, J1 still Master Chief, each only their
-   own. Also restart the mission with F10 on: they should start with their skins. Read the `Skins:` lines in
-   `coopevolved-juego.log` (detected player and arguments for each spawn).
-2. **Step 4, choosing the skin** (protocol v5): a skin field in `PlayerOptions` (client → host), skins for 1–4 in
-   `VideoConfig` (host → mod), and the skins available in the current mission reported by the mod in `VideoStatus`
-   and passed to the clients (e.g. in `Pong`). UI: a combo next to armor colour in the client menu and F2, and on
-   the player 1 card in the host panel; saved in the `.ini` files. Missing skins → Master Chief.
-3. **Step 5**: checkpoint revert, cinematics, level change, other missions; then remove the diagnostics
-   (`character_probe.*`, `spawn_probe.*`, the F10 test), update README.md, README.es.md and the `host\`/`cliente\`
-   txt files, and merge to main.
+1. Test the skins not tried yet (Flood marine, Keyes, Jenkins), checkpoint revert and level change.
+2. Commit to develop (only when the owner says the feature is finished), then merge to main after MCC testing.
 
 Later ideas, not started: replacing AlphaRing with an own mod (feasibility study first; AlphaRing has no licence, so
 nothing can be copied from it); spawning only as many players as are connected.
@@ -142,6 +135,6 @@ nothing can be copied from it); spawning only as many players as are connected.
 - MCC reads the pads only while its window is active; AlphaRing's menu (F4) blocks all input while open.
 - Halo CE shows players 3 and 4 only with classic graphics.
 - `halo1.dll` loads when Halo CE is opened from MCC's menu, not when MCC starts.
-- A biped's model and animations are read when it spawns: memory changes show up on the next spawn.
-- Keys used by the mod in game: F6 (player 1 full screen); in develop also F9 (character list), F10 (skins test),
-  F11 (spawn watcher).
+- A body's node buffers are sized for its model when it is created: skins must be in place at spawn, never later.
+- The only key used by the mod in game is F6 (player 1 full screen). The F9/F10/F11 diagnostics were removed.
+- The host and client windows open maximized.

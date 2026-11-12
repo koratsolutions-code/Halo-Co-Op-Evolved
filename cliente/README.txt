@@ -5,6 +5,9 @@ CoOpEvolvedClient.exe is the app for players 2, 3 and 4: it shows your part of t
 screen with the game sound, and sends your controller (or keyboard and mouse) to the host's
 PC through Radmin VPN. Your name shows over your character in everyone's screen, with the
 armor color you pick in "Armor color" (you can also change it in F2 while playing).
+In "Skin" (also in F2) you can look like another character (Marine, Elite...) while still
+being Master Chief. Only the skins of the current mission work (the others are greyed out
+and you look like Master Chief); a new skin shows the next time you respawn.
 
 The app is in English. To use it in Spanish pick "Español" at the top right (it is saved).
 
@@ -29,7 +32,7 @@ How to play
 
 Client keys
 -----------
-  F2 ............. menu (volume, sensitivity, controls, disconnect)
+  F2 ............. menu (armor color, skin, volume, sensitivity, controls, disconnect)
   F1 ............. stats (ping, video FPS, losses)
   F3 ............. mute / unmute the game sound
   F11 / Alt+Enter  full screen or window

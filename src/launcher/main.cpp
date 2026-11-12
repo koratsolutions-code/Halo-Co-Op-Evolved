@@ -10,6 +10,7 @@
 
 #include "../common/lang.h"
 #include "../common/ui_armor_color.h"
+#include "../common/ui_skin.h"
 #include "../common/ui_style.h"
 
 #include <winsock2.h>
@@ -47,6 +48,7 @@ struct HostSettings {
     int fov = 70;
     int fps = 60;
     int armor_color = 0;  // jugador 1, índice en k_armor_colors
+    int skin = 0;         // jugador 1, índice en k_skins
     bool p1_fullscreen = false;
 };
 HostSettings g_settings;
@@ -78,6 +80,8 @@ void settings_load() {
     if (!valid_fps) g_settings.fps = 60;
     g_settings.armor_color = GetPrivateProfileIntW(L"host", L"armor_color", 0, ini.c_str());
     if (g_settings.armor_color < 0 || g_settings.armor_color >= k_armor_color_count) g_settings.armor_color = 0;
+    g_settings.skin = GetPrivateProfileIntW(L"host", L"skin", 0, ini.c_str());
+    if (g_settings.skin < 0 || g_settings.skin >= k_skin_count) g_settings.skin = 0;
     g_settings.p1_fullscreen = GetPrivateProfileIntW(L"host", L"p1_fullscreen", 0, ini.c_str()) != 0;
     g_lang = g_settings.lang;
 }
@@ -92,6 +96,7 @@ void settings_save() {
     WritePrivateProfileStringW(L"host", L"fov", std::to_wstring(g_settings.fov).c_str(), ini.c_str());
     WritePrivateProfileStringW(L"host", L"fps", std::to_wstring(g_settings.fps).c_str(), ini.c_str());
     WritePrivateProfileStringW(L"host", L"armor_color", std::to_wstring(g_settings.armor_color).c_str(), ini.c_str());
+    WritePrivateProfileStringW(L"host", L"skin", std::to_wstring(g_settings.skin).c_str(), ini.c_str());
     WritePrivateProfileStringW(L"host", L"p1_fullscreen", g_settings.p1_fullscreen ? L"1" : L"0", ini.c_str());
 }
 
@@ -101,6 +106,7 @@ void apply_host_options() {
     options.fov = g_settings.fov;
     memcpy(options.host_name, g_settings.nickname, sizeof(options.host_name));
     options.host_armor_color = g_settings.armor_color;
+    options.host_skin = g_settings.skin;
     options.p1_fullscreen = g_settings.p1_fullscreen;
     net_server_set_host_options(options);
 }
@@ -420,6 +426,9 @@ void draw_name_tags_card() {
     ImGui::EndChild();
 }
 
+// Skins de la misión cargada (0: no se sabe).
+uint16_t mission_skins() { return g_status.video_ok ? g_status.video.skins_available : 0; }
+
 // Tarjeta de un jugador. player 1 es el host; 2-4 son los clientes.
 void draw_player_card(int player, float width, float height) {
     char id[16];
@@ -440,9 +449,10 @@ void draw_player_card(int player, float width, float height) {
         ImGui::SameLine();
         ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6);
         ImGui::TextColored(k_muted, "·  %s", T("you, on this PC", "tú, en este PC"));
-        // Las dos casillas alineadas a la misma columna.
+        // Las casillas alineadas a la misma columna.
         const char* armor_label = T("Armor", "Armadura");
-        float column = std::max(ImGui::CalcTextSize("Nickname").x, ImGui::CalcTextSize(armor_label).x) +
+        float column = std::max({ImGui::CalcTextSize("Nickname").x, ImGui::CalcTextSize(armor_label).x,
+                                 ImGui::CalcTextSize("Skin").x}) +
                        ImGui::GetStyle().ItemSpacing.x * 2;
         ImGui::AlignTextToFramePadding();
         ImGui::TextUnformatted("Nickname");
@@ -456,6 +466,13 @@ void draw_player_card(int player, float width, float height) {
         ImGui::TextUnformatted(armor_label);
         ImGui::SameLine(column);
         if (ui_armor_color_combo("##armor", &g_settings.armor_color, -1)) {
+            apply_host_options();
+            settings_save();
+        }
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted("Skin");
+        ImGui::SameLine(column);
+        if (ui_skin_combo("##skin", &g_settings.skin, -1, mission_skins())) {
             apply_host_options();
             settings_save();
         }
@@ -477,6 +494,11 @@ void draw_player_card(int player, float width, float height) {
         ui_armor_swatch(info.armor_color);
         ImGui::SameLine();
         ImGui::TextColored(k_muted, "%s", T(k_armor_colors[info.armor_color].name_en, k_armor_colors[info.armor_color].name_es));
+        if (info.skin > 0 && info.skin < k_skin_count) {
+            char label[160];
+            ImGui::SameLine();
+            ImGui::TextColored(k_muted, "·  %s", ui_skin_label(info.skin, mission_skins(), label, sizeof(label)));
+        }
         if (g_status.video_ok)
             ImGui::TextColored(k_muted, T("%u inputs/s  ·  video %u fps  ·  %.1f Mbps", "%u controles/s  ·  video %u fps  ·  %.1f Mbps"),
                                info.inputs_per_second, g_status.video.fps_sent[index],
@@ -526,12 +548,12 @@ void draw_panel() {
     draw_connection_card();
     draw_name_tags_card();
 
-    // Jugadores en cuadrícula 2x2, como la pantalla dividida. Alto fijo: título, dos líneas y los botones.
+    // Jugadores en cuadrícula 2x2, como la pantalla dividida. Alto fijo: el del jugador 1 (título y tres casillas).
     const ImGuiStyle& style = ImGui::GetStyle();
     float spacing = style.ItemSpacing.x;
     float card_w = (ImGui::GetContentRegionAvail().x - spacing) / 2;
-    float card_h = style.WindowPadding.y * 2 + g_big_font->FontSize + ImGui::GetTextLineHeight() * 2 +
-                   ImGui::GetFrameHeight() + style.ItemSpacing.y * 3 + 12;
+    float card_h = style.WindowPadding.y * 2 + g_big_font->FontSize + ImGui::GetFrameHeight() * 3 +
+                   style.ItemSpacing.y * 4 + 8;
     draw_player_card(1, card_w, card_h);
     ImGui::SameLine();
     draw_player_card(2, card_w, card_h);
@@ -588,14 +610,14 @@ bool run_panel(HINSTANCE instance) {
     WNDCLASSEXW wc{sizeof(wc), CS_CLASSDC, window_proc, 0, 0, instance, LoadIconW(nullptr, IDI_APPLICATION),
                    LoadCursorW(nullptr, IDC_ARROW), nullptr, nullptr, L"CoOpEvolvedHost", nullptr};
     RegisterClassExW(&wc);
-    g_window = CreateWindowW(wc.lpszClassName, k_title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 900, 860,
+    g_window = CreateWindowW(wc.lpszClassName, k_title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 900, 930,
                              nullptr, nullptr, instance, nullptr);
     if (!create_device(g_window)) {
         MessageBoxW(nullptr, T(L"Could not start Direct3D 11.", L"No se pudo iniciar Direct3D 11."), k_title,
                     MB_ICONERROR);
         return false;
     }
-    ShowWindow(g_window, SW_SHOWDEFAULT);
+    ShowWindow(g_window, SW_SHOWMAXIMIZED);  // siempre maximizada
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();

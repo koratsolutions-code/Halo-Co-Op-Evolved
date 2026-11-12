@@ -2,6 +2,7 @@
 #include "aim.h"
 #include "encoder.h"
 #include "log.h"
+#include "skins.h"
 
 #include "../common/protocol.h"
 
@@ -156,6 +157,7 @@ void control_thread() {
             }
             status.error = g_error;
             status.aim_ready = aim_ready() ? 1 : 0;
+            status.skins_available = skins_available();
             sendto(s, reinterpret_cast<const char*>(&status), sizeof(status), 0,
                    reinterpret_cast<sockaddr*>(&launcher), sizeof(launcher));
         }

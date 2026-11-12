@@ -4,8 +4,8 @@ HALO: CO OP EVOLVED - HOST
 Contents:
   CoOpEvolvedHost.exe  -> creates the controllers for players 2, 3 and 4, receives their input
                        and shows the host panel.
-  VERSION.dll       -> the mod inside the game (each friend's video and the names over the
-                       players). CoOpEvolvedHost.exe copies it into the game folder by itself.
+  VERSION.dll       -> the mod inside the game (each friend's video, the names over the
+                       players, armor colors and skins). CoOpEvolvedHost.exe copies it into the game folder by itself.
 
 The panel is in English. To use it in Spanish pick "Español" at the top right (it is saved).
 
@@ -24,7 +24,7 @@ Every time you play:
   2. Open CoOpEvolvedHost.exe FIRST, with MCC closed (do not close it while you play).
      The first time, if Windows asks about the firewall, tick private and public networks.
   3. Give your friends the Radmin IP shown at the top of the panel ("Copy" copies it).
-  4. In the player 1 card type your name in "Nickname" and pick your "Armor" color.
+  4. In the player 1 card type your name in "Nickname" and pick your "Armor" color and "Skin".
   5. Press "Open MCC" and choose without anti-cheat.
   6. F4 -> Splitscreen -> Players = 4. Close the menu with F4.
   7. In the mission use classic graphics (Tab) and keep the game as the active window.
@@ -41,5 +41,8 @@ In the panel:
   - One card per player, laid out like the split screen: name, IP, inputs per second and
     the video each friend receives.
     "Move": tests that player's controller.  "Kick": disconnects them.
+  - "Skin": look like another character (Marine, Elite...) while still being Master Chief.
+    Only the skins of the loaded mission work (the others are greyed out: Master Chief).
+    A new skin shows the next time that player respawns.
 
 Full instructions are in the repository's README.md (Español: LEEME.txt).

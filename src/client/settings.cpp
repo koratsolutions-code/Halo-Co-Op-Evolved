@@ -1,6 +1,7 @@
 #include "settings.h"
 
 #include "../common/armor_colors.h"
+#include "../common/skins.h"
 
 #include <windows.h>
 
@@ -45,6 +46,7 @@ Settings settings_load() {
     s.muted = read(L"silencio", L"no") == "si";
     s.lang = read(L"idioma", L"en") == "es" ? Lang::es : Lang::en;
     s.armor_color = std::clamp(atoi(read(L"color", L"0").c_str()), 0, k_armor_color_count - 1);
+    s.skin = std::clamp(atoi(read(L"skin", L"0").c_str()), 0, k_skin_count - 1);
     s.direct_aim = read(L"mira_directa", L"no") == "si";
     return s;
 }
@@ -61,5 +63,6 @@ void settings_save(const Settings& s) {
     write(L"silencio", s.muted ? "si" : "no");
     write(L"idioma", s.lang == Lang::es ? "es" : "en");
     write(L"color", std::to_string(s.armor_color));
+    write(L"skin", std::to_string(s.skin));
     write(L"mira_directa", s.direct_aim ? "si" : "no");
 }

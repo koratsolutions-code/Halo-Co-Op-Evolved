@@ -97,7 +97,7 @@ AlphaRing están instalados; si no pudo copiarlo (permisos), cópialo tú a esa 
 2. Abre `CoOpEvolvedHost.exe`. Arriba muestra tu IP de Radmin (pásasela a tus amigos) y qué Controller
    le tocó a cada jugador (normalmente J2 = Controller 1, J3 = Controller 2, J4 = Controller 3).
    **No lo cierres mientras jueguen.**
-3. Escribe tu nombre en **Nickname** y elige tu color en **Armadura** (tarjeta del jugador 1).
+3. Escribe tu nombre en **Nickname** y elige tu color en **Armadura** y tu **Skin** (tarjeta del jugador 1).
 4. Presiona **Abrir MCC** y elige **sin anticheat (EAC desactivado)**.
 5. Presiona **F4** para abrir el menú de AlphaRing → **Splitscreen**:
    - **Players = 4**.
@@ -145,6 +145,20 @@ de cada jugador en la campaña. El jugador 1 la elige en **Armadura** (tarjeta d
 más **Por defecto** (el verde oliva de siempre). El color se vuelve a poner solo al reaparecer o al cargar
 otro nivel, y cada tarjeta de jugador lo muestra.
 
+### Skins
+Cada jugador puede verse como otro personaje de Halo CE y seguir siendo Master Chief en todo lo demás (hitbox,
+velocidad, salto). El jugador 1 la elige en **Skin** (tarjeta del jugador 1); los jugadores 2-4 en **Skin** de
+su cliente (también en F2 durante la partida). Cada tarjeta de jugador muestra la skin de ese amigo.
+
+Skins: Master Chief, Marine, Marine con armadura, Tripulante, Capitán Keyes (campaña), Capitán Keyes (gala),
+Jenkins, Marine Flood y Elite.
+- Una skin solo existe en las misiones que tienen a ese personaje. Con una misión cargada, el selector muestra
+  en gris las que no tiene; si la tuya no está, en esa misión eres Master Chief.
+- Una skin nueva se ve **la próxima vez que reapareces**: el cuerpo que tienes conserva su aspecto hasta morir.
+- Las misiones que empiezan con una cinemática que coloca a los jugadores (por ejemplo *Halo*, con la cápsula)
+  empiezan con todos como Master Chief; cada jugador recibe su skin al reaparecer por primera vez.
+- Solo cambia el aspecto: los disparos siguen dando donde estaría el cuerpo de Master Chief.
+
 ### Probar los mandos
 En Co Op Evolved Host, el botón **Mover** de cada jugador hace que su personaje camine hacia adelante,
 atrás, a los lados, gire y salte (unos 10 segundos). Después de presionarlo, el juego vuelve a quedar
@@ -162,16 +176,17 @@ aplicación*.
   (ni conviene) reenviar ningún puerto.
 - Cualquiera de tu red de Radmin puede tomar un jugador libre: protege la red de Radmin con contraseña y
   compártela solo con tus amigos. **Expulsar** saca a alguien en cualquier momento.
-- El mod del juego solo lee la memoria de Halo 1, salvo los colores de armadura de los 4 jugadores. No toca
-  tus archivos, tu cuenta de Steam ni tu perfil de MCC.
+- El mod del juego solo lee la memoria de Halo 1, salvo los colores de armadura y las skins de los 4 jugadores
+  (las skins solo cambian la memoria del juego mientras corre). No toca tus archivos, tu cuenta de Steam ni tu
+  perfil de MCC.
 - `coopevolved-host.log` y `coopevolved-cliente.log` guardan los nombres e IPs de Radmin de tus amigos. Se quedan
   en tu PC: no los publiques.
 
 ### Panel del host
 Está ordenado como la pantalla dividida: una tarjeta por jugador. Cada amigo conectado muestra su nombre,
 su IP, cuántos controles por segundo llegan (unos 250 es lo normal) y el video que recibe. **Expulsar** lo
-desconecta (puede volver a conectarse). El panel guarda tu nickname, el idioma, los FPS y lo de los
-nombres en `coopevolved-host.ini`, junto a `CoOpEvolvedHost.exe`.
+desconecta (puede volver a conectarse). El panel guarda tu nickname, tu color de armadura, tu skin, el idioma,
+los FPS y lo de los nombres en `coopevolved-host.ini`, junto a `CoOpEvolvedHost.exe`.
 
 ### Problemas frecuentes
 - **Un jugador no se mueve:** cierra MCC, cierra Co Op Evolved Host, ábrelos de nuevo en ese orden.
@@ -209,6 +224,7 @@ Para los jugadores 2, 3 y 4. **No** necesitas Halo, Steam ni MCC: el juego corre
    - **IP de Radmin del host:** el host la ve arriba en su Co Op Evolved Host (botón *Copiar*).
    - **Tu nombre:** sale sobre tu personaje para todos.
    - **Color de armadura:** tu color en la campaña.
+   - **Skin:** el personaje que pareces (ver *Skins* en la parte del host).
    - **Jugador:** **2** (arriba a la derecha), **3** (abajo a la izquierda) o **4** (abajo a la derecha).
      Cada amigo uno distinto; usa siempre el mismo.
    - **Mando** o **Teclado y mouse**.
@@ -219,7 +235,7 @@ Para los jugadores 2, 3 y 4. **No** necesitas Halo, Steam ni MCC: el juego corre
 ### Teclas
 | Tecla | Qué hace |
 |-------|----------|
-| **F2** | Menú: color de armadura, volumen, sensibilidad, controles, desconectar |
+| **F2** | Menú: color de armadura, skin, volumen, sensibilidad, controles, desconectar |
 | **F1** | Estadísticas: ping, FPS del video, Mbps, fotogramas perdidos |
 | **F3** | Silenciar / activar el sonido del juego |
 | **F11** o **Alt+Enter** | Pantalla completa / ventana |

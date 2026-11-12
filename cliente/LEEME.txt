@@ -5,6 +5,9 @@ CoOpEvolvedClient.exe es la app de los jugadores 2, 3 y 4: te muestra tu parte d
 pantalla completa con el sonido del juego y manda tu mando (o teclado y mouse) al PC del
 host por Radmin VPN. Tu nombre sale sobre tu personaje en la pantalla de todos, con el color de
 armadura que elijas en "Color de armadura" (también lo puedes cambiar en F2 durante la partida).
+En "Skin" (también en F2) puedes verte como otro personaje (Marine, Elite...) y seguir siendo
+Master Chief. Solo sirven las skins de la misión actual (las otras salen en gris y te ves como
+Master Chief); una skin nueva se ve la próxima vez que reaparezcas.
 
 La app viene en inglés. Para usarla en español elige "Español" arriba a la derecha (se guarda).
 
@@ -29,7 +32,7 @@ Cómo jugar
 
 Teclas del cliente
 ------------------
-  F2 ............. menú (volumen, sensibilidad, controles, desconectar)
+  F2 ............. menú (color de armadura, skin, volumen, sensibilidad, controles, desconectar)
   F1 ............. estadísticas (ping, FPS del video, pérdidas)
   F3 ............. silenciar / activar el sonido del juego
   F11 / Alt+Enter  pantalla completa o ventana
