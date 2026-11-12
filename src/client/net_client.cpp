@@ -52,7 +52,7 @@ const char* reason_text(proto::Reason reason) {
     case proto::Reason::bad_version: return T("Your client and the host's are different versions. Update both.", "Tu cliente y el del host son de versiones distintas. Actualicen los dos.");
     case proto::Reason::bad_player: return T("Invalid player number (it must be 2, 3 or 4).", "Número de jugador inválido (tiene que ser 2, 3 o 4).");
     case proto::Reason::kicked: return T("The host kicked you. You can connect again.", "El host te expulsó. Puedes volver a conectarte.");
-    case proto::Reason::host_closed: return T("The host closed Co Op Evolved Host.", "El host cerró Co Op Evolved Host.");
+    case proto::Reason::host_closed: return T("The host closed Co Op Evolved.", "El host cerró Co Op Evolved.");
     default: return T("Connection refused.", "Conexión rechazada.");
     }
 }
@@ -283,9 +283,9 @@ void run(Settings settings) {
             }
             if (now - start > 6000000) {
                 end_message = T("The host is not responding. Check the IP, that Radmin VPN is connected and that the host "
-                                "has Co Op Evolved Host open.",
+                                "has Co Op Evolved open in \"Host a game\".",
                                 "El host no responde. Revisa la IP, que Radmin VPN esté conectado y que el host tenga "
-                                "Co Op Evolved Host abierto.");
+                                "Co Op Evolved abierto en \"Crear partida\".");
                 break;
             }
             continue;

@@ -1,5 +1,3 @@
 #pragma once
-
-// Registro en coopevolved-cliente.log, junto al .exe (para revisar problemas de conexión o video).
-void log_init();
-void log_write(const char* format, ...);
+// El registro es el mismo del host: ver src/launcher/log.h.
+#include "../launcher/log.h"

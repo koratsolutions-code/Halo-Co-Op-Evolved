@@ -1,5 +1,7 @@
 #include "video.h"
+#include "local_players.h"
 #include "aim.h"
+#include "cinematic.h"
 #include "encoder.h"
 #include "log.h"
 #include "skins.h"
@@ -141,6 +143,9 @@ void control_thread() {
             } else if (auto* aim = proto::as<proto::Aim>(buffer, size); aim && aim->header.type == proto::Type::aim) {
                 for (int i = 0; i < k_players; ++i)
                     if (aim->yaw[i] != 0 || aim->pitch[i] != 0) aim_apply(i + 2, aim->yaw[i], aim->pitch[i]);
+            } else if (auto* pads = proto::as<proto::Pads>(buffer, size);
+                       pads && pads->header.type == proto::Type::pads) {
+                local_players_set_pads(*pads);
             }
         }
         uint64_t now = now_us();
@@ -220,6 +225,23 @@ void video_on_frame(IDXGISwapChain* swap_chain) {
     uint32_t quad_w = (desc.Width / 2) & ~1u;
     uint32_t quad_h = (desc.Height / 2) & ~1u;
 
+    // Cinemáticas: el juego las dibuja una vez sobre toda la pantalla, así que todos reciben la pantalla entera
+    // reducida a su tamaño. Al entrar y al salir, un fotograma completo para que el cambio de imagen se vea limpio.
+    static bool was_cinematic = false;
+    bool cinematic = config.full_cinematics && context4 && desc.SampleDesc.Count == 1 && cinematic_now();
+    ID3D11Texture2D* source = back_buffer;
+    if (cinematic) {
+        if (ID3D11Texture2D* frame = cinematic_frame(device, context, back_buffer, quad_w, quad_h))
+            source = frame;
+        else
+            cinematic = false;
+    }
+    if (cinematic != was_cinematic) {
+        was_cinematic = cinematic;
+        for (auto& stream : g_streams) stream.force_keyframe = true;
+        log_write("Video: %s", cinematic ? "cinemática, pantalla entera para todos" : "cada uno con su cuarto");
+    }
+
     if (context4 && desc.SampleDesc.Count == 1) {
         for (int i = 0; i < k_players; ++i) {
             if (!config.targets[i].active) continue;
@@ -265,7 +287,8 @@ void video_on_frame(IDXGISwapChain* swap_chain) {
             uint32_t x = (i == 0 || i == 2) ? desc.Width - quad_w : 0;
             uint32_t y = (i == 0) ? 0 : desc.Height - quad_h;
             D3D11_BOX box{x, y, 0, x + quad_w, y + quad_h, 1};
-            if (stream.encoder->submit(context4, back_buffer, box, stream.force_keyframe, now))
+            if (cinematic) box = {0, 0, 0, quad_w, quad_h, 1};
+            if (stream.encoder->submit(context4, source, box, stream.force_keyframe, now))
                 stream.force_keyframe = false;
         }
     } else if (!context4) {

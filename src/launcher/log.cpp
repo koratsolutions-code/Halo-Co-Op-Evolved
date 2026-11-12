@@ -10,11 +10,11 @@
 static FILE* g_file = nullptr;
 static std::mutex g_mutex;
 
-void log_init() {
+void log_init(const wchar_t* file_name) {
     wchar_t path[MAX_PATH];
     GetModuleFileNameW(nullptr, path, MAX_PATH);
     std::wstring log_path = path;
-    log_path = log_path.substr(0, log_path.find_last_of(L"\\/") + 1) + L"coopevolved-host.log";
+    log_path = log_path.substr(0, log_path.find_last_of(L"\\/") + 1) + file_name;
     g_file = _wfsopen(log_path.c_str(), L"w", _SH_DENYWR);
 }
 

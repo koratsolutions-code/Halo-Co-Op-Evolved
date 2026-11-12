@@ -11,6 +11,7 @@
 
 #include "../common/lang.h"
 #include "../common/ui_armor_color.h"
+#include "../common/ui_mode.h"
 #include "../common/ui_skin.h"
 #include "../common/ui_style.h"
 
@@ -277,10 +278,12 @@ void skin_control(const NetStatus& status) {
 
 void draw_menu(const NetStatus& status) {
     ImGui::TextColored(k_green, "%s", "HALO: CO OP EVOLVED");
-    // Idioma, arriba a la derecha.
+    // Modo (crear partida / unirse) e idioma, arriba a la derecha.
     const char* languages[] = {"English", "Español"};
-    float lang_width = 120;
-    ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - lang_width);
+    float lang_width = 120, mode_width = 190;
+    ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - lang_width - mode_width - ImGui::GetStyle().ItemSpacing.x);
+    ui_mode_combo(false, mode_width);
+    ImGui::SameLine();
     ImGui::SetNextItemWidth(lang_width);
     int lang = int(g_settings.lang);
     if (ImGui::Combo("##lang", &lang, languages, 2)) {
@@ -293,8 +296,8 @@ void draw_menu(const NetStatus& status) {
 
     ImGui::TextUnformatted(T("Host's Radmin IP", "IP de Radmin del host"));
     ImGui::SetNextItemWidth(-1);
-    ImGui::InputTextWithHint("##host", T("The host gives it to you (shown in their Co Op Evolved Host)",
-                                         "Te la da el host (sale en su Co Op Evolved Host)"),
+    ImGui::InputTextWithHint("##host", T("The host gives it to you (shown at the top of their Co Op Evolved)",
+                                         "Te la da el host (sale arriba en su Co Op Evolved)"),
                              g_host_text, sizeof(g_host_text), ImGuiInputTextFlags_CharsNoBlank);
     ImGui::TextUnformatted(T("Your name", "Tu nombre"));
     ImGui::SetNextItemWidth(-1);
@@ -443,8 +446,8 @@ void decode_pending_frames() {
 
 }  // namespace
 
-int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
-    log_init();
+int client_main(HINSTANCE instance) {
+    log_init(L"coopevolved-cliente.log");
     log_write("Co Op Evolved Cliente iniciado (protocolo %u)", proto::k_version);
     // Windows 11 ignora timeBeginPeriod en apps tapadas o minimizadas: el control saldría cada ~16 ms en vez
     // de cada 4. Esto le pide que lo respete siempre.

@@ -10,38 +10,71 @@ Internal notes for people working on Halo: Co Op Evolved. Players only need [REA
 ## Building and testing
 
 - Build: run `build.cmd` from the repository root (Visual Studio 2022 C++ build tools). It updates
-  `host\CoOpEvolvedHost.exe`, `host\VERSION.dll` and `cliente\CoOpEvolvedClient.exe`. Close the host and the
-  client first, or the copy fails.
+  `CoOpEvolved\CoOpEvolved.exe` and `CoOpEvolved\VERSION.dll`. Close CoOpEvolved.exe first, or the copy fails.
 - Test without MCC: `build\CoOpEvolvedTestGame.exe <path to VERSION.dll>` draws four coloured quadrants and loads
   the mod like MCC would. With `COOPEVOLVED_NO_INSTALL=1` the host does not touch the game folder, and with
-  `COOPEVOLVED_AUTOCONNECT=1` the client connects with its saved settings.
-- Test in MCC: close MCC, install the mod (host panel → *Install mod in the game*, or copy `host\VERSION.dll` to
-  `mcc\binaries\win64` in the game folder), open MCC without anti-cheat, AlphaRing → Players = 4.
-- Logs: `coopevolved-host.log` and `coopevolved-cliente.log` next to each exe; `coopevolved-juego.log` in
+  `COOPEVOLVED_AUTOCONNECT=1` the client connects with its saved settings. `--host` / `--join` pick the mode.
+- Test in MCC: close MCC, open CoOpEvolved.exe as host (it installs the mod into `mcc\binaries\win64`), Open MCC
+  → *Anti-Cheat Disabled*. A second CoOpEvolved.exe opens as client while the host runs (IP `127.0.0.1`).
+- Logs: `coopevolved-host.log` and `coopevolved-cliente.log` next to CoOpEvolved.exe; `coopevolved-juego.log` in
   `mcc\binaries\win64`. They are git-ignored: never commit logs or `.ini` files (they contain IPs and names).
 
 ## Project rules
 
-- **Never write AlphaRing's profiles or options** and never change how the virtual pads are created. Doing that in
-  v1 broke player movement. The virtual pads must exist **before** MCC starts.
 - Nothing personal in the repository: no IPs, local paths, Steam IDs or e-mails. `build.cmd` trims source paths
   from the binaries (`/d1trimfile`).
 - User-facing text: English by default with a Spanish option (`T("en", "es")`). Player documentation lives in
-  `README.md` / `README.es.md` and in `host\` and `cliente\` (`README.txt` / `LEEME.txt`).
+  `README.md` / `README.es.md` and in `CoOpEvolved\` (`README.txt` / `LEEME.txt`).
 - Everything found by reverse engineering is for **MCC Steam 1.3528**. Code that patches or hooks the game checks
-  the bytes first and turns itself off if they do not match.
+  the bytes (or the module's PE timestamp) first and turns itself off if they do not match.
+- In the old ViGEmBus + AlphaRing fallback, never write AlphaRing's profiles or options and never change how the
+  virtual pads are created (that broke movement in v1; the pads must exist before MCC starts).
 
 ## How it works
 
-- **Host (`src/launcher`)**: creates the virtual pads for players 2–4 (ViGEmBus) before opening MCC, receives
-  their input over UDP, captures MCC's audio (Opus) and shows the panel. It tells the game mod over
-  127.0.0.1:27961 where to send video and the players' names, colours and options.
-- **Game mod (`src/game`, built as `VERSION.dll`)**: hooks `IDXGISwapChain::Present`, encodes each quadrant with
-  NVENC and sends it to its player. It also draws name tags, armor colours, player 1 full screen (F6), direct
-  mouse aim and skins.
-- **Client (`src/client`)**: decodes the video with NVDEC, plays the audio and sends controller or keyboard/mouse
-  input.
-- **Protocol (`src/common/protocol.h`)**: version 5. Bump `k_version` whenever a message changes size.
+- **CoOpEvolved.exe (`src/app`)**: one program with two modes. `host_main` (`src/launcher`) and `client_main`
+  (`src/client`) are the old host and client; switching mode saves it in `coopevolved.ini` and relaunches the
+  exe with `--host` / `--join`, so each mode starts with clean threads and sockets. A named mutex
+  (`CoOpEvolvedHost.SingleInstance`) keeps one host per PC: a second host window opens inactive, and a new
+  instance opens as client while a host is running.
+- **Host mode**: receives each friend's controller over UDP 27960 and forwards it at once (and every 50 ms) to the
+  game mod as `proto::Pads` on 127.0.0.1:27961; captures MCC's audio (Opus) and shows the panel. It also sends the
+  mod where to send video and the players' names, colours, skins and options (`VideoConfig`), and writes
+  `coopevolved-juego.ini` (`mandos=direct|vigem`) next to the installed mod.
+- **Game mod (`src/game`, built as `VERSION.dll`)**: sets up 4 local players and the network controllers
+  (`local_players.cpp`), hooks `IDXGISwapChain::Present`, encodes each quadrant with NVENC and sends it to its
+  player (the whole screen during cutscenes). It also draws name tags, armor colours, player 1 full screen (F6),
+  direct mouse aim and skins.
+- **Client mode**: decodes the video with NVDEC, plays the audio and sends controller or keyboard/mouse input.
+- **Protocol (`src/common/protocol.h`)**: version 5. Bump `k_version` whenever a client↔host message changes size.
+
+## What we know about MCC-Win64-Shipping.exe (Steam 1.3528)
+
+PE timestamp `0x68A0E5D7` (checked before hooking). Offsets are RVAs of the exe. They come from AlphaRing's
+1.3528 fork (wouter51, MIT; see THIRD-PARTY-NOTICES.md) and were checked against this build.
+
+- **Input**: MCC reads controllers only through `XINPUT1_3.dll` (imports by ordinal 2 = XInputGetState and
+  3 = XInputSetState). Hooking those two in that module is enough to give MCC controllers that do not exist:
+  slots that answer `ERROR_SUCCESS` are registered as pads. Our slots 0-2 are players 2-4; slot 3 forwards the
+  host's real slot 0.
+- **Game manager** (the object MCC hands to each game dll): a static object at `+0x3F7B190` (its vtable pointer
+  is at +0; it is in `.bss`, so it is zero until MCC's start-up code builds it). Vtable entries used:
+  +0x110 get_player_profile(xuid), +0x120 get_key_state(index, input 0x130 bytes), +0x138 set_vibration(index,
+  XINPUT_VIBRATION*), +0x2C0 get_xbox_user_id(id*, name*, size in bytes, index), +0x3A0 get_gamepad_mapping(xuid).
+  Also +0x148/+0x150 network_send, +0x158 network_recv (not used).
+- **Device manager**: pointer at `+0x4001B78`. +0x00 vtable (+0x38 update_state), +0x08 devices[5] (4 pads +
+  keyboard/mouse), +0xC8 last QueryPerformanceCounter. Device: +0x00 vtable (+0x38 set_state(device, dt, input),
+  +0x40 check), +0x808 XInput slot, +0x91C XINPUT_STATE.
+- `+0x5A16AC` delta time from a QPC difference (prologue `40 53 48 83 EC 20 48 8B D9`);
+  `+0x38A09C` get_index_by_xuid (prologue `48 8B C4 55 57 41 54 41 56 41 57`).
+- **4 local players** (`local_players.cpp`, same idea as AlphaRing with its defaults): get_xbox_user_id answers
+  "signed in" for indices 1-3 with fake xuids (and the friends' names); get_key_state fills index 0 from the
+  keyboard/mouse device and 1-3 from pad devices 0-2; profile and gamepad mapping are always player 1's;
+  get_index_by_xuid maps the fake xuids to 1-3. If `WTSAPI32.dll` (AlphaRing) is loaded from the game folder,
+  none of this is installed (only the XInput hook).
+- **Subtitles** are drawn by MCC, not by halo1.dll: the current line lives in MCC UI objects as rich text
+  (`<color="#…">CORTANA: …</>`), plus a table of every line. The objects move around the heap with each line;
+  pointer scans only found coincidences. Next step would be a write watch on the text from inside the mod.
 
 ## What we know about halo1.dll (MCC Steam 1.3528)
 
@@ -55,6 +88,19 @@ RVAs are relative to `halo1.dll`, which loads when Halo CE is opened from the MC
 - Object data: +0x00 tag ID of its definition. Biped: +0x18 position, +0x5C body centre, +0x210 look vector,
   +0x174 change colours (4 RGB floats; what armor colours write).
 - Local player count: `halo1.dll+0x1B7B910`.
+
+### 4-player patches (`local_players.cpp`, from AlphaRing)
+PE timestamp of halo1.dll 1.3528: `0x68A0E4CF`. Applied on every load of halo1.dll (it reloads when a mission
+starts), only if all three match the original bytes:
+- `+0x67492` `75 11` → `EB 18`: more than 2 local players.
+- `+0x427978` `77` → `EB`: pause with more players.
+- `+0x85428` `0F 84 15 01 00 00` → 6 × `90`: fixes the freeze when a level ends (AlphaRing issue #19).
+
+### Cutscenes (`cinematic.cpp`)
+- `halo1.dll+0x1B87A20` = 1 while a cutscene plays and 0 in gameplay; `+0x1B87A21` is its opposite. Found by
+  comparing memory snapshots with and without the a30 drop-pod cutscene and then watching candidates live.
+- During cutscenes Halo draws a single full-screen view, so the mod copies the back buffer, scales it down to a
+  quadrant's size (`blit.cpp`) and sends that to every friend; player 1 full screen (F6) is skipped.
 
 ### Cameras (`aim.cpp`)
 - Real per-player camera: one structure per player, **0x58 bytes apart**: float yaw (radians, [0, 2π), grows to
@@ -137,6 +183,5 @@ Ideas not done: Sergeant Johnson (marine_armored with Johnson's face permutation
 cutscenes born with the skin (needs that creation path).
 
 ## Other ideas (not started)
-- Own mod instead of AlphaRing (feasibility study first; AlphaRing has no licence, so nothing can be copied).
-- Spawn only as many players as are connected (needs control of the local player count; easier without
-  AlphaRing).
+- Spawn only as many players as are connected (get_xbox_user_id decides how many local players MCC creates).
+- One window with host and client tabs instead of relaunching the exe.

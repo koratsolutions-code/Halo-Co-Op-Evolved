@@ -10,6 +10,7 @@
 
 #include "../common/lang.h"
 #include "../common/ui_armor_color.h"
+#include "../common/ui_mode.h"
 #include "../common/ui_skin.h"
 #include "../common/ui_style.h"
 
@@ -50,6 +51,10 @@ struct HostSettings {
     int armor_color = 0;  // jugador 1, índice en k_armor_colors
     int skin = 0;         // jugador 1, índice en k_skins
     bool p1_fullscreen = false;
+    bool full_cinematics = true;
+    // Mandos de J2-J4: true = directo al juego (sin ViGEmBus; sin AlphaRing el mod pone los 4 jugadores),
+    // false = mandos virtuales de ViGEmBus + AlphaRing (el sistema anterior). Clave "controllers" del .ini.
+    bool direct_pads = true;
 };
 HostSettings g_settings;
 
@@ -83,6 +88,10 @@ void settings_load() {
     g_settings.skin = GetPrivateProfileIntW(L"host", L"skin", 0, ini.c_str());
     if (g_settings.skin < 0 || g_settings.skin >= k_skin_count) g_settings.skin = 0;
     g_settings.p1_fullscreen = GetPrivateProfileIntW(L"host", L"p1_fullscreen", 0, ini.c_str()) != 0;
+    g_settings.full_cinematics = GetPrivateProfileIntW(L"host", L"full_cinematics", 1, ini.c_str()) != 0;
+    wchar_t controllers[16] = {};
+    GetPrivateProfileStringW(L"host", L"controllers", L"direct", controllers, 16, ini.c_str());
+    g_settings.direct_pads = _wcsicmp(controllers, L"vigem") != 0;
     g_lang = g_settings.lang;
 }
 
@@ -98,6 +107,8 @@ void settings_save() {
     WritePrivateProfileStringW(L"host", L"armor_color", std::to_wstring(g_settings.armor_color).c_str(), ini.c_str());
     WritePrivateProfileStringW(L"host", L"skin", std::to_wstring(g_settings.skin).c_str(), ini.c_str());
     WritePrivateProfileStringW(L"host", L"p1_fullscreen", g_settings.p1_fullscreen ? L"1" : L"0", ini.c_str());
+    WritePrivateProfileStringW(L"host", L"full_cinematics", g_settings.full_cinematics ? L"1" : L"0", ini.c_str());
+    WritePrivateProfileStringW(L"host", L"controllers", g_settings.direct_pads ? L"direct" : L"vigem", ini.c_str());
 }
 
 void apply_host_options() {
@@ -108,12 +119,16 @@ void apply_host_options() {
     options.host_armor_color = g_settings.armor_color;
     options.host_skin = g_settings.skin;
     options.p1_fullscreen = g_settings.p1_fullscreen;
+    options.full_cinematics = g_settings.full_cinematics;
     net_server_set_host_options(options);
 }
 
 // ---------------------------------------------------------------- MCC, Radmin y el mod
 
 std::wstring g_binaries_dir;  // carpeta mcc\binaries\win64 del juego
+// Ya hay otro host abierto en este PC: esta ventana se muestra pero no hace nada (dos crearían 6 mandos y se
+// pelearían el puerto). Se puede pasar a "Unirse" desde el selector de modo.
+bool g_inactive = false;
 
 std::string find_radmin_ip() {
     ULONG size = 32 * 1024;
@@ -280,10 +295,12 @@ void draw_header() {
     ImGui::TextUnformatted("CO OP EVOLVED  ·  HOST");
     ImGui::PopFont();
 
-    // Idioma, arriba a la derecha.
+    // Modo (crear partida / unirse) e idioma, arriba a la derecha.
     const char* languages[] = {"English", "Español"};
-    float width = 120;
-    ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - width);
+    float width = 120, mode_width = 190;
+    ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - width - mode_width - ImGui::GetStyle().ItemSpacing.x);
+    ui_mode_combo(true, mode_width);
+    ImGui::SameLine();
     ImGui::SetNextItemWidth(width);
     int lang = int(g_settings.lang);
     if (ImGui::Combo("##lang", &lang, languages, 2)) {
@@ -320,7 +337,11 @@ void draw_connection_card() {
     case ModState::game_not_found: status_dot(k_red, T("MCC not found in Steam", "No se encontró MCC en Steam")); break;
     }
     ImGui::SameLine(0, 18);
-    status_dot(g_status.alpharing ? k_green : k_red, g_status.alpharing ? "AlphaRing" : T("AlphaRing: missing", "AlphaRing: falta"));
+    if (pads_direct())  // sin AlphaRing, el mod pone los 4 jugadores
+        status_dot(k_green, g_status.alpharing ? "AlphaRing" : T("4 players: built in", "4 jugadores: integrado"));
+    else
+        status_dot(g_status.alpharing ? k_green : k_red,
+                   g_status.alpharing ? "AlphaRing" : T("AlphaRing: missing", "AlphaRing: falta"));
     ImGui::SameLine(0, 18);
     status_dot(g_status.mcc_open ? k_green : k_muted, g_status.mcc_open ? T("MCC open", "MCC abierto") : T("MCC closed", "MCC cerrado"));
     ImGui::SameLine(0, 18);
@@ -423,6 +444,14 @@ void draw_name_tags_card() {
                                   "Ves solo tu parte de la pantalla, estirada a todo tu monitor. Tus amigos siguen\n"
                                   "recibiendo la suya. F6 lo activa y lo desactiva mientras juegas (los menús se usan\n"
                                   "mejor en pantalla dividida). Consejo: con más resolución en el juego se ve más nítido."));
+    if (ImGui::Checkbox(T("Full-screen cutscenes for friends", "Cinemáticas completas para los amigos"),
+                        &g_settings.full_cinematics)) {
+        apply_host_options();
+        settings_save();
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("%s", T("During cutscenes each friend sees the whole screen instead of their part.",
+                                  "Durante las cinemáticas cada amigo ve la pantalla entera en vez de su parte."));
     ImGui::EndChild();
 }
 
@@ -545,6 +574,14 @@ void draw_panel() {
                  ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
                      ImGuiWindowFlags_NoBringToFrontOnFocus);
     draw_header();
+    if (g_inactive) {
+        ImGui::TextColored(k_red, "%s",
+                           T("Another Co Op Evolved host is already open on this PC: this window does nothing. Use "
+                             "that one, or switch this one to \"Join a game\".",
+                             "Ya hay otro host de Co Op Evolved abierto en este PC: esta ventana no hace nada. Usa "
+                             "ese, o cambia esta a \"Unirse a una partida\"."));
+        ImGui::BeginDisabled();
+    }
     draw_connection_card();
     draw_name_tags_card();
 
@@ -562,11 +599,16 @@ void draw_panel() {
     draw_player_card(4, card_w, card_h);
 
     ImGui::PushStyleColor(ImGuiCol_Text, k_muted);
-    ImGui::TextWrapped("%s", T("In AlphaRing (F4): Players = 4, change nothing else, close it with F4. Use classic graphics "
-                               "(Tab) and keep the game window active while you play.",
-                               "En AlphaRing (F4): Players = 4, sin cambiar nada más, ciérralo con F4. Usa gráficos "
-                               "clásicos (Tab) y deja la ventana del juego activa mientras juegan."));
+    if (g_settings.direct_pads && !g_status.alpharing)
+        ImGui::TextWrapped("%s", T("Use classic graphics (Tab) and keep the game window active while you play.",
+                                   "Usa gráficos clásicos (Tab) y deja la ventana del juego activa mientras juegan."));
+    else
+        ImGui::TextWrapped("%s", T("In AlphaRing (F4): Players = 4, change nothing else, close it with F4. Use classic "
+                                   "graphics (Tab) and keep the game window active while you play.",
+                                   "En AlphaRing (F4): Players = 4, sin cambiar nada más, ciérralo con F4. Usa gráficos "
+                                   "clásicos (Tab) y deja la ventana del juego activa mientras juegan."));
     ImGui::PopStyleColor();
+    if (g_inactive) ImGui::EndDisabled();
     ImGui::End();
 }
 
@@ -591,9 +633,9 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
         break;
     case WM_CLOSE:
         if (find_mcc_pid() &&
-            MessageBoxW(hwnd, T(L"MCC is still open. If you close Co Op Evolved Host, players 2, 3 and 4 disconnect and "
+            MessageBoxW(hwnd, T(L"MCC is still open. If you close Co Op Evolved, players 2, 3 and 4 disconnect and "
                                 L"lose their controllers.\n\nClose anyway?",
-                                L"MCC sigue abierto. Si cierras Co Op Evolved Host, los jugadores 2, 3 y 4 se "
+                                L"MCC sigue abierto. Si cierras Co Op Evolved, los jugadores 2, 3 y 4 se "
                                 L"desconectan y pierden sus mandos.\n\n¿Cerrar de todas formas?"),
                         k_title, MB_YESNO | MB_ICONWARNING) != IDYES)
             return 0;
@@ -667,20 +709,22 @@ bool run_panel(HINSTANCE instance) {
 
 }  // namespace
 
-int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
+int host_main(HINSTANCE instance) {
     settings_load();
-    // Un solo launcher: dos crearían 6 mandos y desordenarían los slots.
+    // Un solo host por PC: dos crearían 6 mandos y desordenarían los slots. El segundo se abre inactivo.
     HANDLE single = CreateMutexW(nullptr, TRUE, L"CoOpEvolvedHost.SingleInstance");
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
-        MessageBoxW(nullptr, T(L"Co Op Evolved Host is already open.", L"Co Op Evolved Host ya está abierto."), k_title,
-                    MB_ICONINFORMATION);
+        g_inactive = true;
+        g_binaries_dir = game_binaries_dir();
+        run_panel(instance);
+        if (single) CloseHandle(single);
         return 0;
     }
-    log_init();
+    log_init(L"coopevolved-host.log");
     log_write("Co Op Evolved Host iniciado");
 
-    // Los mandos tienen que existir antes que MCC.
-    while (find_mcc_pid()) {
+    // Con ViGEmBus los mandos tienen que existir antes que MCC. En modo directo los pone el mod del juego.
+    while (!g_settings.direct_pads && find_mcc_pid()) {
         log_write("MCC ya estaba abierto al iniciar");
         if (MessageBoxW(nullptr,
                         T(L"MCC is already open.\n\nClose it and press Retry: the controllers for players 2, 3 and 4 "
@@ -691,15 +735,15 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
             return 0;
     }
 
-    switch (pads_init()) {
+    switch (pads_init(g_settings.direct_pads)) {
     case PadsError::none:
         break;
     case PadsError::driver_missing:
         if (MessageBoxW(nullptr,
                         T(L"The ViGEmBus driver (virtual controllers) is missing.\n\nOpen the download page? Install "
-                          L"ViGEmBus_..._x64_x86_arm64.exe, restart the PC and open Co Op Evolved Host again.",
+                          L"ViGEmBus_..._x64_x86_arm64.exe, restart the PC and open Co Op Evolved again.",
                           L"Falta el driver ViGEmBus (mandos virtuales).\n\n¿Abrir la página de descarga? Instala el "
-                          L"archivo ViGEmBus_..._x64_x86_arm64.exe, reinicia el PC y vuelve a abrir Co Op Evolved Host."),
+                          L"archivo ViGEmBus_..._x64_x86_arm64.exe, reinicia el PC y vuelve a abrir Co Op Evolved."),
                         k_title, MB_YESNO | MB_ICONERROR) == IDYES)
             ShellExecuteW(nullptr, L"open", k_vigembus_url, nullptr, nullptr, SW_SHOWNORMAL);
         return 1;
@@ -711,13 +755,13 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
         return 1;
     }
 
-    if (pads_occupied_slots_before() > 0 || pads_slot(2) != 0 || pads_slot(3) != 1 || pads_slot(4) != 2) {
+    if (!g_settings.direct_pads && (pads_occupied_slots_before() > 0 || pads_slot(2) != 0 || pads_slot(3) != 1 || pads_slot(4) != 2)) {
         MessageBoxW(nullptr,
                     T(L"A physical controller is plugged in, so the virtual controllers did not get Controller 1, 2 "
-                      L"and 3.\n\nEasiest fix: unplug the physical controller and open Co Op Evolved Host again. "
+                      L"and 3.\n\nEasiest fix: unplug the physical controller and open Co Op Evolved again. "
                       L"Otherwise, in AlphaRing assign each player the Controller shown in the panel.",
                       L"Hay un mando físico conectado, así que los mandos virtuales no quedaron en Controller 1, 2 y "
-                      L"3.\n\nLo más fácil: desconecta el mando físico y vuelve a abrir Co Op Evolved Host. Si no, en "
+                      L"3.\n\nLo más fácil: desconecta el mando físico y vuelve a abrir Co Op Evolved. Si no, en "
                       L"AlphaRing asigna a cada jugador el Controller que muestra el panel."),
                     k_title, MB_ICONWARNING);
     }
@@ -725,6 +769,11 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
     // El DLL del juego (video y nombres): instalarlo o actualizarlo ahora que MCC está cerrado.
     g_binaries_dir = game_binaries_dir();
     log_write("Carpeta del juego: %s", g_binaries_dir.empty() ? "no encontrada" : "encontrada");
+    // El mod del juego lee aquí cómo le llegan los mandos (lo lee al abrir MCC).
+    if (!g_binaries_dir.empty() &&
+        !WritePrivateProfileStringW(L"juego", L"mandos", g_settings.direct_pads ? L"direct" : L"vigem",
+                                    (g_binaries_dir + L"\\coopevolved-juego.ini").c_str()))
+        log_write("No se pudo escribir coopevolved-juego.ini en la carpeta del juego");
     ModState mod = game_mod_state(g_binaries_dir);
     bool auto_install = !GetEnvironmentVariableW(L"COOPEVOLVED_NO_INSTALL", nullptr, 0);  // pruebas: no tocar el juego
     if (auto_install && (mod == ModState::not_installed || mod == ModState::outdated)) {
@@ -737,7 +786,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int) {
                             .c_str(),
                         k_title, MB_ICONWARNING);
     }
-    if (!g_binaries_dir.empty() && !game_alpharing_present(g_binaries_dir) &&
+    if (!g_settings.direct_pads && !g_binaries_dir.empty() && !game_alpharing_present(g_binaries_dir) &&
         MessageBoxW(nullptr,
                     T(L"AlphaRing (4-player split screen) is missing from the game folder.\n\nOpen its download page? "
                       L"Copy WTSAPI32.dll from Release1.0.zip into mcc\\binaries\\win64.",

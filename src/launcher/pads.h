@@ -1,9 +1,11 @@
 #pragma once
 #include <cstdint>
 
-// Mandos Xbox 360 virtuales (ViGEmBus) para los jugadores 2, 3 y 4.
-// Tienen que existir ANTES de que MCC arranque: si se crean después, MCC no siempre los registra y
-// AlphaRing les entrega input vacío a esos jugadores.
+// Mandos de los jugadores 2, 3 y 4. Dos modos:
+// - direct (por defecto): el estado de cada mando va al DLL del juego (127.0.0.1), que se lo entrega a MCC como si
+//   fueran los mandos XInput 0, 1 y 2. Sin drivers, y MCC puede estar abierto antes.
+// - vigem (el sistema anterior): mandos Xbox 360 virtuales de ViGEmBus. Tienen que existir ANTES de que MCC
+//   arranque: si se crean después, MCC no siempre los registra y AlphaRing les entrega input vacío.
 
 constexpr int k_first_remote_player = 2;
 constexpr int k_remote_players = 3;
@@ -16,7 +18,8 @@ struct PadState {
 
 enum class PadsError { none, driver_missing, create_failed };
 
-PadsError pads_init();
+PadsError pads_init(bool direct);
+bool pads_direct();
 void pads_shutdown();
 bool pads_update(int player, const PadState& state);  // player 2..4
 void pads_reset(int player);

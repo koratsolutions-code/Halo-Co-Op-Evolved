@@ -1,8 +1,9 @@
 // Co Op Evolved dentro del juego (VERSION.dll en mcc\binaries\win64): captura los cuadrantes de J2-J4 y los manda
-// como video. No toca los mandos: de eso se encarga Co Op Evolved Host.
+// como video. También pone los mandos de J2-J4 que llegan por red y, sin AlphaRing, los 4 jugadores (local_players).
 
 #include "aim.h"
 #include "armor_colors.h"
+#include "local_players.h"
 #include "log.h"
 #include "name_tags.h"
 #include "p1_view.h"
@@ -130,6 +131,10 @@ BOOL APIENTRY DllMain(HMODULE module, DWORD reason, LPVOID) {
                            reinterpret_cast<LPCWSTR>(&DllMain), &pinned);
         log_init(module);
         log_write("Co Op Evolved cargado en el juego (pid %lu)", GetCurrentProcessId());
+        // Los mandos cuanto antes: MCC los registra al arrancar.
+        if (HANDLE thread = CreateThread(nullptr, 0, [](LPVOID) -> DWORD { local_players_start(); return 0; },
+                                         nullptr, 0, nullptr))
+            CloseHandle(thread);
         if (HANDLE thread = CreateThread(nullptr, 0, init_thread, nullptr, 0, nullptr)) CloseHandle(thread);
     }
     return TRUE;

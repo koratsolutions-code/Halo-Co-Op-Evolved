@@ -36,6 +36,7 @@ enum class Type : uint8_t {
     player_options = 13,   // cliente -> host: color de armadura y skin (con cada ping)
     mouse_look = 14,       // cliente -> host: mira directa con mouse (giro y altura acumulados)
     aim = 15,              // launcher -> DLL (local): cuánto girar la cámara de J2-J4
+    pads = 16,             // launcher -> DLL (local): mandos de J2-J4 (sin ViGEmBus)
 };
 
 // Audio: 48 kHz estéreo, paquetes de 10 ms (480 muestras por canal) comprimidos con Opus.
@@ -171,12 +172,19 @@ struct VideoConfig {
     uint8_t armor_colors[4] = {};         // jugadores 1..4, índice en k_armor_colors (0: sin cambiar)
     uint8_t p1_fullscreen = 0;            // 1: el host ve solo su cuadrante a pantalla completa (F6 lo cambia)
     uint8_t skins[4] = {};                // jugadores 1..4, índice en k_skins (0: Master Chief)
+    uint8_t full_cinematics = 1;          // 1: durante las cinemáticas cada amigo recibe la pantalla entera
 };
 
 // El launcher lo manda al DLL apenas llega movimiento de un cliente: radianes a sumar a la cámara.
 struct Aim {
     Header header{k_magic, Type::aim};
     float yaw[3] = {}, pitch[3] = {};  // jugadores 2, 3, 4
+};
+
+// Modo sin ViGEmBus: el launcher manda el estado de los mandos de J2-J4 al DLL apenas cambia y cada 50 ms.
+struct Pads {
+    Header header{k_magic, Type::pads};
+    GamepadState pads[3];  // jugadores 2, 3, 4 (en cero si no hay nadie)
 };
 
 struct VideoStatus {

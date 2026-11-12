@@ -1,5 +1,5 @@
 @echo off
-rem Compila todo y copia los ejecutables listos para usar a host\ y cliente\.
+rem Compila todo y copia el programa listo para usar a CoOpEvolved\.
 rem Requiere Visual Studio 2022 o más nuevo (o Build Tools) con "Desarrollo para el escritorio con C++".
 setlocal
 set ROOT=%~dp0
@@ -20,17 +20,17 @@ echo Building... the first time takes a few minutes.
 call "%VS%\VC\Auxiliary\Build\vcvars64.bat" >nul 2>&1 || goto :failed
 cmake -S "%ROOT%." -B "%ROOT%build" -G Ninja -DCMAKE_BUILD_TYPE=Release || goto :failed
 cmake --build "%ROOT%build" || goto :failed
-copy /y "%ROOT%build\CoOpEvolvedHost.exe" "%ROOT%host\CoOpEvolvedHost.exe" >nul || goto :copy_failed
-copy /y "%ROOT%build\VERSION.dll" "%ROOT%host\VERSION.dll" >nul || goto :copy_failed
-copy /y "%ROOT%build\CoOpEvolvedClient.exe" "%ROOT%cliente\CoOpEvolvedClient.exe" >nul || goto :copy_failed
+if not exist "%ROOT%CoOpEvolved" mkdir "%ROOT%CoOpEvolved"
+copy /y "%ROOT%build\CoOpEvolved.exe" "%ROOT%CoOpEvolved\CoOpEvolved.exe" >nul || goto :copy_failed
+copy /y "%ROOT%build\VERSION.dll" "%ROOT%CoOpEvolved\VERSION.dll" >nul || goto :copy_failed
 echo.
-echo DONE: host\CoOpEvolvedHost.exe, host\VERSION.dll and cliente\CoOpEvolvedClient.exe are up to date.
+echo DONE: CoOpEvolved\CoOpEvolved.exe and CoOpEvolved\VERSION.dll are up to date.
 call :pause_if_double_clicked
 exit /b 0
 
 :copy_failed
 echo.
-echo Could not copy the files: close CoOpEvolvedHost.exe and CoOpEvolvedClient.exe and try again.
+echo Could not copy the files: close CoOpEvolved.exe and try again.
 :failed
 echo.
 echo BUILD FAILED. Read the messages above.

@@ -1,0 +1,97 @@
+HALO: CO OP EVOLVED
+===================
+
+Campaña de Halo: Combat Evolved (MCC, Steam) para 4 jugadores, cada uno en su PC y con su
+propia pantalla completa, por Radmin VPN. Un solo programa para todos:
+
+  CoOpEvolved.exe -> el programa. Arriba a la derecha elige "Crear partida" (jugador 1, el PC
+                     con Halo) o "Unirse a una partida" (jugadores 2, 3 y 4). Abre en el
+                     último modo que usaste.
+  VERSION.dll     -> el mod dentro del juego. Solo lo necesita el host: CoOpEvolved.exe lo
+                     copia solo a la carpeta del juego.
+
+El programa viene en inglés. Para usarlo en español elige "Español" arriba a la derecha (se
+guarda). No hay que instalar nada más (ni AlphaRing ni drivers de mandos virtuales).
+
+HOST (jugador 1)
+----------------
+Necesitas: MCC 1.3528 en Steam, una GPU NVIDIA, Radmin VPN y unos 10 Mbps de subida por amigo.
+
+  1. Abre CoOpEvolved.exe y elige "Crear partida". Con MCC cerrado instala o actualiza el
+     mod en el juego solo. No lo cierres mientras jueguen.
+     La primera vez, si Windows pregunta por el firewall, marca redes privadas y públicas.
+  2. Pásales a tus amigos la IP de Radmin que sale arriba ("Copiar" la copia).
+  3. En la tarjeta del jugador 1 escribe tu nombre en "Nickname" y elige tu color en
+     "Armadura" y tu "Skin".
+  4. Presiona "Abrir MCC" y elige "Play Halo: MCC (Anti-Cheat Disabled)".
+  5. Empieza una misión de la campaña de Halo CE: ya tiene 4 jugadores.
+  6. Usa gráficos clásicos (Tab) y deja el juego como ventana activa.
+  Tú juegas con teclado y mouse.
+
+  En el panel:
+  - Puntos de arriba: verde = listo (mod del juego, 4 jugadores, MCC, audio, video).
+  - "Video a 30/60/120 FPS": más FPS = menos retraso pero más subida.
+  - "Mostrar nombres sobre los jugadores": si no quedan justo, ajusta "FOV del juego".
+  - "Jugador 1 a pantalla completa (F6 en el juego)": ves solo tu parte, estirada al monitor.
+  - "Cinemáticas completas para los amigos": durante las cinemáticas cada amigo ve la
+    pantalla entera.
+  - Una tarjeta por jugador: nombre, IP, controles por segundo y video de cada amigo.
+    "Mover": prueba los controles de ese jugador.  "Expulsar": lo desconecta.
+  - "Skin": verte como otro personaje (Marine, Elite...) y seguir siendo Master Chief.
+    Solo sirven las skins de la misión cargada. Una skin nueva se ve al reaparecer.
+
+  Para probar en un solo PC: abre CoOpEvolved.exe otra vez; se abre solo en "Unirse a una
+  partida" (IP 127.0.0.1). Solo puede haber un host por PC.
+
+AMIGOS (jugadores 2, 3 y 4)
+---------------------------
+Necesitas: Windows 10/11 con GPU NVIDIA y drivers al día, Radmin VPN en la red del host, y
+un mando de Xbox o teclado y mouse. NO necesitas Halo.
+
+  1. Abre CoOpEvolved.exe (si Windows muestra "Windows protegió su PC": Más información ->
+     Ejecutar de todas formas). Si sale el panel del host, elige "Unirse a una partida"
+     arriba a la derecha.
+  2. Escribe la IP de Radmin del host y tu nombre; elige tu color de armadura y tu skin.
+  3. Elige tu número de jugador (cada amigo uno distinto, siempre el mismo):
+       Jugador 2 = arriba a la derecha   Jugador 3 = abajo a la izquierda
+       Jugador 4 = abajo a la derecha
+  4. Elige Mando o Teclado y mouse y presiona Conectar.
+  5. Cuando el host abre el juego, la ventana pasa sola a pantalla completa con tu video.
+
+  F2 ............. menú (color de armadura, skin, volumen, sensibilidad, controles, desconectar)
+  F1 ............. estadísticas (ping, FPS del video, pérdidas)
+  F3 ............. silenciar / activar el sonido del juego
+  F11 / Alt+Enter  pantalla completa o ventana
+  Esc ............ suelta el mouse (teclado y mouse)
+  + y - .......... sensibilidad del mouse (0.1x a 99x)
+
+Con TECLADO Y MOUSE: haz clic en el video para capturar el mouse.
+"Mira directa con mouse (beta)" (menú o F2): el mouse gira la cámara directo, como Halo en
+PC, en vez de mover el stick del mando. Si el host todavía no puede usarla, se usa el stick.
+
+  WASD ............ moverse            Mouse ............ apuntar
+  Clic izquierdo .. disparar           Clic derecho ..... granada
+  Espacio ......... saltar             E ................ acción (RB): vehículos, recoger
+  R ............... recargar           F o V ............ golpe
+  Q o rueda ....... cambiar arma
+  G ............... cambiar granada    Ctrl o C ......... agacharse
+  Z o clic central  zoom               1-4 o flechas .... cruceta (linterna, etc.)
+  Enter ........... pausa              Tab .............. marcador
+
+Problemas
+---------
+  "El host no responde": revisa la IP, que Radmin VPN esté conectado (ping al host
+     desde Radmin) y que el host tenga Co Op Evolved abierto en "Crear partida".
+  "Esperando el video...": el host todavía no abrió MCC, o el mod no está instalado en
+     su juego (su panel lo dice).
+  "Ese jugador ya está ocupado": otro amigo eligió tu número; elige otro.
+  "Se perdió la conexión": el host cerró o se cortó Radmin; vuelve a Conectar.
+  Laptop sin video / error de NVIDIA: en Configuración > Pantalla > Gráficos de Windows
+     pon CoOpEvolved.exe en "Alto rendimiento".
+  Un personaje no se mueve: el juego del host tiene que estar en primer plano en su PC.
+
+Los datos se guardan en coopevolved-host.ini / coopevolved-cliente.ini y lo que pasa en
+coopevolved-host.log / coopevolved-cliente.log, todos en esta carpeta. Los registros tienen
+nombres e IPs de Radmin: mándalos solo por privado.
+
+Instrucciones completas: README.es.md en el repositorio (English: README.txt).

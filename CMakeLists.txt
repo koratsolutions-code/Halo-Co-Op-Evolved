@@ -53,36 +53,35 @@ add_library(CoOpEvolvedGame SHARED
     src/game/p1_view.cpp
     src/game/aim.cpp
     src/game/skins.cpp
+    src/game/local_players.cpp
+    src/game/blit.cpp
+    src/game/cinematic.cpp
     src/game/log.cpp
     src/game/version.def
 )
 set_target_properties(CoOpEvolvedGame PROPERTIES OUTPUT_NAME VERSION)
-target_link_libraries(CoOpEvolvedGame PRIVATE imgui minhook nvcodec d3d11 dxgi d3dcompiler ws2_32)
+target_link_libraries(CoOpEvolvedGame PRIVATE imgui minhook nvcodec d3d11 dxgi d3dcompiler ws2_32 ole32)
 
-# Host: crea los mandos de J2-J4, recibe su input por red y muestra el panel.
-add_executable(CoOpEvolvedHost WIN32
+# Un solo programa para todos: al abrirlo se elige crear partida (host, jugador 1, con MCC) o unirse
+# (jugadores 2-4, sin Halo).
+add_executable(CoOpEvolved WIN32
+    src/app/main.cpp
     src/launcher/main.cpp
     src/launcher/pads.cpp
     src/launcher/net_server.cpp
     src/launcher/game_install.cpp
     src/launcher/audio_capture.cpp
     src/launcher/log.cpp
-)
-target_link_libraries(CoOpEvolvedHost PRIVATE ViGEmClient opus imgui d3d11 dxgi d3dcompiler setupapi xinput shell32
-                                           ws2_32 iphlpapi advapi32 mmdevapi ole32)
-
-# Cliente: lo usan los jugadores 2, 3 y 4.
-add_executable(CoOpEvolvedClient WIN32
     src/client/main.cpp
     src/client/input.cpp
     src/client/net_client.cpp
     src/client/settings.cpp
     src/client/decoder.cpp
     src/client/renderer.cpp
-    src/client/log.cpp
     src/client/audio_player.cpp
 )
-target_link_libraries(CoOpEvolvedClient PRIVATE imgui nvcodec opus d3d11 dxgi d3dcompiler xinput ws2_32 winmm ole32)
+target_link_libraries(CoOpEvolved PRIVATE ViGEmClient opus imgui nvcodec d3d11 dxgi d3dcompiler setupapi xinput shell32
+                                      ws2_32 iphlpapi advapi32 mmdevapi ole32 winmm comctl32)
 
 # Solo para pruebas: "juego" falso que carga el mod (no se distribuye).
 add_executable(CoOpEvolvedTestGame WIN32 tools/test_game.cpp)

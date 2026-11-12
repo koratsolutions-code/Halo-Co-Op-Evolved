@@ -1,6 +1,10 @@
 #include "pads.h"
 #include "log.h"
 
+#include "../common/protocol.h"
+
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #include <windows.h>
 #include <xinput.h>
 
@@ -16,6 +20,25 @@ static int g_slots[k_remote_players] = {-1, -1, -1};
 static int g_occupied_before = 0;
 static std::mutex g_mutex;
 
+// Modo direct: último estado de cada mando, que se manda al DLL del juego al cambiar y cada 50 ms (por si el DLL
+// arrancó después o se perdió un paquete).
+static bool g_direct = false;
+static SOCKET g_socket = INVALID_SOCKET;
+static proto::Pads g_direct_pads;
+
+static void send_direct_pads() {
+    sockaddr_in game{};
+    game.sin_family = AF_INET;
+    game.sin_port = htons(proto::k_video_control_port);
+    game.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    sendto(g_socket, reinterpret_cast<const char*>(&g_direct_pads), sizeof(g_direct_pads), 0,
+           reinterpret_cast<const sockaddr*>(&game), sizeof(game));
+}
+
+bool pads_direct() {
+    return g_direct;
+}
+
 static int index_of(int player) {
     int index = player - k_first_remote_player;
     return index >= 0 && index < k_remote_players ? index : -1;
@@ -30,7 +53,25 @@ static int count_connected_slots() {
     return count;
 }
 
-PadsError pads_init() {
+PadsError pads_init(bool direct) {
+    g_direct = direct;
+    if (direct) {
+        WSADATA wsa;
+        WSAStartup(MAKEWORD(2, 2), &wsa);
+        g_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+        for (int i = 0; i < k_remote_players; ++i) g_slots[i] = i;
+        std::thread([] {
+            while (true) {
+                {
+                    std::lock_guard lock(g_mutex);
+                    send_direct_pads();
+                }
+                Sleep(50);
+            }
+        }).detach();
+        log_write("Mandos de los jugadores 2-4: directo al juego (sin ViGEmBus)");
+        return PadsError::none;
+    }
     g_occupied_before = count_connected_slots();
     log_write("Mandos ya conectados antes de crear los virtuales: %d", g_occupied_before);
 
@@ -86,7 +127,21 @@ void pads_shutdown() {
 
 bool pads_update(int player, const PadState& state) {
     int index = index_of(player);
-    if (index < 0 || !g_client || !g_pads[index]) return false;
+    if (index < 0) return false;
+    if (g_direct) {
+        std::lock_guard lock(g_mutex);
+        proto::GamepadState& pad = g_direct_pads.pads[index];
+        pad.buttons = state.buttons;
+        pad.left_trigger = state.left_trigger;
+        pad.right_trigger = state.right_trigger;
+        pad.lx = state.lx;
+        pad.ly = state.ly;
+        pad.rx = state.rx;
+        pad.ry = state.ry;
+        send_direct_pads();
+        return g_socket != INVALID_SOCKET;
+    }
+    if (!g_client || !g_pads[index]) return false;
     XUSB_REPORT report{};
     report.wButtons = state.buttons;
     report.bLeftTrigger = state.left_trigger;
