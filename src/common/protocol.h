@@ -14,7 +14,7 @@ constexpr uint16_t k_port = 27960;
 // Puerto local (solo 127.0.0.1) del DLL del juego: ahí el launcher le dice a quién mandar el video.
 constexpr uint16_t k_video_control_port = 27961;
 constexpr uint32_t k_magic = 0x50434F48;  // "HOCP"
-constexpr uint16_t k_version = 5;
+constexpr uint16_t k_version = 6;
 constexpr int k_nickname_size = 24;       // UTF-8 con '\0'
 
 // Si el host no recibe nada de un cliente en este tiempo, libera su lugar y suelta su mando.
@@ -106,6 +106,8 @@ struct Pong {
     uint64_t client_time_us = 0;
     uint8_t direct_aim_ready = 0;  // 1: el mod del juego puede mover la cámara directo (mira directa con mouse)
     uint16_t skins_available = 0;  // bit i: la skin i de k_skins está en la misión actual (0: aún no se sabe)
+    uint8_t watching = 0;          // 1: entraste con la misión empezada; ves la pantalla entera hasta que el host
+                                   // vuelva a empezarla desde el menú de MCC
 };
 
 // Mira directa con mouse: totales acumulados desde que el cliente se conectó, en radianes (giro: + a la
@@ -196,6 +198,7 @@ struct VideoStatus {
     VideoError error = VideoError::none;  // el panel lo muestra en el idioma elegido
     uint8_t aim_ready = 0;  // 1: encontró las cámaras de los jugadores (mira directa con mouse disponible)
     uint16_t skins_available = 0;  // bit i: la skin i de k_skins está en la misión actual (0: sin misión)
+    uint8_t local_players = 0;     // jugadores de la misión en curso (0: sin misión); los demás entran al recargarla
 };
 #pragma pack(pop)
 

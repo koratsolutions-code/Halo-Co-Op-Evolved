@@ -6,6 +6,9 @@
 
 #include "blit.h"
 #include "cinematic.h"
+#include "split_layout.h"
+
+#include <cmath>
 
 namespace {
 
@@ -48,7 +51,9 @@ void p1_view_on_frame(IDXGISwapChain* swap_chain) {
     back_buffer->GetDevice(&device);
     D3D11_TEXTURE2D_DESC desc;
     back_buffer->GetDesc(&desc);
-    UINT quad_w = desc.Width / 2, quad_h = desc.Height / 2;
+    ViewRect view;
+    split_view(0, split_player_count(), desc.Width, desc.Height, view);
+    UINT quad_w = view.width, quad_h = view.height;
     // El render target se crea en cada fotograma y se suelta enseguida: si guardáramos una referencia al back
     // buffer, el juego no podría cambiar de resolución (ResizeBuffers fallaría).
     ID3D11RenderTargetView* rtv = nullptr;
@@ -59,7 +64,11 @@ void p1_view_on_frame(IDXGISwapChain* swap_chain) {
         device->GetImmediateContext(&context);
         D3D11_BOX box{0, 0, 0, quad_w, quad_h, 1};
         context->CopySubresourceRegion(g_copy.texture, 0, 0, 0, 0, back_buffer, 0, &box);
-        drawn = g_blitter.draw(device, context, g_copy.view, rtv, desc.Width, desc.Height);
+        // Con 2 o 3 jugadores la parte de J1 es una franja ancha: se muestra sin deformar, con negro arriba y abajo.
+        float aspect = float(quad_w) / float(quad_h);
+        float screen = float(desc.Width) / float(desc.Height);
+        drawn = g_blitter.draw(device, context, g_copy.view, rtv, desc.Width, desc.Height,
+                               std::fabs(aspect - screen) > 0.05f ? aspect : 0);
         context->Release();
     }
     if (!drawn) {

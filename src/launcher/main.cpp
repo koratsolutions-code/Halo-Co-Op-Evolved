@@ -465,14 +465,21 @@ void draw_player_card(int player, float width, float height) {
     ImGui::BeginChild(id, ImVec2(width, height), ImGuiChildFlags_Borders,
                       ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
+    // Dónde está en la pantalla dividida: depende de cuántos jugadores tiene la misión en curso.
+    int count = g_status.video_ok && g_status.video.local_players ? g_status.video.local_players : 4;
     static const char* k_quadrants_en[] = {"top left", "top right", "bottom left", "bottom right"};
     static const char* k_quadrants_es[] = {"arriba izq.", "arriba der.", "abajo izq.", "abajo der."};
+    const char* place = T(k_quadrants_en[player - 1], k_quadrants_es[player - 1]);
+    if (player > count) place = T("not in this mission", "fuera de esta misión");
+    else if (count < 4 && player == 1) place = T("top", "arriba");
+    else if (count == 2) place = T("bottom", "abajo");
+    else if (count == 3) place = player == 2 ? T("bottom left", "abajo izq.") : T("bottom right", "abajo der.");
     ImGui::PushFont(g_big_font);
     ImGui::TextColored(k_green, T("P%d", "J%d"), player);
     ImGui::PopFont();
     ImGui::SameLine();
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6);
-    ImGui::TextColored(k_muted, "%s", T(k_quadrants_en[player - 1], k_quadrants_es[player - 1]));
+    ImGui::TextColored(k_muted, "%s", place);
 
     if (player == 1) {
         ImGui::SameLine();
@@ -539,6 +546,12 @@ void draw_player_card(int player, float width, float height) {
             ImGui::SameLine();
             ImGui::TextColored(k_green, "%s", T("·  mouse aim", "·  mira con mouse"));
         }
+        if (player > count)
+            ImGui::TextColored(k_orange, "%s",
+                               T("Joined mid-mission: watching the whole screen. To let them in, go back to the MCC "
+                                 "menu and start the mission again (restarting from the pause menu is not enough).",
+                                 "Entró con la misión empezada: ve la pantalla entera. Para que entre, vuelve al menú "
+                                 "de MCC y empieza la misión otra vez (reiniciar desde la pausa no basta)."));
     } else {
         status_dot(k_muted, T("Free", "Libre"));
         ImGui::TextColored(k_muted, "%s", T("Waiting for a friend to connect", "Esperando que se conecte un amigo"));

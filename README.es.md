@@ -5,9 +5,9 @@
 Campaña de **Halo: Combat Evolved** (Halo: The Master Chief Collection, Steam) para **4 jugadores**,
 cada uno en su PC y con su propia pantalla completa, conectados por **Radmin VPN** al PC del host.
 
-El juego corre una sola vez, en el PC del host, con la pantalla dividida en 4. Co Op Evolved le manda a cada
-amigo solo su cuarto de pantalla más el sonido del juego, y recibe sus controles. Durante las cinemáticas todos
-ven la pantalla entera.
+El juego corre una sola vez, en el PC del host, con la pantalla dividida entre los jugadores (2, 3 o 4). Co Op
+Evolved le manda a cada amigo solo su parte de la pantalla más el sonido del juego, y recibe sus controles. Durante
+las cinemáticas todos ven la pantalla entera.
 
 Es un solo programa, `CoOpEvolved.exe`, para todos: el host elige **Crear partida** y los amigos **Unirse a una
 partida**. Viene en **inglés** por defecto; cámbialo a **Español** con el selector de arriba a la derecha.
@@ -56,12 +56,23 @@ No hay que instalar nada más: ni AlphaRing ni drivers de mandos virtuales.
 2. Arriba sale tu **IP de Radmin**: pásasela a tus amigos (botón *Copiar*).
 3. Escribe tu nombre en **Nickname** y elige tu color en **Armadura** y tu **Skin** (tarjeta del jugador 1).
 4. Presiona **Abrir MCC** y en la ventana de Steam elige **"Play Halo: MCC (Anti-Cheat Disabled)"**.
-5. Empieza una misión de la campaña de Halo CE: el juego ya tiene **4 jugadores**, sin ningún menú extra.
+5. Empieza una misión de la campaña de Halo CE: tiene **tantos jugadores como amigos conectados**, sin ningún
+   menú extra (ver *Jugadores y quien llega tarde*).
 6. Activa los **gráficos clásicos** (tecla **Tab** en el juego): con los gráficos nuevos solo se ven 2 jugadores.
 7. Deja la ventana del juego **activa** (al frente) mientras juegan: si cambias a otra ventana, MCC deja de
    leer los mandos.
 
 El jugador 1 (tú) juega con **teclado y mouse**.
+
+### Jugadores y quien llega tarde
+- Cuando una misión empieza **desde el menú de MCC**, tiene al jugador 1 más todos los amigos hasta el número de
+  jugador conectado más alto: con el jugador 2 conectado son 2 jugadores, con el 2 y el 3 son 3. Cada amigo
+  conserva su número, así que si están el 2 y el 4 son 4 y el 3 queda quieto. Pídeles a tus amigos que usen el 2,
+  el 3 y el 4 en ese orden.
+- La pantalla se reparte según eso: **2 jugadores** = mitades arriba y abajo; **3 jugadores** = el jugador 1 en la
+  mitad de arriba, el 2 abajo a la izquierda y el 3 abajo a la derecha; **4 jugadores** = cuartos.
+- Un amigo que se conecta **con la misión ya empezada** mira la pantalla entera con un aviso. Para que entre,
+  vuelve al menú de MCC y empieza la misión otra vez: reiniciar desde el menú de pausa deja los mismos jugadores.
 
 ### Carpeta del juego
 Para encontrar la carpeta `mcc\binaries\win64` del juego: en Steam, clic derecho en
@@ -71,8 +82,9 @@ Para encontrar la carpeta `mcc\binaries\win64` del juego: en Steam, clic derecho
 ### Video
 El panel muestra la línea **Video**: unos segundos después de abrir MCC dice *Video listo* con la resolución
 del juego, y cada tarjeta de jugador muestra los FPS y Mbps que recibe ese amigo. El selector **Video a
-30/60/120 FPS** elige cuánto mandar: más FPS = menos retraso, pero más subida. Cada amigo recibe un cuarto de
-la resolución del juego (con el juego a 2560x1440, cada uno ve 1280x720).
+30/60/120 FPS** elige cuánto mandar: más FPS = menos retraso, pero más subida. Cada amigo recibe su parte de la
+resolución del juego (con el juego a 2560x1440 y 4 jugadores, cada uno ve 1280x720; con 2 jugadores, el jugador 2
+recibe una franja ancha de 2560x720).
 
 ### Cinemáticas
 Halo dibuja las cinemáticas una sola vez sobre toda la pantalla. Mientras dura una, cada amigo recibe **la
@@ -99,8 +111,9 @@ solo tu parte (arriba a la izquierda) estirada a todo tu monitor; tus amigos sig
   La casilla del panel solo elige cómo empieza.
 - Los menús de pausa de MCC se dibujan para toda la pantalla, así que a pantalla completa se ven cortados:
   presiona **F6** para usarlos en pantalla dividida. Las cinemáticas se ven enteras.
-- Tu imagen es un cuarto de la resolución del juego estirado: con más resolución en el juego se ve más
-  nítido (a 2560x1440 tu parte es 1280x720).
+- Tu imagen es tu parte de la resolución del juego estirada: con más resolución en el juego se ve más nítido
+  (a 2560x1440 con 4 jugadores tu parte es 1280x720). Con 2 o 3 jugadores tu parte es una franja ancha: se
+  muestra sin estirar, con franjas negras arriba y abajo.
 
 ### Colores de armadura
 La personalización de armadura de MCC solo vale en multijugador, así que el mod del juego pinta la armadura
@@ -156,7 +169,8 @@ desconecta (puede volver a conectarse). El panel guarda tu nickname, tu color de
 los FPS y lo de los nombres en `coopevolved-host.ini`, junto a `CoOpEvolved.exe`.
 
 ### Problemas comunes
-- **El juego no tiene 4 jugadores:** revisa que el panel muestre en verde *4 jugadores: integrado* y que
+- **El juego no tiene los jugadores que debería:** la cantidad se fija al empezar la misión desde el menú de
+  MCC (ver *Jugadores y quien llega tarde*). Revisa que el panel muestre en verde *4 jugadores: integrado* y que
   `VERSION.dll` esté instalado (punto *Mod del juego*). Solo funciona con MCC 1.3528 de Steam.
 - **AlphaRing sigue instalado** (de una versión anterior de Co Op Evolved): funciona igual, pero entonces
   AlphaRing pone los jugadores (F4 → Players = 4 cada vez). Para usar los 4 jugadores integrados, borra
@@ -201,7 +215,8 @@ Para los jugadores 2, 3 y 4. **No** necesitas Halo, Steam ni MCC: el juego corre
      Cada amigo uno distinto; usa siempre el mismo.
    - **Mando** o **Teclado y mouse**.
 4. Presiona **Conectar**. Cuando el host abre el juego, el cliente pasa a **pantalla completa** con tu parte
-   de la pantalla y el sonido del juego.
+   de la pantalla y el sonido del juego. Conéctate **antes de que el host empiece la misión**: si entras después,
+   miras la pantalla entera hasta que el host vuelva a empezar la misión desde el menú de MCC.
 5. Para salir: **F2 → Desconectar**, o cierra la ventana.
 
 ### Teclas
@@ -229,6 +244,9 @@ Para los jugadores 2, 3 y 4. **No** necesitas Halo, Steam ni MCC: el juego corre
   que el host tenga Co Op Evolved abierto en **Crear partida**.
 - **"Esperando video...":** el host todavía no abre MCC, o su panel muestra que falta el mod del juego.
 - **"Ese jugador ya está ocupado":** otro amigo eligió tu número; elige otro.
+- **"Entraste con la misión ya empezada":** estás mirando; jugarás cuando el host vuelva a empezar la misión desde
+  el menú de MCC.
+- **"Tu cliente y el del host son de versiones distintas":** el host y tú tienen que usar la misma versión de Co Op Evolved; descárgala de nuevo.
 - **Pantalla negra o error de NVIDIA en un portátil:** *Configuración de Windows → Pantalla → Gráficos* →
   pon `CoOpEvolved.exe` en **Alto rendimiento**.
 - **Tu personaje no se mueve:** el juego tiene que ser la ventana activa en el PC del host; avísale.

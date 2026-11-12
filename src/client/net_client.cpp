@@ -246,6 +246,7 @@ void run(Settings settings) {
                     g_status.ping_ms = int((now - pong->client_time_us + 500) / 1000);
                     g_status.host_aim_ready = pong->direct_aim_ready != 0;
                     g_status.skins_available = pong->skins_available;
+                    g_status.watching = pong->watching != 0;
                 }
                 break;
             case proto::Type::kicked:

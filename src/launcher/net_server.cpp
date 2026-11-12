@@ -237,6 +237,9 @@ void server_thread() {
                         bool game = g_video_status_time && GetTickCount64() - g_video_status_time < 3000;
                         pong.direct_aim_ready = game && g_video_status.aim_ready;
                         pong.skins_available = game ? g_video_status.skins_available : 0;
+                        // Jugador que no está en la misión en curso (se conectó después de que empezó).
+                        pong.watching = game && index >= 0 && g_video_status.local_players &&
+                                        index + k_first_remote_player > g_video_status.local_players;
                         send_to(from, pong);
                     }
                     break;

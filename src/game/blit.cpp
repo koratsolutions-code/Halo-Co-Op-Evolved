@@ -142,7 +142,7 @@ bool Blitter::create(ID3D11Device* device) {
 }
 
 bool Blitter::draw(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11ShaderResourceView* source,
-                   ID3D11RenderTargetView* target, UINT width, UINT height) {
+                   ID3D11RenderTargetView* target, UINT width, UINT height, float source_aspect) {
     if (device != m_device) {
         release_all();
         m_failed = !create(device);
@@ -152,6 +152,18 @@ bool Blitter::draw(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11Sha
     SavedState saved;
     saved.save(context);
     D3D11_VIEWPORT viewport{0, 0, float(width), float(height), 0, 1};
+    if (source_aspect > 0) {
+        const FLOAT black[4] = {0, 0, 0, 1};
+        context->ClearRenderTargetView(target, black);
+        float target_aspect = float(width) / float(height);
+        if (source_aspect > target_aspect) {
+            viewport.Height = float(width) / source_aspect;
+            viewport.TopLeftY = (float(height) - viewport.Height) / 2;
+        } else {
+            viewport.Width = float(height) * source_aspect;
+            viewport.TopLeftX = (float(width) - viewport.Width) / 2;
+        }
+    }
     context->OMSetRenderTargets(1, &target, nullptr);
     context->RSSetViewports(1, &viewport);
     context->RSSetState(m_raster);

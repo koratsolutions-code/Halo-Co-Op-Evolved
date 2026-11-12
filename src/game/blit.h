@@ -6,8 +6,10 @@
 class Blitter {
 public:
     ~Blitter() { release_all(); }
+    // Llena todo el render target (width x height). Con source_aspect > 0, la imagen conserva esa
+    // proporción (ancho/alto) y sobra negro arriba y abajo o a los lados.
     bool draw(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11ShaderResourceView* source,
-              ID3D11RenderTargetView* target, UINT width, UINT height);
+              ID3D11RenderTargetView* target, UINT width, UINT height, float source_aspect = 0);
 
 private:
     bool create(ID3D11Device* device);

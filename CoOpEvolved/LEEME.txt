@@ -24,7 +24,9 @@ Necesitas: MCC 1.3528 en Steam, una GPU NVIDIA, Radmin VPN y unos 10 Mbps de sub
   3. En la tarjeta del jugador 1 escribe tu nombre en "Nickname" y elige tu color en
      "Armadura" y tu "Skin".
   4. Presiona "Abrir MCC" y elige "Play Halo: MCC (Anti-Cheat Disabled)".
-  5. Empieza una misión de la campaña de Halo CE: ya tiene 4 jugadores.
+  5. Empieza una misión de la campaña de Halo CE desde el menú de MCC: tiene al jugador 1
+     más los amigos hasta el número conectado más alto (2, 3 o 4 jugadores; pídeles que
+     usen el 2, el 3 y el 4 en ese orden). La pantalla se reparte entre esos jugadores.
   6. Usa gráficos clásicos (Tab) y deja el juego como ventana activa.
   Tú juegas con teclado y mouse.
 
@@ -39,6 +41,10 @@ Necesitas: MCC 1.3528 en Steam, una GPU NVIDIA, Radmin VPN y unos 10 Mbps de sub
     "Mover": prueba los controles de ese jugador.  "Expulsar": lo desconecta.
   - "Skin": verte como otro personaje (Marine, Elite...) y seguir siendo Master Chief.
     Solo sirven las skins de la misión cargada. Una skin nueva se ve al reaparecer.
+
+  Un amigo que se conecta con la misión empezada mira la pantalla entera. Para que entre,
+  vuelve al menú de MCC y empieza la misión otra vez (reiniciar desde la pausa deja los
+  mismos jugadores).
 
   Para probar en un solo PC: abre CoOpEvolved.exe otra vez; se abre solo en "Unirse a una
   partida" (IP 127.0.0.1). Solo puede haber un host por PC.
@@ -57,6 +63,8 @@ un mando de Xbox o teclado y mouse. NO necesitas Halo.
        Jugador 4 = abajo a la derecha
   4. Elige Mando o Teclado y mouse y presiona Conectar.
   5. Cuando el host abre el juego, la ventana pasa sola a pantalla completa con tu video.
+     Conéctate antes de que el host empiece la misión: si entras después, miras la
+     pantalla entera hasta que el host vuelva a empezarla desde el menú de MCC.
 
   F2 ............. menú (color de armadura, skin, volumen, sensibilidad, controles, desconectar)
   F1 ............. estadísticas (ping, FPS del video, pérdidas)
@@ -85,6 +93,7 @@ Problemas
   "Esperando el video...": el host todavía no abrió MCC, o el mod no está instalado en
      su juego (su panel lo dice).
   "Ese jugador ya está ocupado": otro amigo eligió tu número; elige otro.
+  "Versiones distintas": el host y tú tienen que usar la misma versión; descárgala de nuevo.
   "Se perdió la conexión": el host cerró o se cortó Radmin; vuelve a Conectar.
   Laptop sin video / error de NVIDIA: en Configuración > Pantalla > Gráficos de Windows
      pon CoOpEvolved.exe en "Alto rendimiento".

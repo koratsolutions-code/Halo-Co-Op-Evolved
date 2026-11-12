@@ -11,6 +11,7 @@
 #include <cmath>
 #include <cstring>
 #include <mutex>
+#include <string>
 #include <thread>
 
 namespace {
@@ -117,6 +118,20 @@ constexpr size_t k_input_size = 0x130;  // lo que llena get_key_state
 
 uintptr_t g_mcc = 0;
 uint64_t g_ids[k_players] = {};
+// Cuántos jugadores locales tiene la partida. MCC pregunta por los usuarios solo al cargar una misión (al
+// empezarla, reiniciarla o pasar de nivel), así que se decide en ese momento: J1 más hasta el amigo conectado con
+// el número más alto (cada uno conserva su número: si están J2 y J4, son 4 y J3 queda quieto). Sin el host
+// abierto, 4 como antes.
+std::atomic<int> g_player_count{k_players};
+
+int connected_players() {
+    proto::VideoConfig config;
+    if (!video_config(config)) return k_players;
+    int count = 1;
+    for (int i = 0; i < k_players - 1; ++i)
+        if (config.targets[i].active) count = i + 2;
+    return count;
+}
 float(__fastcall* g_delta_time)(int64_t) = nullptr;
 
 using ProfileFn = void*(__fastcall*)(void*, int64_t);
@@ -150,8 +165,12 @@ uintptr_t device_of(int player) {
 }
 
 bool __fastcall hooked_user_id(void* manager, int64_t* id, wchar_t* name, int size, int index) {
+    // MCC solo pregunta al cargar una misión: la cantidad que se responde ahí es la de la misión.
+    int count = connected_players();
+    if (count != g_player_count.exchange(count))
+        log_write("Jugadores: la misión carga con %d jugadores (J1 y los amigos conectados)", count);
     if (index == 0) return g_original_user_id(manager, id, name, size, index);
-    if (index < 0 || index >= k_players) return false;
+    if (index < 0 || index >= g_player_count) return false;
     if (id) *id = int64_t(g_ids[index]);
     if (name && size >= 2) {
         proto::VideoConfig config;
@@ -168,7 +187,7 @@ bool __fastcall hooked_user_id(void* manager, int64_t* id, wchar_t* name, int si
 bool __fastcall hooked_key_state(void* manager, DWORD index, void* input) {
     if (!input) return false;
     memset(input, 0, k_input_size);
-    if (index >= DWORD(k_players)) return false;
+    if (index >= DWORD(g_player_count)) return false;
     uintptr_t device = device_of(int(index));
     if (!device) return true;  // ese mando no está registrado: sin controles
     float delta = 0;
@@ -201,7 +220,7 @@ void* __fastcall hooked_profile(void* manager, int64_t) { return g_original_prof
 void* __fastcall hooked_mapping(void* manager, int64_t) { return g_original_mapping(manager, host_xuid(manager)); }
 
 void __fastcall hooked_vibration(void*, DWORD index, XINPUT_VIBRATION* vibration) {
-    if (index >= DWORD(k_players) || !vibration) return;
+    if (index >= DWORD(g_player_count) || !vibration) return;
     if (uintptr_t device = device_of(int(index)); device && index > 0)
         hooked_set_state(read_as<DWORD>(device + k_dev_slot), vibration);
 }
@@ -274,7 +293,7 @@ bool hook_mcc() {
               hook_at(functions[4], &hooked_mapping, reinterpret_cast<void**>(&g_original_mapping), "los botones") &&
               hook_at(g_mcc + k_index_by_xuid_rva, &hooked_index, reinterpret_cast<void**>(&g_original_index),
                       "el índice por xuid");
-    if (ok) log_write("Jugadores: MCC con 4 jugadores locales (sin AlphaRing)");
+    if (ok) log_write("Jugadores: MCC con hasta 4 jugadores locales (sin AlphaRing)");
     return ok;
 }
 
@@ -293,34 +312,32 @@ constexpr Patch k_halo1_patches[] = {
 };
 
 void patch_halo1(uintptr_t halo1) {
-    // Primero se comprueban todos: o se aplican los tres, o ninguno.
+    // Primero se comprueban todos: o se aplican los tres, o ninguno. Si ya están puestos, nada.
+    int missing = 0;
     for (const Patch& patch : k_halo1_patches) {
         uint8_t bytes[6];
         if (!safe_read(halo1 + patch.rva, bytes, patch.size)) return;
         if (memcmp(bytes, patch.patched, patch.size) == 0) continue;  // ya puesto
         if (memcmp(bytes, patch.original, patch.size) != 0) {
-            log_write("Jugadores: halo1.dll no es el esperado (%s): sin 4 jugadores", patch.name);
+            static bool logged = false;
+            if (!logged) log_write("Jugadores: halo1.dll no es el esperado (%s): sin 4 jugadores", patch.name);
+            logged = true;
             return;
         }
+        ++missing;
     }
+    if (!missing) return;
     for (const Patch& patch : k_halo1_patches)
         if (!patch_code(halo1 + patch.rva, patch.patched, patch.size))
             log_write("Jugadores: no se pudo cambiar halo1.dll (%s)", patch.name);
     log_write("Jugadores: halo1.dll listo para 4 jugadores");
 }
 
-// halo1.dll se carga al elegir Halo CE en el menú y se descarga al salir: se vigila para parchear cada carga
-// antes de que empiece la misión.
+// halo1.dll se carga al elegir Halo CE en el menú y se vuelve a cargar al empezar cada misión (a veces en la misma
+// dirección): se miran los bytes cada 20 ms y se parchea cada carga antes de que empiece la misión.
 void watch_halo1() {
-    uintptr_t patched = 0;
     while (true) {
-        uintptr_t halo1 = reinterpret_cast<uintptr_t>(GetModuleHandleW(L"halo1.dll"));
-        if (halo1 && halo1 != patched) {
-            patch_halo1(halo1);
-            patched = halo1;
-        } else if (!halo1) {
-            patched = 0;
-        }
+        if (uintptr_t halo1 = reinterpret_cast<uintptr_t>(GetModuleHandleW(L"halo1.dll"))) patch_halo1(halo1);
         Sleep(20);
     }
 }
@@ -336,15 +353,19 @@ bool alpharing_loaded() {
     return folder && _wcsnicmp(path, exe, folder) == 0;  // el de System32 es el de Windows
 }
 
-bool direct_mode() {
+std::wstring game_ini() {
     HMODULE self = nullptr;
     GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                       reinterpret_cast<LPCWSTR>(&direct_mode), &self);
+                       reinterpret_cast<LPCWSTR>(&game_ini), &self);
     wchar_t path[MAX_PATH] = {};
     GetModuleFileNameW(self, path, MAX_PATH);
     if (wchar_t* slash = wcsrchr(path, L'\\')) wcscpy_s(slash + 1, MAX_PATH - (slash + 1 - path), L"coopevolved-juego.ini");
+    return path;
+}
+
+bool direct_mode() {
     wchar_t mode[16] = {};
-    GetPrivateProfileStringW(L"juego", L"mandos", L"direct", mode, 16, path);
+    GetPrivateProfileStringW(L"juego", L"mandos", L"direct", mode, 16, game_ini().c_str());
     return _wcsicmp(mode, L"vigem") != 0;
 }
 

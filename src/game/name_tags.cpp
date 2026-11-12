@@ -1,6 +1,7 @@
 #include "name_tags.h"
 #include "halo1_players.h"
 #include "log.h"
+#include "split_layout.h"
 #include "video.h"
 
 #include <d3d11.h>
@@ -105,10 +106,11 @@ void name_tags_draw(IDXGISwapChain* swap_chain) {
         ImGui::NewFrame();
         ImDrawList* draw = ImGui::GetForegroundDrawList();
 
-        const float qw = float(desc.Width) / 2, qh = float(desc.Height) / 2;
+        const int count = split_player_count();
         const float fov = std::clamp<float>(config.name_fov, 40, 150);
-        const float tan_half = std::tan(fov * 3.14159265f / 360.0f);
-        const float aspect = qw / qh;
+        // El FOV del panel es el horizontal con 4 jugadores (cada cuarto tiene la proporción de la pantalla). Con
+        // menos jugadores Halo mantiene el ángulo vertical y abre el horizontal en las franjas anchas.
+        const float tan_vertical = std::tan(fov * 3.14159265f / 360.0f) / (float(desc.Width) / float(desc.Height));
         const Vec3 world_up{0, 0, 1};
         std::string names[4];
         for (int p = 0; p < 4; ++p) {
@@ -118,23 +120,25 @@ void name_tags_draw(IDXGISwapChain* swap_chain) {
 
         for (int viewer = 0; viewer < 4; ++viewer) {
             const Halo1Player& v = players[viewer];
-            if (!v.alive) continue;
-            // Cámara en primera persona del jugador que mira (cuadrícula 2x2 de AlphaRing).
+            ViewRect view;
+            if (!v.alive || !split_view(viewer, count, desc.Width, desc.Height, view)) continue;
+            const float qx = float(view.x), qy = float(view.y), qw = float(view.width), qh = float(view.height);
+            const float aspect = qw / qh;
+            // Cámara en primera persona del jugador que mira (su parte de la pantalla dividida).
             Vec3 eye{v.position[0], v.position[1], v.position[2] + k_eye_height};
             Vec3 forward = normalize({v.look[0], v.look[1], v.look[2]});
             Vec3 right = normalize(cross(forward, world_up));
             Vec3 up = cross(right, forward);
-            float qx = float(viewer % 2) * qw, qy = float(viewer / 2) * qh;
             draw->PushClipRect(ImVec2(qx, qy), ImVec2(qx + qw, qy + qh), false);
-            for (int target = 0; target < 4; ++target) {
+            for (int target = 0; target < count; ++target) {
                 const Halo1Player& t = players[target];
                 if (target == viewer || !t.alive) continue;
                 Vec3 anchor{t.center[0], t.center[1], t.center[2] + k_label_height};
                 Vec3 d = sub(anchor, eye);
                 float depth = dot(d, forward);
                 if (depth < 0.2f) continue;  // detrás de la cámara o encima de ella
-                float sx = dot(d, right) / (depth * tan_half);
-                float sy = dot(d, up) / (depth * tan_half / aspect);
+                float sx = dot(d, right) / (depth * tan_vertical * aspect);
+                float sy = dot(d, up) / (depth * tan_vertical);
                 if (std::fabs(sx) > 1.2f || std::fabs(sy) > 1.2f) continue;
                 ImVec2 screen(qx + (sx * 0.5f + 0.5f) * qw, qy + (0.5f - sy * 0.5f) * qh);
                 // Más chico y tenue a la distancia (siempre visible, también a través de paredes).

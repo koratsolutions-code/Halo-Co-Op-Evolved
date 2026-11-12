@@ -74,7 +74,7 @@ Lowest latency is the top priority.
 - `src/game` → **VERSION.dll** (proxy DLL loaded by MCC): 4 local players and network controllers
   (`local_players.cpp`), Present hook, NVENC video per quadrant, full-screen cutscenes (`cinematic.cpp`), name
   tags, armor colours, player 1 full screen, direct mouse aim, skins. Talks to the host over 127.0.0.1:27961.
-- `src/common/protocol.h`: UDP protocol, **version 5**. Bump `k_version` whenever a message between client and
+- `src/common/protocol.h`: UDP protocol, **version 6**. Bump `k_version` whenever a message between client and
   host changes size (local host↔mod messages ship together and do not need it).
 - `tools/test_game.cpp`: the test game.
 
@@ -82,7 +82,8 @@ Lowest latency is the top priority.
 
 | Feature | Notes |
 |---|---|
-| 4 players without AlphaRing | `local_players.cpp`: MCC game-manager hooks + 3 halo1.dll patches (from AlphaRing, MIT). Tested |
+| Local players without AlphaRing | `local_players.cpp`: MCC game-manager hooks + 3 halo1.dll patches (from AlphaRing, MIT). Tested |
+| Only connected players | Mission gets J1 + friends up to the highest connected number (2-4); video, name tags, J1 full screen and mouse aim follow the 2/3/4 split (`split_layout.h`). Late joiners watch the whole screen (Pong.watching, protocol v6). Tested |
 | Network controllers without ViGEmBus | XInputGetState/SetState hook; slots 0-2 = players 2-4 (`proto::Pads`). Tested |
 | Video | NVENC H.264 per quadrant, NVDEC in the client, 30/60/120 FPS |
 | Full-screen cutscenes | While `halo1+0x1B87A20` is 1 every friend gets the whole screen scaled down. Tested |
@@ -103,6 +104,9 @@ Lowest latency is the top priority.
   The text is in MCC's UI objects (`<color="#…">CORTANA: …</>`), which move around the heap; finding the current
   one needs a write watch on the text from inside the mod. Not started.
 - Level-end freeze fix (halo1 patch 3) and pause with 4 players: not yet confirmed in a full play-through.
+- Late joiners only get in when the mission is started again from the MCC menu: MCC asks for the users only then
+  (restart from the pause menu reuses them). Forcing it on restart would mean digging into MCC's `game_restart`
+  (game-manager vtable +0x20). Not started.
 - Ideas: one window with host/client tabs instead of relaunching; spawning only as many players as are connected.
 - The old ViGEmBus + AlphaRing path is still there as a fallback: `controllers=vigem` in `coopevolved-host.ini`
   (the host then writes `mandos=vigem` to `coopevolved-juego.ini` in the game folder).
@@ -133,8 +137,10 @@ Lowest latency is the top priority.
 - MCC must be closed to replace `VERSION.dll`; CoOpEvolved.exe must be closed to build.
 - MCC reads the controllers only while its window is active.
 - Halo CE shows players 3 and 4 only with classic graphics.
-- `halo1.dll` loads when Halo CE is opened from MCC's menu, not when MCC starts (and reloads with each mission
-  start); the mod re-applies its halo1 patches on every load.
+- `halo1.dll` loads when Halo CE is opened from MCC's menu, not when MCC starts, and **reloads every time a
+  mission is started from the menu** (often at the same address): its code is back to the original bytes, so
+  every patch and hook on halo1.dll must be re-applied when the original bytes reappear (local_players and skins
+  check the bytes, not the module address).
 - If AlphaRing (`WTSAPI32.dll` in the game folder) is present, the mod leaves the 4 players to it and only
   provides the network controllers.
 - A body's node buffers are sized for its model when it is created: skins must be in place at spawn, never later.

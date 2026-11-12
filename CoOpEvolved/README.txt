@@ -23,7 +23,9 @@ You need: MCC 1.3528 on Steam, an NVIDIA GPU, Radmin VPN and about 10 Mbps of up
   2. Give your friends the Radmin IP shown at the top ("Copy" copies it).
   3. In the player 1 card type your name in "Nickname" and pick your "Armor" color and "Skin".
   4. Press "Open MCC" and choose "Play Halo: MCC (Anti-Cheat Disabled)".
-  5. Start a Halo CE campaign mission: it already has 4 players.
+  5. Start a Halo CE campaign mission from the MCC menu: it gets player 1 plus every
+     friend up to the highest connected number (2, 3 or 4 players; ask friends to use
+     2, 3 and 4 in that order). The screen is split for that many players.
   6. Use classic graphics (Tab) and keep the game as the active window.
   You play with keyboard and mouse.
 
@@ -37,6 +39,10 @@ You need: MCC 1.3528 on Steam, an NVIDIA GPU, Radmin VPN and about 10 Mbps of up
     "Move": tests that player's controls.  "Kick": disconnects them.
   - "Skin": look like another character (Marine, Elite...) while still being Master Chief.
     Only the skins of the loaded mission work. A new skin shows the next time you respawn.
+
+  A friend who connects after the mission started watches the whole screen. To let
+  them in, go back to the MCC menu and start the mission again (restarting from the
+  pause menu keeps the same players).
 
   To test on one PC: open CoOpEvolved.exe a second time; it opens as "Join a game" by itself
   (IP 127.0.0.1). Only one host can run per PC.
@@ -53,6 +59,8 @@ network, and an Xbox controller or keyboard and mouse. You do NOT need Halo.
        Player 2 = top right    Player 3 = bottom left    Player 4 = bottom right
   4. Choose "Controller" or "Keyboard and mouse" and press "Connect".
   5. When the host opens the game, the window switches to full screen with your video.
+     Connect before the host starts the mission: if you join later you watch the whole
+     screen until the host starts the mission again from the MCC menu.
 
   F2 ............. menu (armor color, skin, volume, sensitivity, controls, disconnect)
   F1 ............. stats (ping, video FPS, losses)
@@ -81,6 +89,7 @@ Problems
   "Waiting for video...": the host has not opened MCC yet, or the mod is not installed in
      their game (their panel says so).
   "That player is already taken": another friend picked your number; pick another one.
+  "Different versions": you and the host must use the same version; download it again.
   "Lost the connection to the host": the host closed or Radmin dropped; press Connect again.
   Laptop with no video / NVIDIA error: in Windows Settings > Display > Graphics set
      CoOpEvolved.exe to "High performance".

@@ -558,6 +558,19 @@ int client_main(HINSTANCE instance) {
             ImGui::End();
         }
         if (connected && g_show_stats) draw_stats(status);
+        if (connected && g_has_video && status.watching) {
+            ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x / 2, 20), ImGuiCond_Always, ImVec2(0.5f, 0.0f));
+            ImGui::SetNextWindowBgAlpha(0.75f);
+            ImGui::Begin("##watching", nullptr,
+                         ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoInputs |
+                             ImGuiWindowFlags_NoSavedSettings);
+            ImGui::TextColored(k_orange, "%s",
+                               T("You joined with the mission already started: you are watching. You will play when "
+                                 "the host starts the mission again from the MCC menu.",
+                                 "Entraste con la misión ya empezada: estás mirando. Jugarás cuando el host vuelva a "
+                                 "empezar la misión desde el menú de MCC."));
+            ImGui::End();
+        }
         if (ImGui::GetTime() < g_toast_until) {
             ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x / 2, io.DisplaySize.y - 30), ImGuiCond_Always,
                                     ImVec2(0.5f, 1.0f));

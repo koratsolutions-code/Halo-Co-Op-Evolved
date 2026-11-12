@@ -46,7 +46,7 @@ Internal notes for people working on Halo: Co Op Evolved. Players only need [REA
   player (the whole screen during cutscenes). It also draws name tags, armor colours, player 1 full screen (F6),
   direct mouse aim and skins.
 - **Client mode**: decodes the video with NVDEC, plays the audio and sends controller or keyboard/mouse input.
-- **Protocol (`src/common/protocol.h`)**: version 5. Bump `k_version` whenever a client↔host message changes size.
+- **Protocol (`src/common/protocol.h`)**: version 6. Bump `k_version` whenever a client↔host message changes size.
 
 ## What we know about MCC-Win64-Shipping.exe (Steam 1.3528)
 
@@ -67,8 +67,11 @@ PE timestamp `0x68A0E5D7` (checked before hooking). Offsets are RVAs of the exe.
   +0x40 check), +0x808 XInput slot, +0x91C XINPUT_STATE.
 - `+0x5A16AC` delta time from a QPC difference (prologue `40 53 48 83 EC 20 48 8B D9`);
   `+0x38A09C` get_index_by_xuid (prologue `48 8B C4 55 57 41 54 41 56 41 57`).
-- **4 local players** (`local_players.cpp`, same idea as AlphaRing with its defaults): get_xbox_user_id answers
-  "signed in" for indices 1-3 with fake xuids (and the friends' names); get_key_state fills index 0 from the
+- **Local players** (`local_players.cpp`, same idea as AlphaRing with its defaults): get_xbox_user_id answers
+  "signed in" for indices 1..count-1 with fake xuids (and the friends' names), where count = J1 + friends up to the
+  highest connected player number (4 if the host app is not running). MCC calls get_xbox_user_id **only when a
+  mission is started from the menu** (a burst of ~40 calls), not during play nor on restart from the pause menu,
+  so the count is fixed per mission and late joiners wait for the next start from the menu; get_key_state fills index 0 from the
   keyboard/mouse device and 1-3 from pad devices 0-2; profile and gamepad mapping are always player 1's;
   get_index_by_xuid maps the fake xuids to 1-3. If `WTSAPI32.dll` (AlphaRing) is loaded from the game folder,
   none of this is installed (only the XInput hook).
@@ -95,6 +98,20 @@ starts), only if all three match the original bytes:
 - `+0x67492` `75 11` → `EB 18`: more than 2 local players.
 - `+0x427978` `77` → `EB`: pause with more players.
 - `+0x85428` `0F 84 15 01 00 00` → 6 × `90`: fixes the freeze when a level ends (AlphaRing issue #19).
+
+### Split layout (`split_layout.h`)
+- `halo1.dll+0x1B7B910` (int16) = local players of the running mission. Seen in MCC: 2 players = full-width top
+  and bottom halves; 3 = J1 full-width top half, J2 bottom left, J3 bottom right; 4 = quarters.
+- In the wide views Halo keeps the **vertical** FOV of a 4-player quarter and widens the horizontal one, so name
+  tags project with tan(vertical) = tan(horizontal FOV / 2) / screen aspect.
+- Video per friend = their rectangle (J2 with 2 players is a full-width strip); friends not in the mission get the
+  whole screen scaled down (VideoStatus.local_players → Pong.watching → notice in the client).
+
+### halo1.dll reloads
+- halo1.dll is unloaded and loaded again every time a mission starts from the MCC menu, often at the same address.
+  Code patches and MinHook hooks vanish with it (MinHook still thinks they are on). `local_players.cpp` checks the
+  patch bytes every 20 ms; `skins.cpp` re-hooks (MH_RemoveHook + create again) when the tag lookup has its original
+  bytes again.
 
 ### Cutscenes (`cinematic.cpp`)
 - `halo1.dll+0x1B87A20` = 1 while a cutscene plays and 0 in gameplay; `+0x1B87A21` is its opposite. Found by

@@ -5,6 +5,7 @@
 #include "encoder.h"
 #include "log.h"
 #include "skins.h"
+#include "split_layout.h"
 
 #include "../common/protocol.h"
 
@@ -163,6 +164,7 @@ void control_thread() {
             status.error = g_error;
             status.aim_ready = aim_ready() ? 1 : 0;
             status.skins_available = skins_available();
+            status.local_players = GetModuleHandleW(L"halo1.dll") ? uint8_t(split_player_count()) : 0;
             sendto(s, reinterpret_cast<const char*>(&status), sizeof(status), 0,
                    reinterpret_cast<sockaddr*>(&launcher), sizeof(launcher));
         }
@@ -225,34 +227,43 @@ void video_on_frame(IDXGISwapChain* swap_chain) {
     uint32_t quad_w = (desc.Width / 2) & ~1u;
     uint32_t quad_h = (desc.Height / 2) & ~1u;
 
-    // Cinemáticas: el juego las dibuja una vez sobre toda la pantalla, así que todos reciben la pantalla entera
-    // reducida a su tamaño. Al entrar y al salir, un fotograma completo para que el cambio de imagen se vea limpio.
+    // Reparto de la pantalla: depende de cuántos jugadores locales tiene la partida (2, 3 o 4).
+    const int count = split_player_count();
+
+    // Pantalla entera reducida a un cuarto: para todos durante las cinemáticas (el juego las dibuja una vez sobre
+    // toda la pantalla) y para quien se conectó con la misión ya empezada (entra al recargarla: mientras, mira).
+    // Al entrar y al salir de una cinemática, un fotograma completo para que el cambio de imagen se vea limpio.
     static bool was_cinematic = false;
     bool cinematic = config.full_cinematics && context4 && desc.SampleDesc.Count == 1 && cinematic_now();
-    ID3D11Texture2D* source = back_buffer;
-    if (cinematic) {
-        if (ID3D11Texture2D* frame = cinematic_frame(device, context, back_buffer, quad_w, quad_h))
-            source = frame;
-        else
-            cinematic = false;
-    }
+    bool spectators = false;
+    for (int i = 0; i < k_players; ++i) spectators |= config.targets[i].active && i + 1 >= count;
+    ID3D11Texture2D* whole_screen = nullptr;
+    if ((cinematic || spectators) && context4 && desc.SampleDesc.Count == 1)
+        whole_screen = cinematic_frame(device, context, back_buffer, quad_w, quad_h);
+    if (!whole_screen) cinematic = false;
     if (cinematic != was_cinematic) {
         was_cinematic = cinematic;
         for (auto& stream : g_streams) stream.force_keyframe = true;
-        log_write("Video: %s", cinematic ? "cinemática, pantalla entera para todos" : "cada uno con su cuarto");
+        log_write("Video: %s", cinematic ? "cinemática, pantalla entera para todos" : "cada uno con su parte");
     }
 
     if (context4 && desc.SampleDesc.Count == 1) {
         for (int i = 0; i < k_players; ++i) {
             if (!config.targets[i].active) continue;
             PlayerStream& stream = g_streams[i];
+            ViewRect view;
+            bool in_game = split_view(i + 1, count, desc.Width, desc.Height, view);
+            bool whole = cinematic || !in_game;
+            if (whole && !whole_screen) continue;
+            if (whole) view = {0, 0, quad_w, quad_h};
             {
                 std::lock_guard lock(stream.target_mutex);
                 stream.target.sin_family = AF_INET;
                 stream.target.sin_addr.s_addr = config.targets[i].ip;
                 stream.target.sin_port = config.targets[i].port;
             }
-            Encoder::Settings wanted{quad_w, quad_h, desc.Format, fps, bitrate_for(quad_w, quad_h, fps)};
+            Encoder::Settings wanted{view.width, view.height, desc.Format, fps,
+                                     bitrate_for(view.width, view.height, fps)};
             if (stream.encoder) {
                 const auto& current = stream.encoder->settings();
                 if (current.width != wanted.width || current.height != wanted.height ||
@@ -263,8 +274,8 @@ void video_on_frame(IDXGISwapChain* swap_chain) {
                 static uint64_t last_failure[k_players] = {};
                 if (now - last_failure[i] < 5000000) continue;  // no reintentar en cada fotograma
                 auto encoder = std::make_unique<Encoder>();
-                auto output = [i, w = uint16_t(quad_w), h = uint16_t(quad_h)](const uint8_t* data, size_t size,
-                                                                              bool keyframe, uint64_t capture_us) {
+                auto output = [i, w = uint16_t(view.width), h = uint16_t(view.height)](
+                                  const uint8_t* data, size_t size, bool keyframe, uint64_t capture_us) {
                     send_frame(i, data, size, keyframe, capture_us, w, h);
                 };
                 if (!encoder->open(device, wanted, output)) {
@@ -283,12 +294,8 @@ void video_on_frame(IDXGISwapChain* swap_chain) {
                 stream.seen_keyframe_requests = config.targets[i].keyframe_requests;
                 stream.force_keyframe = true;
             }
-            // Cuadrantes de AlphaRing: J2 arriba a la derecha, J3 abajo a la izquierda, J4 abajo a la derecha.
-            uint32_t x = (i == 0 || i == 2) ? desc.Width - quad_w : 0;
-            uint32_t y = (i == 0) ? 0 : desc.Height - quad_h;
-            D3D11_BOX box{x, y, 0, x + quad_w, y + quad_h, 1};
-            if (cinematic) box = {0, 0, 0, quad_w, quad_h, 1};
-            if (stream.encoder->submit(context4, source, box, stream.force_keyframe, now))
+            D3D11_BOX box{view.x, view.y, 0, view.x + view.width, view.y + view.height, 1};
+            if (stream.encoder->submit(context4, whole ? whole_screen : back_buffer, box, stream.force_keyframe, now))
                 stream.force_keyframe = false;
         }
     } else if (!context4) {

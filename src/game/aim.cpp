@@ -45,20 +45,22 @@ float yaw_distance(float a, float b) {
     return std::min(d, k_two_pi - d);
 }
 
-// ¿Las cámaras de J2-J4 vivos coinciden con su mira? J1 no cuenta: su mouse pasa por AlphaRing.
-// Hacen falta al menos dos, para no confundirse con otro par de floats parecido.
-bool cameras_match(uintptr_t cameras, const Halo1Player players[4], float tolerance) {
+// ¿Las cámaras de los jugadores vivos coinciden con su mira (J1 cuenta solo si coincide)? Para encontrarlas hacen falta al menos
+// dos, para no confundirse con otro par de floats parecido; para seguir usándolas basta uno (con 2 jugadores, si
+// uno muere solo queda el otro).
+bool cameras_match(uintptr_t cameras, const Halo1Player players[4], float tolerance, int needed) {
     int checked = 0;
-    for (int p = 1; p < 4; ++p) {
+    for (int p = 0; p < 4; ++p) {
         if (!players[p].alive) continue;
         float yaw, pitch, camera[2];
         look_to_angles(players[p].look, &yaw, &pitch);
-        if (!safe_read(cameras + p * k_stride, camera, 8) || !std::isfinite(camera[0]) ||
-            yaw_distance(camera[0], yaw) > tolerance || std::fabs(camera[1] - pitch) > tolerance)
-            return false;
+        bool match = safe_read(cameras + p * k_stride, camera, 8) && std::isfinite(camera[0]) &&
+                     yaw_distance(camera[0], yaw) <= tolerance && std::fabs(camera[1] - pitch) <= tolerance;
+        if (!match && p == 0) continue;  // J1 suma si coincide, pero no descarta (su cámara no está confirmada)
+        if (!match) return false;
         ++checked;
     }
-    return checked >= 2;
+    return checked >= needed;
 }
 
 uintptr_t find_cameras(const Halo1Player players[4]) {
@@ -90,7 +92,7 @@ uintptr_t find_cameras(const Halo1Player players[4]) {
                     uintptr_t at = base + i * 4;
                     if (at < first * k_stride) continue;
                     uintptr_t cameras = at - first * k_stride;
-                    if (cameras_match(cameras, players, k_tolerance)) return cameras;
+                    if (cameras_match(cameras, players, k_tolerance, 2)) return cameras;
                 }
             }
         }
@@ -118,7 +120,7 @@ void aim_start() {
             if (cameras) {
                 // Al girar rápido la mira del biped va un poco atrás de la cámara: margen amplio y varias fallas
                 // seguidas antes de soltarlas (otro nivel, reaparecer, volver al menú).
-                misses = cameras_match(cameras, players, 0.3f) ? 0 : misses + 1;
+                misses = cameras_match(cameras, players, 0.3f, 1) ? 0 : misses + 1;
                 if (misses < 3) continue;
                 std::lock_guard lock(g_mutex);
                 g_cameras = 0;

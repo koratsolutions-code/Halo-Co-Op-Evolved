@@ -23,6 +23,7 @@ struct NetStatus {
     bool host_aim_ready = false;   // el host puede mover la cámara directo (mira directa con mouse)
     bool direct_aim = false;       // la mira directa está en uso ahora
     uint16_t skins_available = 0;  // bit i: la skin i está en la misión del host (0: no se sabe)
+    bool watching = false;         // entró con la misión empezada: mira la pantalla entera hasta la próxima
 };
 
 struct VideoFrame {
