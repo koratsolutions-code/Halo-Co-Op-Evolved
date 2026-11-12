@@ -2,10 +2,10 @@
 
 Internal notes for people working on Halo: Co Op Evolved. Players only need [README.md](../README.md).
 
-## Branches
+## Branch
 
-- **main**: stable. This is what players download. Changes reach it only from `develop`, once tested in MCC.
-- **develop**: work in progress. It may contain diagnostics and features that are not tested yet.
+- **main** is the only branch. It is what players download, so only finished features tested in MCC go into it.
+  Keep work in progress uncommitted, or in a short-lived branch of your own that is deleted after merging.
 
 ## Building and testing
 

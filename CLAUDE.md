@@ -17,8 +17,6 @@ Requirements:
 ```bash
 git clone https://github.com/koratsolutions-code/Halo-Co-Op-Evolved.git
 cd Halo-Co-Op-Evolved
-git checkout develop
-git pull
 # Your own name and e-mail for your commits in this repository:
 git config user.name "your-github-user"
 git config user.email "your-github-email"
@@ -52,11 +50,11 @@ with classic graphics (Tab).
 Logs (git-ignored, overwritten every launch): `host\coopevolved-host.log`, `cliente\coopevolved-cliente.log`,
 `<MCC folder>\mcc\binaries\win64\coopevolved-juego.log`.
 
-## 2. Branches and workflow
+## 2. Branch and workflow
 
-- **main**: stable, what players download. Do not push to it directly.
-- **develop**: work in progress. Work here (or in a branch made from develop) and open a pull request
-  develop → main only after the change was tested in MCC.
+- **main** is the only branch, and it is what players download (the `host\` and `cliente\` binaries included).
+- Commit to main only finished features that were tested in MCC; keep work in progress uncommitted, or in a
+  short-lived branch of your own that is deleted after merging.
 - Before every commit: build, test, and check that no personal data got in (see rules below).
 
 ## 3. What the project is
@@ -74,7 +72,7 @@ virtual pad. Lowest latency is the top priority.
 - `src/common/protocol.h`: UDP protocol, **version 5**. Bump `k_version` whenever a message changes size.
 - `tools/test_game.cpp`: the test game.
 
-## 4. What is done (all on main unless noted)
+## 4. What is done
 
 | Feature | Notes |
 |---|---|
@@ -88,9 +86,9 @@ virtual pad. Lowest latency is the top priority.
 | Player 1 full screen | F6 or a panel option; stretches the top-left quadrant on the host's monitor |
 | Direct mouse aim (beta) | Client option; the mouse turns the camera directly (protocol v4). Tested OK |
 | Keyboard E = RB | Enter vehicles / pick up weapons |
-| **Skins (develop only)** | Per-player skin selector (client and host panel), protocol v5. Tested in MCC (a30) |
+| Per-player skins | Per-player skin selector (client and host panel), protocol v5. Tested in MCC (a30) |
 
-## 5. Per-player skins (develop)
+## 5. Per-player skins
 
 Each player looks like another character (marine, crewman, Elite…) but keeps Master Chief's hitbox, speed, jump and
 physics. Each friend chooses in their client (menu and F2); player 1 in the host panel. If the chosen character is not
@@ -104,7 +102,7 @@ players placed by an opening cutscene (e.g. a30) start as Master Chief.
 
 Next steps:
 1. Test the skins not tried yet (Flood marine, Keyes, Jenkins), checkpoint revert and level change.
-2. Commit to develop (only when the owner says the feature is finished), then merge to main after MCC testing.
+2. Fix in main whatever those tests turn up.
 
 Later ideas, not started: replacing AlphaRing with an own mod (feasibility study first; AlphaRing has no licence, so
 nothing can be copied from it); spawning only as many players as are connected.
