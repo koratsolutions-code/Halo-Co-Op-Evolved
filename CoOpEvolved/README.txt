@@ -35,7 +35,9 @@ You need: MCC 1.3528 on Steam, an NVIDIA GPU, Radmin VPN and about 10 Mbps of up
   - "Show names over players": if they do not sit right, set "Game FOV" to the game's FOV.
   - "Player 1 full screen (F6 in game)": you see only your part, stretched to your monitor.
   - "Full-screen cutscenes for friends": during cutscenes each friend sees the whole screen.
-  - One card per player: name, IP, inputs per second and video of each friend.
+  - "Hide MCC subtitles": MCC draws them across the split screen and friends see them cut.
+    Takes effect when a mission starts; your MCC settings are not changed.
+  - Admin panel, one card per player: name, IP, inputs per second and video of each friend.
     "Move": tests that player's controls.  "Kick": disconnects them.
   - "Skin": look like another character (Marine, Elite...) while still being Master Chief.
     Only the skins of the loaded mission work. A new skin shows the next time you respawn.

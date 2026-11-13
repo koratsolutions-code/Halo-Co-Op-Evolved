@@ -1,4 +1,4 @@
-# Halo: Co Op Evolved
+<h1 align="center"><img src="docs/logo.png" alt="Halo: Co Op Evolved" width="760"></h1>
 
 **Español** · [English](README.md)
 
@@ -9,8 +9,9 @@ El juego corre una sola vez, en el PC del host, con la pantalla dividida entre l
 Evolved le manda a cada amigo solo su parte de la pantalla más el sonido del juego, y recibe sus controles. Durante
 las cinemáticas todos ven la pantalla entera.
 
-Es un solo programa, `CoOpEvolved.exe`, para todos: el host elige **Crear partida** y los amigos **Unirse a una
-partida**. Viene en **inglés** por defecto; cámbialo a **Español** con el selector de arriba a la derecha.
+Es un solo programa, `CoOpEvolved.exe`, para todos: el host elige **Crear partida** y los amigos **Unirse**, con
+las pestañas de arriba a la derecha. Viene en **inglés** por defecto; cámbialo a **Español** con las pestañas
+**EN | ES** de al lado.
 
 ## Descarga
 
@@ -89,8 +90,12 @@ recibe una franja ancha de 2560x720).
 ### Cinemáticas
 Halo dibuja las cinemáticas una sola vez sobre toda la pantalla. Mientras dura una, cada amigo recibe **la
 pantalla entera** (reducida a su tamaño) en vez de su cuarto, y al terminar vuelve a su cuarto. **Cinemáticas
-completas para los amigos** lo desactiva. Los subtítulos durante el juego los sigue dibujando MCC sobre toda la
-pantalla dividida, así que los amigos pueden verlos cortados.
+completas para los amigos** lo desactiva.
+
+### Subtítulos
+MCC dibuja los subtítulos una sola vez sobre toda la pantalla dividida, así que los amigos los ven cortados.
+**Ocultar los subtítulos de MCC** los oculta para todos (vale al empezar una misión). No cambia tu configuración de
+MCC: desmárcala para que vuelvan.
 
 ### Audio
 Co Op Evolved captura **solo el sonido de MCC** (no Discord, música ni otras apps) y manda la misma mezcla a
@@ -163,7 +168,9 @@ permite `CoOpEvolved.exe` en *Firewall de Windows → Permitir una aplicación*.
   en tu PC: no los publiques.
 
 ### Panel del host
-Está ordenado como la pantalla dividida: una tarjeta por jugador. Cada amigo conectado muestra su nombre,
+Arriba: las pestañas **Crear partida | Unirse** y el idioma. Después **Conexión** (tu IP de Radmin, estados, Abrir
+MCC, FPS del video), **Opciones** y el **Panel de admin**, ordenado como la pantalla dividida: una tarjeta por
+jugador. Cada amigo conectado muestra su nombre,
 su IP, cuántos controles por segundo llegan (unos 250 es lo normal) y el video que recibe. **Expulsar** lo
 desconecta (puede volver a conectarse). El panel guarda tu nickname, tu color de armadura, tu skin, el idioma,
 los FPS y lo de los nombres en `coopevolved-host.ini`, junto a `CoOpEvolved.exe`.
@@ -204,7 +211,7 @@ Para los jugadores 2, 3 y 4. **No** necesitas Halo, Steam ni MCC: el juego corre
 ### Cada vez que juegues
 1. Revisa que Radmin VPN esté **encendido** y que el host aparezca conectado en tu red de Radmin.
 2. Abre `CoOpEvolved.exe`. La primera vez Windows puede mostrar "Windows protegió su PC":
-   *Más información → Ejecutar de todas formas*. Si abre el panel del host, elige **Unirse a una partida**
+   *Más información → Ejecutar de todas formas*. Si abre el panel del host, elige **Unirse**
    arriba a la derecha.
 3. Llena el menú (se guarda todo para la próxima vez):
    - **IP de Radmin del host:** el host la ve arriba en su Co Op Evolved (botón *Copiar*).

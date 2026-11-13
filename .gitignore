@@ -14,3 +14,7 @@ capturas/
 
 # AlphaRing es de su autor: se descarga de su página oficial
 WTSAPI32.dll
+
+# La fuente de Halo no se distribuye: solo las imágenes que genera tools/make_ui_images.py
+*.ttf
+*.otf

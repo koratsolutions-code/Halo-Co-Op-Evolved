@@ -1,4 +1,4 @@
-# Halo: Co Op Evolved
+<h1 align="center"><img src="docs/logo.png" alt="Halo: Co Op Evolved" width="760"></h1>
 
 [Español](README.es.md) · **English**
 
@@ -10,7 +10,8 @@ sends each friend only their part of the screen plus the game sound, and receive
 cutscenes everyone sees the whole screen.
 
 It is a single program, `CoOpEvolved.exe`, for everyone: the host chooses **Host a game** and the friends
-**Join a game**. It is in **English** by default; switch to **Español** with the selector at the top right.
+**Join a game** with the tabs at the top right. It is in **English** by default; switch to **Español** with the
+**EN | ES** tabs next to them.
 
 ## Download
 
@@ -88,8 +89,11 @@ gets a wide 2560x720 strip).
 ### Cutscenes
 Halo draws cutscenes once over the whole screen. While one plays, each friend receives **the whole screen**
 (scaled to their size) instead of their quarter, and gets their quarter back when it ends. **Full-screen
-cutscenes for friends** turns it off. Subtitles during gameplay are still drawn by MCC across the whole split
-screen, so friends may see them cut.
+cutscenes for friends** turns it off.
+
+### Subtitles
+MCC draws subtitles once across the whole split screen, so friends see them cut. **Hide MCC subtitles** hides them
+for everyone (it takes effect when a mission starts). Your MCC settings are not changed: untick it to get them back.
 
 ### Audio
 Co Op Evolved captures **only MCC's sound** (not Discord, music or other apps) and sends the same mix
@@ -160,7 +164,8 @@ allow `CoOpEvolved.exe` in *Windows Firewall → Allow an app*.
   your PC: do not post them publicly.
 
 ### Host panel
-It is laid out like the split screen: one card per player. Each connected friend shows their name, IP,
+At the top: the **Host a game | Join a game** tabs and the language. Then **Connection** (your Radmin IP, status,
+Open MCC, video FPS), **Options** and the **Admin panel**, laid out like the split screen: one card per player. Each connected friend shows their name, IP,
 how many control updates per second arrive (about 250 is normal) and the video they receive.
 **Kick** disconnects them (they can reconnect). The panel remembers your nickname, armor color, skin, language,
 FPS and name settings in `coopevolved-host.ini`, next to `CoOpEvolved.exe`.

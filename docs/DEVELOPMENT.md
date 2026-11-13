@@ -30,6 +30,22 @@ Internal notes for people working on Halo: Co Op Evolved. Players only need [REA
 - In the old ViGEmBus + AlphaRing fallback, never write AlphaRing's profiles or options and never change how the
   virtual pads are created (that broke movement in v1; the pads must exist before MCC starts).
 
+## Interface look
+
+- Halo-launcher style shared by host and client: `src/common/ui_halo.h` / `src/app/ui_halo.cpp` (background with
+  hexagons, panels with cut corners, buttons) and the palette in `src/common/ui_style.h`.
+- The Halo font is **not** distributed (its licence is unclear). Fixed texts (titles, labels, buttons) are images:
+  `tools/make_ui_images.py` renders them in English and Spanish with the font installed on the developer's PC and
+  writes `src/app/ui_text.png`, `src/app/logo.png` (from `docs/logo.png`) and `src/common/ui_text_atlas.h`. To add a
+  text, add it to `TEXTS` in the script, run it (needs Pillow and the font) and build. The font has no accented
+  letters or ñ: the script draws the accent over the plain letter.
+- Text that changes (names, IPs, numbers, statuses) and long text use Segoe UI.
+- The mode and language tabs (`ui_mode.h`, `ui_halo_tab`) use Bahnschrift, loaded at run time from the Windows fonts
+  folder (falls back to Segoe UI bold). It is a variable font and Dear ImGui only loads its regular weight, so the
+  bold look is drawn twice 1 px apart, with extra letter spacing. Buttons keep the Halo-font images (the owner
+  preferred them).
+- `src/app/app.rc` embeds the icon (`app.ico`, from `icon.png`) and the two PNGs (RCDATA 101 and 102).
+
 ## How it works
 
 - **CoOpEvolved.exe (`src/app`)**: one program with two modes. `host_main` (`src/launcher`) and `client_main`
@@ -75,9 +91,18 @@ PE timestamp `0x68A0E5D7` (checked before hooking). Offsets are RVAs of the exe.
   keyboard/mouse device and 1-3 from pad devices 0-2; profile and gamepad mapping are always player 1's;
   get_index_by_xuid maps the fake xuids to 1-3. If `WTSAPI32.dll` (AlphaRing) is loaded from the game folder,
   none of this is installed (only the XInput hook).
-- **Subtitles** are drawn by MCC, not by halo1.dll: the current line lives in MCC UI objects as rich text
-  (`<color="#…">CORTANA: …</>`), plus a table of every line. The objects move around the heap with each line;
-  pointer scans only found coincidences. Next step would be a write watch on the text from inside the mod.
+- **Subtitles** are drawn by MCC's interface, which is Unreal Engine (`UMCCSubtitlesWidget`,
+  `UMCCSubtitlesViewModel`, `SubtitleManager`, `OnQueueSubtitles`). The texts come from
+  `Data\UI\Localization\EN_Halo1.bin` (UTF-8, `cor&idCORTANA` + U+E900 + line; a sorted table of 32-bit hashes,
+  not of the dialog sound names). MCC converts them to UTF-16 at load and the line on screen lives in UI objects that
+  move around the heap, so drawing each line per player would need Unreal reflection work. Not done.
+- **Hiding them** works through halo1.dll (`subtitles.cpp`): `halo1+0x47B180` reads the option
+  `GameOpt.Subtitles` into `options+0x50` (prologue `40 57 48 83 EC 30 48 C7 44 24 20 FE FF FF FF`); its caller, when
+  the value is 0, calls `+0x47B230`, which sends `HideAll` to the subtitle interface. The mod hooks `+0x47B180` and
+  writes 0 when the host ticks *Hide MCC subtitles* (`VideoConfig.hide_subtitles`). It hooks `KernelBase!LoadLibraryExW`
+  to catch every load of halo1.dll before MCC uses it (and polls as a fallback).
+- `%USERPROFILE%\AppData\LocalLow\MCC\Config\Halo1\UserConfigs\user.cfg` (`GameOpt { Subtitles = 1 }`) is only
+  a copy: MCC rewrites it from its own profile settings when it starts and when a mission starts. Never edit it.
 
 ## What we know about halo1.dll (MCC Steam 1.3528)
 

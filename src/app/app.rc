@@ -1,0 +1,5 @@
+// Icono del programa (anillo de Halo con HCE): Explorador y ventanas del host y del cliente.
+1 ICON "app.ico"
+// Textos fijos con la fuente de Halo y el logo (tools/make_ui_images.py), cargados por ui_halo.cpp.
+101 RCDATA "ui_text.png"
+102 RCDATA "logo.png"

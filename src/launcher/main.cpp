@@ -10,6 +10,7 @@
 
 #include "../common/lang.h"
 #include "../common/ui_armor_color.h"
+#include "../common/ui_halo.h"
 #include "../common/ui_mode.h"
 #include "../common/ui_skin.h"
 #include "../common/ui_style.h"
@@ -52,6 +53,7 @@ struct HostSettings {
     int skin = 0;         // jugador 1, índice en k_skins
     bool p1_fullscreen = false;
     bool full_cinematics = true;
+    bool hide_subtitles = false;  // los subtítulos de MCC cruzan toda la pantalla dividida: los amigos los ven cortados
     // Mandos de J2-J4: true = directo al juego (sin ViGEmBus; sin AlphaRing el mod pone los 4 jugadores),
     // false = mandos virtuales de ViGEmBus + AlphaRing (el sistema anterior). Clave "controllers" del .ini.
     bool direct_pads = true;
@@ -89,6 +91,7 @@ void settings_load() {
     if (g_settings.skin < 0 || g_settings.skin >= k_skin_count) g_settings.skin = 0;
     g_settings.p1_fullscreen = GetPrivateProfileIntW(L"host", L"p1_fullscreen", 0, ini.c_str()) != 0;
     g_settings.full_cinematics = GetPrivateProfileIntW(L"host", L"full_cinematics", 1, ini.c_str()) != 0;
+    g_settings.hide_subtitles = GetPrivateProfileIntW(L"host", L"hide_subtitles", 0, ini.c_str()) != 0;
     wchar_t controllers[16] = {};
     GetPrivateProfileStringW(L"host", L"controllers", L"direct", controllers, 16, ini.c_str());
     g_settings.direct_pads = _wcsicmp(controllers, L"vigem") != 0;
@@ -108,6 +111,7 @@ void settings_save() {
     WritePrivateProfileStringW(L"host", L"skin", std::to_wstring(g_settings.skin).c_str(), ini.c_str());
     WritePrivateProfileStringW(L"host", L"p1_fullscreen", g_settings.p1_fullscreen ? L"1" : L"0", ini.c_str());
     WritePrivateProfileStringW(L"host", L"full_cinematics", g_settings.full_cinematics ? L"1" : L"0", ini.c_str());
+    WritePrivateProfileStringW(L"host", L"hide_subtitles", g_settings.hide_subtitles ? L"1" : L"0", ini.c_str());
     WritePrivateProfileStringW(L"host", L"controllers", g_settings.direct_pads ? L"direct" : L"vigem", ini.c_str());
 }
 
@@ -120,6 +124,7 @@ void apply_host_options() {
     options.host_skin = g_settings.skin;
     options.p1_fullscreen = g_settings.p1_fullscreen;
     options.full_cinematics = g_settings.full_cinematics;
+    options.hide_subtitles = g_settings.hide_subtitles;
     net_server_set_host_options(options);
 }
 
@@ -242,7 +247,6 @@ ID3D11DeviceContext* g_context = nullptr;
 IDXGISwapChain* g_swap_chain = nullptr;
 ID3D11RenderTargetView* g_target = nullptr;
 HWND g_window = nullptr;
-ImFont* g_title_font = nullptr;
 ImFont* g_big_font = nullptr;
 
 void create_target() {
@@ -274,59 +278,46 @@ bool create_device(HWND hwnd) {
 
 // Punto de color + texto, para los estados.
 void status_dot(const ImVec4& color, const char* text) {
-    ImVec2 pos = ImGui::GetCursorScreenPos();
-    float h = ImGui::GetTextLineHeight();
-    ImGui::GetWindowDrawList()->AddCircleFilled(ImVec2(pos.x + 5, pos.y + h / 2), 5, ImGui::GetColorU32(color));
-    ImGui::Dummy(ImVec2(14, h));
-    ImGui::SameLine(0, 4);
-    ImGui::TextUnformatted(text);
-}
-
-void colored_button_style(const ImVec4& base) {
-    ImGui::PushStyleColor(ImGuiCol_Button, base);
-    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(base.x * 1.2f, base.y * 1.2f, base.z * 1.2f, 1));
-    ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(base.x * 0.85f, base.y * 0.85f, base.z * 0.85f, 1));
+    ui_halo_status(color, text);
 }
 
 void draw_header() {
-    ImGui::PushFont(g_title_font);
-    ImGui::TextColored(k_green, "HALO:");
-    ImGui::SameLine();
-    ImGui::TextUnformatted("CO OP EVOLVED  ·  HOST");
-    ImGui::PopFont();
-
+    float y = ImGui::GetCursorPosY();
+    ImGui::SetCursorPosY(y + (k_tab_h - 34) / 2);
+    ui_halo_logo(34, k_text);
     // Modo (crear partida / unirse) e idioma, arriba a la derecha.
-    const char* languages[] = {"English", "Español"};
-    float width = 120, mode_width = 190;
-    ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - width - mode_width - ImGui::GetStyle().ItemSpacing.x);
-    ui_mode_combo(true, mode_width);
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(width);
-    int lang = int(g_settings.lang);
-    if (ImGui::Combo("##lang", &lang, languages, 2)) {
-        g_settings.lang = Lang(lang);
-        g_lang = g_settings.lang;
-        settings_save();
-    }
+    ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - ui_mode_tabs_width());
+    ImGui::SetCursorPosY(y);
+    if (ui_mode_tabs(true, &g_settings.lang)) settings_save();
 }
 
 void draw_connection_card() {
-    ImGui::BeginChild("##connection", ImVec2(0, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
-    ImGui::TextColored(k_muted, "%s", T("YOUR RADMIN IP  ·  give it to your friends", "TU IP DE RADMIN  ·  pásasela a tus amigos"));
+    ui_halo_panel_begin("##connection", "connection");
+    // Todo en una línea, centrado en la altura del botón Copiar.
+    const float row_h = 34;
+    float row_y = ImGui::GetCursorPosY();
+    auto center = [&](float h) { ImGui::SetCursorPosY(row_y + (row_h - h) / 2); };
+    center(22);
+    ui_halo_text("radmin_ip", 22, k_text);
+    ImGui::SameLine(0, 16);
     if (g_status.radmin_ip.empty()) {
+        center(ImGui::GetTextLineHeight());
         ImGui::TextColored(k_red, "%s", T("Radmin VPN is not connected: your friends will not be able to join.",
                                           "Radmin VPN no está conectado: tus amigos no podrán entrar."));
     } else {
         ImGui::PushFont(g_big_font);
+        center(ImGui::GetTextLineHeight());
         ImGui::TextUnformatted(g_status.radmin_ip.c_str());
         ImGui::PopFont();
-        ImGui::SameLine();
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6);
-        if (ImGui::Button(T("Copy", "Copiar"))) ImGui::SetClipboardText(g_status.radmin_ip.c_str());
-        ImGui::SameLine();
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6);
-        ImGui::TextColored(k_muted, T("UDP port %u", "puerto UDP %u"), proto::k_port);
+        ImGui::SameLine(0, 14);
+        center(row_h);
+        if (ui_halo_button("copy", ImVec2(110, row_h), k_blue)) ImGui::SetClipboardText(g_status.radmin_ip.c_str());
+        ImGui::SameLine(0, 14);
+        center(ImGui::GetTextLineHeight());
+        ImGui::TextColored(k_muted, T("UDP port %u  ·  give it to your friends", "puerto UDP %u  ·  pásasela a tus amigos"),
+                           proto::k_port);
     }
+    ImGui::SetCursorPosY(row_y + row_h + ImGui::GetStyle().ItemSpacing.y);
 
     ImGui::Separator();
     // Estados en una línea.
@@ -371,18 +362,19 @@ void draw_connection_card() {
                  g_status.video.game_width, g_status.video.game_height);
         video_color = k_green;
     }
+    ImGui::SameLine(0, 18);
     status_dot(video_color, video);
 
     ImGui::Separator();
     ImGui::BeginDisabled(g_status.mcc_open);
-    if (ImGui::Button(T("Open MCC", "Abrir MCC"), ImVec2(150, 0))) {
+    if (ui_halo_button("open_mcc", ImVec2(230, 46), k_blue)) {
         log_write("Abriendo MCC desde Steam");
         ShellExecuteW(nullptr, L"open", k_mcc_steam_url, nullptr, nullptr, SW_SHOWNORMAL);
     }
     ImGui::EndDisabled();
     if (!g_status.mcc_open && (g_status.mod == ModState::not_installed || g_status.mod == ModState::outdated)) {
         ImGui::SameLine();
-        if (ImGui::Button(T("Install mod in the game", "Instalar en el juego"))) {
+        if (ui_halo_button("install_mod", ImVec2(230, 46), k_blue)) {
             std::wstring error;
             if (game_install_mod(g_binaries_dir, error))
                 MessageBoxW(g_window, T(L"Mod installed in the game.", L"Mod instalado en el juego."), k_title,
@@ -392,7 +384,15 @@ void draw_connection_card() {
         }
     }
     ImGui::SameLine();
-    ImGui::TextColored(k_muted, "%s", T("Choose \"without anti-cheat\"", "Elige \"sin anticheat\""));
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 12);
+    if (g_settings.direct_pads && !g_status.alpharing)
+        ImGui::TextColored(k_muted, "%s",
+                           T("Choose \"without anti-cheat\"  ·  use classic graphics (Tab) and keep the game window active",
+                             "Elige \"sin anticheat\"  ·  usa gráficos clásicos (Tab) y deja activa la ventana del juego"));
+    else
+        ImGui::TextColored(k_muted, "%s",
+                           T("Choose \"without anti-cheat\"  ·  AlphaRing (F4): Players = 4  ·  classic graphics (Tab)",
+                             "Elige \"sin anticheat\"  ·  AlphaRing (F4): Players = 4  ·  gráficos clásicos (Tab)"));
 
     float combo_width = 170;
     ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - combo_width);
@@ -414,11 +414,11 @@ void draw_connection_card() {
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("%s", T("More FPS = less delay, but more upload (about 10 Mbps per friend at 60 FPS).",
                                   "Más FPS = menos retraso, pero más subida (unos 10 Mbps por amigo a 60 FPS)."));
-    ImGui::EndChild();
+    ui_halo_panel_end();
 }
 
 void draw_name_tags_card() {
-    ImGui::BeginChild("##names", ImVec2(0, 0), ImGuiChildFlags_Borders | ImGuiChildFlags_AutoResizeY);
+    ui_halo_panel_begin("##names", "options");
     if (ImGui::Checkbox(T("Show names over players", "Mostrar nombres sobre los jugadores"), &g_settings.name_tags)) {
         apply_host_options();
         settings_save();
@@ -444,6 +444,7 @@ void draw_name_tags_card() {
                                   "Ves solo tu parte de la pantalla, estirada a todo tu monitor. Tus amigos siguen\n"
                                   "recibiendo la suya. F6 lo activa y lo desactiva mientras juegas (los menús se usan\n"
                                   "mejor en pantalla dividida). Consejo: con más resolución en el juego se ve más nítido."));
+    ImGui::SameLine(0, 36);
     if (ImGui::Checkbox(T("Full-screen cutscenes for friends", "Cinemáticas completas para los amigos"),
                         &g_settings.full_cinematics)) {
         apply_host_options();
@@ -452,7 +453,17 @@ void draw_name_tags_card() {
     if (ImGui::IsItemHovered())
         ImGui::SetTooltip("%s", T("During cutscenes each friend sees the whole screen instead of their part.",
                                   "Durante las cinemáticas cada amigo ve la pantalla entera en vez de su parte."));
-    ImGui::EndChild();
+    ImGui::SameLine(0, 36);
+    if (ImGui::Checkbox(T("Hide MCC subtitles", "Ocultar los subtítulos de MCC"), &g_settings.hide_subtitles)) {
+        apply_host_options();
+        settings_save();
+    }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("%s", T("MCC draws subtitles across the whole split screen, so your friends see them cut.\n"
+                                  "Your MCC settings are not changed. Applies when a mission starts.",
+                                  "MCC dibuja los subtítulos sobre toda la pantalla dividida, así que tus amigos los ven\n"
+                                  "cortados. No cambia tu configuración de MCC. Vale al empezar una misión."));
+    ui_halo_panel_end();
 }
 
 // Skins de la misión cargada (0: no se sabe).
@@ -462,8 +473,7 @@ uint16_t mission_skins() { return g_status.video_ok ? g_status.video.skins_avail
 void draw_player_card(int player, float width, float height) {
     char id[16];
     snprintf(id, sizeof(id), "##player%d", player);
-    ImGui::BeginChild(id, ImVec2(width, height), ImGuiChildFlags_Borders,
-                      ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+    ui_halo_panel_begin(id, nullptr, ImVec2(width, height));
 
     // Dónde está en la pantalla dividida: depende de cuántos jugadores tiene la misión en curso.
     int count = g_status.video_ok && g_status.video.local_players ? g_status.video.local_players : 4;
@@ -474,52 +484,52 @@ void draw_player_card(int player, float width, float height) {
     else if (count < 4 && player == 1) place = T("top", "arriba");
     else if (count == 2) place = T("bottom", "abajo");
     else if (count == 3) place = player == 2 ? T("bottom left", "abajo izq.") : T("bottom right", "abajo der.");
-    ImGui::PushFont(g_big_font);
-    ImGui::TextColored(k_green, T("P%d", "J%d"), player);
-    ImGui::PopFont();
-    ImGui::SameLine();
-    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6);
+    const char* tags[] = {"p1", "p2", "p3", "p4"};
+    ui_halo_text(tags[player - 1], 34, k_cyan);
+    ImGui::SameLine(0, 14);
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8);
     ImGui::TextColored(k_muted, "%s", place);
 
     if (player == 1) {
         ImGui::SameLine();
-        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6);
+        ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8);
         ImGui::TextColored(k_muted, "·  %s", T("you, on this PC", "tú, en este PC"));
-        // Las casillas alineadas a la misma columna.
-        const char* armor_label = T("Armor", "Armadura");
-        float column = std::max({ImGui::CalcTextSize("Nickname").x, ImGui::CalcTextSize(armor_label).x,
-                                 ImGui::CalcTextSize("Skin").x}) +
-                       ImGui::GetStyle().ItemSpacing.x * 2;
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted("Nickname");
-        ImGui::SameLine(column);
+        // Etiquetas con la fuente de Halo, centradas en la altura de la casilla y alineadas en una columna.
+        const float label_h = 22;
+        float column = std::max({ui_halo_text_width("nickname", label_h), ui_halo_text_width("armor", label_h),
+                                 ui_halo_text_width("skin", label_h)}) +
+                       ImGui::GetStyle().ItemSpacing.x * 3;
+        auto label = [&](const char* key) {
+            float y = ImGui::GetCursorPosY();
+            ImGui::SetCursorPosY(y + (ImGui::GetFrameHeight() - label_h) / 2);
+            ui_halo_text(key, label_h, k_text);
+            ImGui::SameLine(column);
+            ImGui::SetCursorPosY(y);
+        };
+        label("nickname");
         ImGui::SetNextItemWidth(-1);
         if (ImGui::InputTextWithHint("##nickname", T("Your name over your character", "Tu nombre sobre tu personaje"),
                                      g_settings.nickname, sizeof(g_settings.nickname)))
             apply_host_options();
         if (ImGui::IsItemDeactivatedAfterEdit()) settings_save();
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted(armor_label);
-        ImGui::SameLine(column);
+        label("armor");
         if (ui_armor_color_combo("##armor", &g_settings.armor_color, -1)) {
             apply_host_options();
             settings_save();
         }
-        ImGui::AlignTextToFramePadding();
-        ImGui::TextUnformatted("Skin");
-        ImGui::SameLine(column);
+        label("skin");
         if (ui_skin_combo("##skin", &g_settings.skin, -1, mission_skins())) {
             apply_host_options();
             settings_save();
         }
-        ImGui::EndChild();
+        ui_halo_panel_end();
         return;
     }
 
     int index = player - k_first_remote_player;
     const PlayerInfo& info = g_status.players[index];
     ImGui::SameLine();
-    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6);
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 8);
     ImGui::TextColored(k_muted, T("·  Controller %d", "·  Controller %d"), pads_slot(player) + 1);
 
     if (info.connected) {
@@ -558,7 +568,8 @@ void draw_player_card(int player, float width, float height) {
     }
 
     float button = (ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) / 2;
-    if (ImGui::Button(T("Move", "Mover"), ImVec2(button, 0))) {
+    ImGui::SetCursorPosY(std::max(ImGui::GetCursorPosY(), ImGui::GetWindowHeight() - 36 - ImGui::GetStyle().WindowPadding.y));
+    if (ui_halo_button("move", ImVec2(button, 36), k_blue)) {
         pads_move_test(player);
         focus_mcc();
     }
@@ -567,43 +578,54 @@ void draw_player_card(int player, float width, float height) {
                                   "Camina, gira y salta ~10 s para probar este mando."));
     ImGui::SameLine();
     ImGui::BeginDisabled(!info.connected);
-    colored_button_style(ImVec4(0.50f, 0.22f, 0.20f, 1));
-    if (ImGui::Button(T("Kick", "Expulsar"), ImVec2(button, 0))) {
+    if (ui_halo_button("kick", ImVec2(button, 36), k_kick)) {
         net_server_kick(player);  // puede volver a conectarse
         g_status.players[index] = PlayerInfo{};
         focus_mcc();
     }
-    ImGui::PopStyleColor(3);
     ImGui::EndDisabled();
-    ImGui::EndChild();
+    ui_halo_panel_end();
 }
 
 void draw_panel() {
     refresh_status();
     ImGuiIO& io = ImGui::GetIO();
+    ui_halo_background();
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(io.DisplaySize);
+    ImGui::SetNextWindowBgAlpha(0);
     ImGui::Begin("##panel", nullptr,
                  ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
-                     ImGuiWindowFlags_NoBringToFrontOnFocus);
+                     ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_NoScrollWithMouse);
+    // Todo en una columna centrada de ancho máximo, que entra en una pantalla sin desplazarse.
+    float column_w = std::min(1480.0f, ImGui::GetContentRegionAvail().x);
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (ImGui::GetContentRegionAvail().x - column_w) / 2);
+    ImGui::BeginChild("##column", ImVec2(column_w, 0), ImGuiChildFlags_None,
+                      ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoBackground);
     draw_header();
     if (g_inactive) {
         ImGui::TextColored(k_red, "%s",
                            T("Another Co Op Evolved host is already open on this PC: this window does nothing. Use "
                              "that one, or switch this one to \"Join a game\".",
                              "Ya hay otro host de Co Op Evolved abierto en este PC: esta ventana no hace nada. Usa "
-                             "ese, o cambia esta a \"Unirse a una partida\"."));
+                             "ese, o cambia esta a \"Unirse\"."));
         ImGui::BeginDisabled();
     }
     draw_connection_card();
     draw_name_tags_card();
 
-    // Jugadores en cuadrícula 2x2, como la pantalla dividida. Alto fijo: el del jugador 1 (título y tres casillas).
+    // Jugadores y controles de prueba (mover a un jugador, expulsar).
+    ui_halo_text("admin_panel", 28, k_cyan);
+    ImGui::SameLine(0, 14);
+    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 6);
+    ImGui::TextColored(k_muted, "%s", T("Players and test controls", "Jugadores y controles de prueba"));
+    // Jugadores en cuadrícula 2x2, como la pantalla dividida, ocupando el alto que queda (como mínimo el que
+    // necesita la tarjeta del jugador 1: título y tres casillas).
     const ImGuiStyle& style = ImGui::GetStyle();
     float spacing = style.ItemSpacing.x;
     float card_w = (ImGui::GetContentRegionAvail().x - spacing) / 2;
-    float card_h = style.WindowPadding.y * 2 + g_big_font->FontSize + ImGui::GetFrameHeight() * 3 +
-                   style.ItemSpacing.y * 4 + 8;
+    float card_min = 10 * 2 + 34 + ImGui::GetFrameHeight() * 3 + style.ItemSpacing.y * 4 + 6;
+    float card_h = std::max(card_min, (ImGui::GetContentRegionAvail().y - style.ItemSpacing.y) / 2);
     draw_player_card(1, card_w, card_h);
     ImGui::SameLine();
     draw_player_card(2, card_w, card_h);
@@ -611,17 +633,8 @@ void draw_panel() {
     ImGui::SameLine();
     draw_player_card(4, card_w, card_h);
 
-    ImGui::PushStyleColor(ImGuiCol_Text, k_muted);
-    if (g_settings.direct_pads && !g_status.alpharing)
-        ImGui::TextWrapped("%s", T("Use classic graphics (Tab) and keep the game window active while you play.",
-                                   "Usa gráficos clásicos (Tab) y deja la ventana del juego activa mientras juegan."));
-    else
-        ImGui::TextWrapped("%s", T("In AlphaRing (F4): Players = 4, change nothing else, close it with F4. Use classic "
-                                   "graphics (Tab) and keep the game window active while you play.",
-                                   "En AlphaRing (F4): Players = 4, sin cambiar nada más, ciérralo con F4. Usa gráficos "
-                                   "clásicos (Tab) y deja la ventana del juego activa mientras juegan."));
-    ImGui::PopStyleColor();
     if (g_inactive) ImGui::EndDisabled();
+    ImGui::EndChild();
     ImGui::End();
 }
 
@@ -662,7 +675,7 @@ LRESULT CALLBACK window_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam) 
 }
 
 bool run_panel(HINSTANCE instance) {
-    WNDCLASSEXW wc{sizeof(wc), CS_CLASSDC, window_proc, 0, 0, instance, LoadIconW(nullptr, IDI_APPLICATION),
+    WNDCLASSEXW wc{sizeof(wc), CS_CLASSDC, window_proc, 0, 0, instance, LoadIconW(instance, MAKEINTRESOURCEW(1)),
                    LoadCursorW(nullptr, IDC_ARROW), nullptr, nullptr, L"CoOpEvolvedHost", nullptr};
     RegisterClassExW(&wc);
     g_window = CreateWindowW(wc.lpszClassName, k_title, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 900, 930,
@@ -680,10 +693,11 @@ bool run_panel(HINSTANCE instance) {
     io.IniFilename = nullptr;
     ui_load_font(19.0f);
     g_big_font = ui_load_font(26.0f, true);
-    g_title_font = ui_load_font(22.0f, true);
+    ui_halo_set_tab_font(ui_load_tab_font(20.0f));
     ui_apply_style();
     ImGui_ImplWin32_Init(g_window);
     ImGui_ImplDX11_Init(g_device, g_context);
+    ui_halo_init(g_device);
 
     bool running = true;
     while (running) {
@@ -710,6 +724,7 @@ bool run_panel(HINSTANCE instance) {
         g_swap_chain->Present(0, 0);
     }
 
+    ui_halo_release();
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();

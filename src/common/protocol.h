@@ -175,6 +175,7 @@ struct VideoConfig {
     uint8_t p1_fullscreen = 0;            // 1: el host ve solo su cuadrante a pantalla completa (F6 lo cambia)
     uint8_t skins[4] = {};                // jugadores 1..4, índice en k_skins (0: Master Chief)
     uint8_t full_cinematics = 1;          // 1: durante las cinemáticas cada amigo recibe la pantalla entera
+    uint8_t hide_subtitles = 0;           // 1: el mod hace que Halo oculte los subtítulos de MCC
 };
 
 // El launcher lo manda al DLL apenas llega movimiento de un cliente: radianes a sumar a la cámara.

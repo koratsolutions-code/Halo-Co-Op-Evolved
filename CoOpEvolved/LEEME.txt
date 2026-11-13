@@ -5,7 +5,7 @@ Campaña de Halo: Combat Evolved (MCC, Steam) para 4 jugadores, cada uno en su P
 propia pantalla completa, por Radmin VPN. Un solo programa para todos:
 
   CoOpEvolved.exe -> el programa. Arriba a la derecha elige "Crear partida" (jugador 1, el PC
-                     con Halo) o "Unirse a una partida" (jugadores 2, 3 y 4). Abre en el
+                     con Halo) o "Unirse" (jugadores 2, 3 y 4). Abre en el
                      último modo que usaste.
   VERSION.dll     -> el mod dentro del juego. Solo lo necesita el host: CoOpEvolved.exe lo
                      copia solo a la carpeta del juego.
@@ -37,7 +37,9 @@ Necesitas: MCC 1.3528 en Steam, una GPU NVIDIA, Radmin VPN y unos 10 Mbps de sub
   - "Jugador 1 a pantalla completa (F6 en el juego)": ves solo tu parte, estirada al monitor.
   - "Cinemáticas completas para los amigos": durante las cinemáticas cada amigo ve la
     pantalla entera.
-  - Una tarjeta por jugador: nombre, IP, controles por segundo y video de cada amigo.
+  - "Ocultar los subtítulos de MCC": MCC los dibuja sobre toda la pantalla dividida y los
+    amigos los ven cortados. Vale al empezar una misión; no cambia tu configuración de MCC.
+  - Panel de admin, una tarjeta por jugador: nombre, IP, controles por segundo y video de cada amigo.
     "Mover": prueba los controles de ese jugador.  "Expulsar": lo desconecta.
   - "Skin": verte como otro personaje (Marine, Elite...) y seguir siendo Master Chief.
     Solo sirven las skins de la misión cargada. Una skin nueva se ve al reaparecer.
@@ -46,8 +48,8 @@ Necesitas: MCC 1.3528 en Steam, una GPU NVIDIA, Radmin VPN y unos 10 Mbps de sub
   vuelve al menú de MCC y empieza la misión otra vez (reiniciar desde la pausa deja los
   mismos jugadores).
 
-  Para probar en un solo PC: abre CoOpEvolved.exe otra vez; se abre solo en "Unirse a una
-  partida" (IP 127.0.0.1). Solo puede haber un host por PC.
+  Para probar en un solo PC: abre CoOpEvolved.exe otra vez; se abre solo en "Unirse"
+  (IP 127.0.0.1). Solo puede haber un host por PC.
 
 AMIGOS (jugadores 2, 3 y 4)
 ---------------------------
@@ -55,7 +57,7 @@ Necesitas: Windows 10/11 con GPU NVIDIA y drivers al día, Radmin VPN en la red 
 un mando de Xbox o teclado y mouse. NO necesitas Halo.
 
   1. Abre CoOpEvolved.exe (si Windows muestra "Windows protegió su PC": Más información ->
-     Ejecutar de todas formas). Si sale el panel del host, elige "Unirse a una partida"
+     Ejecutar de todas formas). Si sale el panel del host, elige "Unirse"
      arriba a la derecha.
   2. Escribe la IP de Radmin del host y tu nombre; elige tu color de armadura y tu skin.
   3. Elige tu número de jugador (cada amigo uno distinto, siempre el mismo):

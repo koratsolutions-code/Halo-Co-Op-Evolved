@@ -8,6 +8,7 @@
 #include "name_tags.h"
 #include "p1_view.h"
 #include "skins.h"
+#include "subtitles.h"
 #include "video.h"
 
 #include <d3d11.h>
@@ -106,6 +107,7 @@ DWORD WINAPI init_thread(LPVOID) {
     else
         log_write("No se pudo enganchar Present (%s): sin video", MH_StatusToString(status));
     skins_start();  // usa MinHook: después de MH_Initialize
+    subtitles_start();
     return 0;
 }
 

@@ -9,3 +9,4 @@ std::wstring game_binaries_dir();             // ...\mcc\binaries\win64, o vací
 ModState game_mod_state(const std::wstring& binaries_dir);
 bool game_alpharing_present(const std::wstring& binaries_dir);
 bool game_install_mod(const std::wstring& binaries_dir, std::wstring& error);  // MCC tiene que estar cerrado
+

@@ -11,6 +11,7 @@
 
 #include "../common/lang.h"
 #include "../common/ui_armor_color.h"
+#include "../common/ui_halo.h"
 #include "../common/ui_mode.h"
 #include "../common/ui_skin.h"
 #include "../common/ui_style.h"
@@ -254,11 +255,22 @@ void volume_controls() {
     ImGui::EndDisabled();
 }
 
+// Etiqueta con la fuente de Halo, centrada en la altura de la casilla que sigue en la misma línea.
+void field_label(const char* key) {
+    constexpr float k_label = 22;
+    float y = ImGui::GetCursorPosY();
+    ImGui::SetCursorPosY(y + (ImGui::GetFrameHeight() - k_label) / 2);
+    ui_halo_text(key, k_label, k_text);
+    // Las casillas de color y de skin empiezan en la misma columna.
+    float column = std::max(ui_halo_text_width("armor_color", k_label), ui_halo_text_width("skin", k_label)) +
+                   ImGui::GetStyle().ItemSpacing.x * 2;
+    ImGui::SameLine(column + ImGui::GetStyle().WindowPadding.x);
+    ImGui::SetCursorPosY(y);
+}
+
 // Color de armadura: se guarda y, si ya está conectado, le llega al host en menos de un segundo.
 void armor_color_control() {
-    ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted(T("Armor color", "Color de armadura"));
-    ImGui::SameLine();
+    field_label("armor_color");
     if (ui_armor_color_combo("##armor", &g_settings.armor_color, -1)) {
         net_update_settings(g_settings);
         settings_save(g_settings);
@@ -267,9 +279,7 @@ void armor_color_control() {
 
 // Skin: se guarda y, si ya está conectado, le llega al host en menos de un segundo.
 void skin_control(const NetStatus& status) {
-    ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted("Skin");
-    ImGui::SameLine();
+    field_label("skin");
     if (ui_skin_combo("##skin", &g_settings.skin, -1, status.skins_available)) {
         net_update_settings(g_settings);
         settings_save(g_settings);
@@ -277,36 +287,32 @@ void skin_control(const NetStatus& status) {
 }
 
 void draw_menu(const NetStatus& status) {
-    ImGui::TextColored(k_green, "%s", "HALO: CO OP EVOLVED");
+    float y = ImGui::GetCursorPosY();
+    ImGui::SetCursorPosY(y + (k_tab_h - 30) / 2);
+    ui_halo_logo(30, k_text);
     // Modo (crear partida / unirse) e idioma, arriba a la derecha.
-    const char* languages[] = {"English", "Español"};
-    float lang_width = 120, mode_width = 190;
-    ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - lang_width - mode_width - ImGui::GetStyle().ItemSpacing.x);
-    ui_mode_combo(false, mode_width);
-    ImGui::SameLine();
-    ImGui::SetNextItemWidth(lang_width);
-    int lang = int(g_settings.lang);
-    if (ImGui::Combo("##lang", &lang, languages, 2)) {
-        g_settings.lang = Lang(lang);
-        g_lang = g_settings.lang;
-        settings_save(g_settings);
-    }
+    ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - ui_mode_tabs_width());
+    ImGui::SetCursorPosY(y);
+    if (ui_mode_tabs(false, &g_settings.lang)) settings_save(g_settings);
+    // El formulario en una columna centrada (la ventana suele estar maximizada).
+    float width = std::min(760.0f, ImGui::GetContentRegionAvail().x);
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (ImGui::GetContentRegionAvail().x - width) / 2);
+    ui_halo_panel_begin("##join", "join_title", ImVec2(width, 0));
     ImGui::TextDisabled("%s", T("Connect to the host through Radmin VPN.", "Conéctate al host por Radmin VPN."));
-    ImGui::Separator();
 
-    ImGui::TextUnformatted(T("Host's Radmin IP", "IP de Radmin del host"));
+    ui_halo_text("host_ip", 22, k_text);
     ImGui::SetNextItemWidth(-1);
     ImGui::InputTextWithHint("##host", T("The host gives it to you (shown at the top of their Co Op Evolved)",
                                          "Te la da el host (sale arriba en su Co Op Evolved)"),
                              g_host_text, sizeof(g_host_text), ImGuiInputTextFlags_CharsNoBlank);
-    ImGui::TextUnformatted(T("Your name", "Tu nombre"));
+    ui_halo_text("your_name", 22, k_text);
     ImGui::SetNextItemWidth(-1);
     ImGui::InputTextWithHint("##name", T("How the others will see you", "Cómo te verán los demás"), g_name_text,
                              sizeof(g_name_text));
     armor_color_control();
     skin_control(status);
 
-    ImGui::TextUnformatted(T("Player", "Jugador"));
+    ui_halo_text("player", 22, k_text);
     for (int p = 2; p <= 4; ++p) {
         if (p > 2) ImGui::SameLine();
         char label[32];
@@ -316,7 +322,7 @@ void draw_menu(const NetStatus& status) {
     ImGui::TextDisabled("%s", T("P2 = top right · P3 = bottom left · P4 = bottom right",
                                 "J2 = arriba a la derecha · J3 = abajo a la izquierda · J4 = abajo a la derecha"));
 
-    ImGui::TextUnformatted("Control");
+    ui_halo_text("control", 22, k_text);
     if (ImGui::RadioButton(T("Controller", "Mando"), g_settings.control == ControlMode::gamepad))
         g_settings.control = ControlMode::gamepad;
     ImGui::SameLine();
@@ -334,13 +340,14 @@ void draw_menu(const NetStatus& status) {
 
     ImGui::Spacing();
     ImGui::BeginDisabled(g_host_text[0] == '\0');
-    if (ImGui::Button(T("Connect", "Conectar"), ImVec2(-1, 44))) {
+    if (ui_halo_button("connect", ImVec2(ImGui::GetContentRegionAvail().x, 48), k_blue)) {
         g_settings.host = g_host_text;
         g_settings.nickname = g_name_text;
         settings_save(g_settings);
         net_connect(g_settings);
     }
     ImGui::EndDisabled();
+    ui_halo_panel_end();
 }
 
 void draw_connecting() {
@@ -461,7 +468,7 @@ int client_main(HINSTANCE instance) {
     strncpy_s(g_host_text, g_settings.host.c_str(), _TRUNCATE);
     strncpy_s(g_name_text, g_settings.nickname.c_str(), _TRUNCATE);
 
-    WNDCLASSEXW wc{sizeof(wc), CS_CLASSDC, window_proc, 0, 0, instance, LoadIconW(nullptr, IDI_APPLICATION),
+    WNDCLASSEXW wc{sizeof(wc), CS_CLASSDC, window_proc, 0, 0, instance, LoadIconW(instance, MAKEINTRESOURCEW(1)),
                    LoadCursorW(nullptr, IDC_ARROW), nullptr, nullptr, L"CoOpEvolvedClient", nullptr};
     RegisterClassExW(&wc);
     g_window = CreateWindowW(wc.lpszClassName, T(L"Halo: Co Op Evolved - Client", L"Halo: Co Op Evolved - Cliente"), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, 640, 740,
@@ -479,9 +486,11 @@ int client_main(HINSTANCE instance) {
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = nullptr;
     ui_load_font(19.0f);
+    ui_halo_set_tab_font(ui_load_tab_font(20.0f));
     ui_apply_style();
     ImGui_ImplWin32_Init(g_window);
     ImGui_ImplDX11_Init(g_device, g_context);
+    ui_halo_init(g_device);
 
     // Pruebas automáticas: COOPEVOLVED_AUTOCONNECT=1 conecta al abrir con lo guardado en el .ini.
     if (GetEnvironmentVariableW(L"COOPEVOLVED_AUTOCONNECT", nullptr, 0) && !g_settings.host.empty())
@@ -537,8 +546,10 @@ int client_main(HINSTANCE instance) {
         ImGui::NewFrame();
 
         if (!connected || !g_has_video) {
+            ui_halo_background();
             ImGui::SetNextWindowPos(ImVec2(0, 0));
             ImGui::SetNextWindowSize(io.DisplaySize);
+            ImGui::SetNextWindowBgAlpha(0);
             ImGui::Begin("##main", nullptr,
                          ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoSavedSettings |
                              ImGuiWindowFlags_NoBringToFrontOnFocus);
@@ -607,6 +618,7 @@ int client_main(HINSTANCE instance) {
     net_disconnect();
     audio_stop();
     g_decoder.reset();
+    ui_halo_release();
     ImGui_ImplDX11_Shutdown();
     ImGui_ImplWin32_Shutdown();
     ImGui::DestroyContext();

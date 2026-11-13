@@ -87,6 +87,8 @@ Lowest latency is the top priority.
 | Network controllers without ViGEmBus | XInputGetState/SetState hook; slots 0-2 = players 2-4 (`proto::Pads`). Tested |
 | Video | NVENC H.264 per quadrant, NVDEC in the client, 30/60/120 FPS |
 | Full-screen cutscenes | While `halo1+0x1B87A20` is 1 every friend gets the whole screen scaled down. Tested |
+| Hide MCC subtitles | Host option; hooks `halo1+0x47B180` so Halo sends `HideAll` (MCC settings untouched). Tested |
+| Halo-launcher look | Logo, icon, Halo-font images for fixed texts, Bahnschrift tabs, admin panel (`ui_halo.*`) |
 | Audio | MCC-only capture (WASAPI process loopback), Opus 10 ms |
 | Name tags | Drawn by the mod over each player (Halo 1 memory, read-only) |
 | Single program | CoOpEvolved.exe with host/join selector, English by default with Español |
@@ -100,9 +102,9 @@ Lowest latency is the top priority.
 ## 5. Open work
 
 - Skins: test Flood marine, Keyes, Jenkins, checkpoint revert and level change.
-- Subtitles during gameplay: MCC (not halo1.dll) draws them over the whole split screen, so friends see them cut.
-  The text is in MCC's UI objects (`<color="#…">CORTANA: …</>`), which move around the heap; finding the current
-  one needs a write watch on the text from inside the mod. Not started.
+- Subtitles per player: MCC's Unreal interface draws them over the whole split screen. The host can hide them
+  (*Hide MCC subtitles*, `subtitles.cpp`); drawing each line in every friend's part would need Unreal reflection
+  work (see docs/DEVELOPMENT.md). Not started.
 - Level-end freeze fix (halo1 patch 3) and pause with 4 players: not yet confirmed in a full play-through.
 - Late joiners only get in when the mission is started again from the MCC menu: MCC asks for the users only then
   (restart from the pause menu reuses them). Forcing it on restart would mean digging into MCC's `game_restart`
@@ -146,3 +148,5 @@ Lowest latency is the top priority.
 - A body's node buffers are sized for its model when it is created: skins must be in place at spawn, never later.
 - The only key used by the mod in game is F6 (player 1 full screen).
 - The host and client windows open maximized.
+- Fixed UI texts are images made with the Halo font (`tools/make_ui_images.py`); the font itself must never be
+  committed. New labels or buttons need a run of that script (see docs/DEVELOPMENT.md → Interface look).

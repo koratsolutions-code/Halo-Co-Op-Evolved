@@ -37,5 +37,6 @@ struct HostOptions {
     int host_skin = 0;                            // jugador 1, índice en k_skins
     bool p1_fullscreen = false;                   // jugador 1 a pantalla completa al abrir el juego
     bool full_cinematics = true;                  // cinemáticas: pantalla entera para cada amigo
+    bool hide_subtitles = false;                  // ocultar los subtítulos de MCC (los amigos los ven cortados)
 };
 void net_server_set_host_options(const HostOptions& options);

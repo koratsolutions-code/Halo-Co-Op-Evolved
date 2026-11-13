@@ -56,6 +56,7 @@ add_library(CoOpEvolvedGame SHARED
     src/game/local_players.cpp
     src/game/blit.cpp
     src/game/cinematic.cpp
+    src/game/subtitles.cpp
     src/game/log.cpp
     src/game/version.def
 )
@@ -66,6 +67,8 @@ target_link_libraries(CoOpEvolvedGame PRIVATE imgui minhook nvcodec d3d11 dxgi d
 # (jugadores 2-4, sin Halo).
 add_executable(CoOpEvolved WIN32
     src/app/main.cpp
+    src/app/app.rc
+    src/app/ui_halo.cpp
     src/launcher/main.cpp
     src/launcher/pads.cpp
     src/launcher/net_server.cpp
@@ -80,8 +83,11 @@ add_executable(CoOpEvolved WIN32
     src/client/renderer.cpp
     src/client/audio_player.cpp
 )
+# El recurso incluye imágenes: que se vuelva a compilar si cambian (ninja no lo detecta solo).
+set_source_files_properties(src/app/app.rc PROPERTIES OBJECT_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/app/ui_text.png;${CMAKE_CURRENT_SOURCE_DIR}/src/app/logo.png;${CMAKE_CURRENT_SOURCE_DIR}/src/app/app.ico")
 target_link_libraries(CoOpEvolved PRIVATE ViGEmClient opus imgui nvcodec d3d11 dxgi d3dcompiler setupapi xinput shell32
-                                      ws2_32 iphlpapi advapi32 mmdevapi ole32 winmm comctl32)
+                                      ws2_32 iphlpapi advapi32 mmdevapi ole32 winmm comctl32 windowscodecs)
 
 # Solo para pruebas: "juego" falso que carga el mod (no se distribuye).
 add_executable(CoOpEvolvedTestGame WIN32 tools/test_game.cpp)
