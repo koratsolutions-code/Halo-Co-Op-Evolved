@@ -37,6 +37,8 @@ enum class Type : uint8_t {
     mouse_look = 14,       // cliente -> host: mira directa con mouse (giro y altura acumulados)
     aim = 15,              // launcher -> DLL (local): cuánto girar la cámara de J2-J4
     pads = 16,             // launcher -> DLL (local): mandos de J2-J4 (sin ViGEmBus)
+    host_menu = 17,        // DLL -> launcher (local): el host cambió algo en su menú F2 dentro del juego
+    host_kick = 18,        // DLL -> launcher (local): el host expulsa a un jugador desde el menú F2
 };
 
 // Audio: 48 kHz estéreo, paquetes de 10 ms (480 muestras por canal) comprimidos con Opus.
@@ -180,6 +182,24 @@ struct VideoConfig {
     uint8_t hide_subtitles = 0;           // 1: el mod hace que Halo oculte los subtítulos de MCC
     uint8_t copy_subtitles = 1;           // 1: la línea de subtítulos se copia en la parte de cada jugador
     uint8_t subtitles_for[4] = {1, 1, 1, 1};  // jugadores 1..4: 0 si ese jugador no quiere la copia
+    uint8_t lang = 0;                     // idioma del panel del host (0 inglés, 1 español), para el menú F2
+};
+
+// Menú F2 del host dentro del juego: lo que eligió ahí. El launcher lo guarda y lo vuelve a mandar en VideoConfig.
+struct HostMenu {
+    Header header{k_magic, Type::host_menu};
+    uint32_t armor_color = 0;  // ArmorRgb del jugador 1
+    uint8_t skin = 0;          // índice en k_skins
+    uint8_t p1_subtitles = 1;  // copia de los subtítulos en la parte del jugador 1 (se ve con F6)
+    uint8_t name_tags = 1;
+    uint8_t full_cinematics = 1;
+    uint8_t hide_subtitles = 0;
+    uint8_t copy_subtitles = 1;
+};
+
+struct HostKick {
+    Header header{k_magic, Type::host_kick};
+    uint8_t player = 0;  // 2..4
 };
 
 // El launcher lo manda al DLL apenas llega movimiento de un cliente: radianes a sumar a la cámara.

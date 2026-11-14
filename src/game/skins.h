@@ -18,3 +18,6 @@ void skins_start();
 
 // Bit i: la skin i de k_skins está en la misión cargada (0: ninguna misión).
 uint16_t skins_available();
+
+// true si ese cuerpo (datos del objeto) nació con una skin: conserva sus propios colores, sin el de armadura.
+bool skins_is_skin_body(uintptr_t biped);

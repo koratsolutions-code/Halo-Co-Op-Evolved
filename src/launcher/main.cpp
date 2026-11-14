@@ -55,6 +55,7 @@ struct HostSettings {
     bool full_cinematics = true;
     bool hide_subtitles = false;  // los subtítulos de MCC cruzan toda la pantalla dividida: los amigos los ven cortados
     bool copy_subtitles = true;   // la línea de subtítulos se copia en la parte de cada jugador
+    bool p1_subtitles = true;     // esa copia también en la parte del jugador 1 (se ve con F6); solo en el menú F2
     // Mandos de J2-J4: true = directo al juego (sin ViGEmBus; sin AlphaRing el mod pone los 4 jugadores),
     // false = mandos virtuales de ViGEmBus + AlphaRing (el sistema anterior). Clave "controllers" del .ini.
     bool direct_pads = true;
@@ -99,6 +100,7 @@ void settings_load() {
     g_settings.full_cinematics = GetPrivateProfileIntW(L"host", L"full_cinematics", 1, ini.c_str()) != 0;
     g_settings.hide_subtitles = GetPrivateProfileIntW(L"host", L"hide_subtitles", 0, ini.c_str()) != 0;
     g_settings.copy_subtitles = GetPrivateProfileIntW(L"host", L"copy_subtitles", 1, ini.c_str()) != 0;
+    g_settings.p1_subtitles = GetPrivateProfileIntW(L"host", L"p1_subtitles", 1, ini.c_str()) != 0;
     wchar_t controllers[16] = {};
     GetPrivateProfileStringW(L"host", L"controllers", L"direct", controllers, 16, ini.c_str());
     g_settings.direct_pads = _wcsicmp(controllers, L"vigem") != 0;
@@ -123,6 +125,7 @@ void settings_save() {
     WritePrivateProfileStringW(L"host", L"full_cinematics", g_settings.full_cinematics ? L"1" : L"0", ini.c_str());
     WritePrivateProfileStringW(L"host", L"hide_subtitles", g_settings.hide_subtitles ? L"1" : L"0", ini.c_str());
     WritePrivateProfileStringW(L"host", L"copy_subtitles", g_settings.copy_subtitles ? L"1" : L"0", ini.c_str());
+    WritePrivateProfileStringW(L"host", L"p1_subtitles", g_settings.p1_subtitles ? L"1" : L"0", ini.c_str());
     WritePrivateProfileStringW(L"host", L"controllers", g_settings.direct_pads ? L"direct" : L"vigem", ini.c_str());
 }
 
@@ -137,7 +140,28 @@ void apply_host_options() {
     options.full_cinematics = g_settings.full_cinematics;
     options.hide_subtitles = g_settings.hide_subtitles;
     options.copy_subtitles = g_settings.copy_subtitles;
+    options.p1_subtitles = g_settings.p1_subtitles;
+    options.lang = g_settings.lang == Lang::es ? 1 : 0;
     net_server_set_host_options(options);
+}
+
+// Cambios hechos en el menú F2 dentro del juego: se guardan como si se hubieran hecho en el panel.
+void apply_host_menu() {
+    if (int player = net_server_take_host_kick()) {
+        log_write("Jugador %d expulsado desde el menú F2 del juego", player);
+        net_server_kick(player);  // puede volver a conectarse
+    }
+    proto::HostMenu menu;
+    if (!net_server_take_host_menu(menu)) return;
+    g_settings.armor_color = armor_sanitize(menu.armor_color);
+    g_settings.skin = menu.skin < k_skin_count ? menu.skin : 0;
+    g_settings.p1_subtitles = menu.p1_subtitles != 0;
+    g_settings.name_tags = menu.name_tags != 0;
+    g_settings.full_cinematics = menu.full_cinematics != 0;
+    g_settings.hide_subtitles = menu.hide_subtitles != 0;
+    g_settings.copy_subtitles = menu.copy_subtitles != 0;
+    apply_host_options();
+    settings_save();
 }
 
 // ---------------------------------------------------------------- MCC, Radmin y el mod
@@ -300,7 +324,10 @@ void draw_header() {
     // Modo (crear partida / unirse) e idioma, arriba a la derecha.
     ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - ui_mode_tabs_width());
     ImGui::SetCursorPosY(y);
-    if (ui_mode_tabs(true, &g_settings.lang)) settings_save();
+    if (ui_mode_tabs(true, &g_settings.lang)) {
+        settings_save();
+        apply_host_options();  // el menú F2 dentro del juego usa el mismo idioma
+    }
 }
 
 void draw_connection_card() {
@@ -737,6 +764,7 @@ bool run_panel(HINSTANCE instance) {
             if (msg.message == WM_QUIT) running = false;
         }
         if (!running) break;
+        apply_host_menu();  // también con el panel minimizado
         if (IsIconic(g_window)) continue;
 
         ImGui_ImplDX11_NewFrame();

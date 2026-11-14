@@ -123,6 +123,7 @@ uint64_t g_ids[k_players] = {};
 // el número más alto (cada uno conserva su número: si están J2 y J4, son 4 y J3 queda quieto). Sin el host
 // abierto, 4 como antes.
 std::atomic<int> g_player_count{k_players};
+std::atomic<bool> g_block_host{false};  // menú F2 del host abierto
 
 int connected_players() {
     proto::VideoConfig config;
@@ -212,6 +213,7 @@ bool __fastcall hooked_key_state(void* manager, DWORD index, void* input) {
     auto check = reinterpret_cast<void(__fastcall*)(uintptr_t)>(read_as<uintptr_t>(methods + k_dev_check));
     bool result = set_state(device, delta, input);
     check(device);
+    if (index == 0 && g_block_host) memset(input, 0, k_input_size);  // menú F2 abierto: el jugador 1 se queda quieto
     return result;
 }
 
@@ -384,6 +386,14 @@ void local_players_set_pads(const proto::Pads& pads) {
         if (memcmp(&g_pads[i], &pads.pads[i], sizeof(proto::GamepadState)) != 0) ++g_packet[i];
         g_pads[i] = pads.pads[i];
     }
+}
+
+void local_players_block_host(bool block) {
+    g_block_host = block;
+}
+
+bool local_players_own_input() {
+    return g_original_key_state != nullptr;
 }
 
 void local_players_start() {

@@ -32,6 +32,16 @@ bool f6_pressed() {
 
 }  // namespace
 
+bool p1_view_enabled() {
+    return g_enabled;
+}
+
+void p1_view_set(bool enabled) {
+    if (enabled == g_enabled) return;
+    g_enabled = enabled;
+    log_write("Pantalla del jugador 1: %s (menú F2)", g_enabled ? "completa" : "dividida");
+}
+
 void p1_view_on_frame(IDXGISwapChain* swap_chain) {
     proto::VideoConfig config;
     if (video_config(config) && config.p1_fullscreen != g_panel_value) {

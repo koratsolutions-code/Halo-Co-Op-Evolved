@@ -45,6 +45,9 @@ std::atomic<int> g_fps{60};
 proto::VideoStatus g_video_status;
 ULONGLONG g_video_status_time = 0;
 HostOptions g_host_options;  // con g_mutex
+proto::HostMenu g_host_menu;  // con g_mutex
+bool g_host_menu_pending = false;
+int g_host_kick = 0;  // con g_mutex
 
 // Con g_mutex tomado. Le dice al DLL del juego a quién mandar cada cuadrante y qué nombres y colores poner.
 void send_video_config() {
@@ -59,6 +62,8 @@ void send_video_config() {
     config.full_cinematics = g_host_options.full_cinematics ? 1 : 0;
     config.hide_subtitles = g_host_options.hide_subtitles ? 1 : 0;
     config.copy_subtitles = g_host_options.copy_subtitles ? 1 : 0;
+    config.subtitles_for[0] = g_host_options.p1_subtitles ? 1 : 0;
+    config.lang = uint8_t(g_host_options.lang);
     for (int i = 0; i < k_remote_players; ++i) {
         config.targets[i].active = g_slots[i].connected ? 1 : 0;
         config.targets[i].ip = g_slots[i].address.sin_addr.s_addr;
@@ -280,6 +285,19 @@ void server_thread() {
                         g_video_status_time = GetTickCount64();
                     }
                     break;
+                case proto::Type::host_menu:
+                    if (auto* m = proto::as<proto::HostMenu>(buffer, size);
+                        m && from.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
+                        g_host_menu = *m;
+                        g_host_menu_pending = true;
+                    }
+                    break;
+                case proto::Type::host_kick:
+                    if (auto* m = proto::as<proto::HostKick>(buffer, size);
+                        m && from.sin_addr.s_addr == htonl(INADDR_LOOPBACK) && m->player >= k_first_remote_player &&
+                        m->player < k_first_remote_player + k_remote_players)
+                        g_host_kick = m->player;
+                    break;
                 default:
                     break;
                 }
@@ -403,6 +421,21 @@ void net_server_set_host_options(const HostOptions& options) {
     std::lock_guard lock(g_mutex);
     g_host_options = options;
     g_host_options.host_name[sizeof(g_host_options.host_name) - 1] = '\0';
+}
+
+bool net_server_take_host_menu(proto::HostMenu& menu) {
+    std::lock_guard lock(g_mutex);
+    if (!g_host_menu_pending) return false;
+    g_host_menu_pending = false;
+    menu = g_host_menu;
+    return true;
+}
+
+int net_server_take_host_kick() {
+    std::lock_guard lock(g_mutex);
+    int player = g_host_kick;
+    g_host_kick = 0;
+    return player;
 }
 
 void net_server_kick(int player) {

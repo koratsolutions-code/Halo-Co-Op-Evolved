@@ -6,3 +6,7 @@
 // F6 lo activa o lo desactiva; la casilla del panel de Co Op Evolved Host elige cómo empieza.
 // Solo cambia la imagen del monitor del host: no toca el juego, los mandos ni AlphaRing.
 void p1_view_on_frame(IDXGISwapChain* swap_chain);
+
+// Lo mismo que F6, para el menú F2 del host.
+bool p1_view_enabled();
+void p1_view_set(bool enabled);

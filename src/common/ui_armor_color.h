@@ -9,6 +9,7 @@
 
 #include <cmath>
 #include <cstdio>
+#include <initializer_list>
 
 inline ImU32 armor_color_u32(ArmorRgb color) {
     float rgb[3];
@@ -110,6 +111,9 @@ inline bool ui_armor_color_combo(const char* id, ArmorRgb* color, float width) {
         ImGui::TextUnformatted(armor_name(*color));
         ImGui::EndComboPreview();
     }
+    if (ImGui::IsItemHovered())
+        ImGui::SetTooltip("%s", T("Paints Master Chief's armor. Other skins keep their own colors.",
+                                  "Pinta la armadura de Master Chief. Las otras skins conservan sus colores."));
 
     ImGui::PushID(id);
     if (open_picker) {

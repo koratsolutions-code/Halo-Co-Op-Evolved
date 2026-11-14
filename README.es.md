@@ -125,13 +125,25 @@ solo tu parte (arriba a la izquierda) estirada a todo tu monitor; tus amigos sig
   (a 2560x1440 con 4 jugadores tu parte es 1280x720). Con 2 o 3 jugadores tu parte es una franja ancha: se
   muestra sin estirar, con franjas negras arriba y abajo.
 
+### Menú del host en el juego (F2)
+Mientras juegas, presiona **F2** (con el juego como ventana activa) o mantén **View/Back** del mando 1 segundo
+para abrir el menú de Co Op Evolved sobre el juego, sin salir de MCC. Tiene tu color de armadura y tu skin, el
+jugador 1 a pantalla completa (lo mismo que F6), los nombres sobre los jugadores, las cinemáticas completas, las
+opciones de subtítulos (incluida **También en mi parte**, la copia de los subtítulos en tu parte con F6) y quién
+está conectado, con **Expulsar** (pregunta antes). Los cambios se guardan en el panel como si los hubieras hecho
+ahí.
+- Mouse, flechas + Enter, o la cruceta + A del mando. **F2** o **B** lo cierran; Retroceso cierra una lista abierta.
+- Solo lo ves tú: no sale en el video de tus amigos. Tu personaje se queda quieto mientras está abierto.
+- Esc no se usa: abre el menú de pausa de MCC.
+
 ### Colores de armadura
 La personalización de armadura de MCC solo vale en multijugador, así que el mod del juego pinta la armadura
 de cada jugador en la campaña. El jugador 1 la elige en **Armadura** (tarjeta del jugador 1); los jugadores
 2-4 en **Color de armadura** de su cliente (también en F2 durante la partida). Están los 18 colores de Halo CE
 más **Por defecto** (el verde oliva de siempre), **Más colores...** para elegir cualquier color y **Arcoíris
 (Gaylo)**, que va pasando por todos los colores. El color se vuelve a poner solo al reaparecer o al cargar otro
-nivel, y cada tarjeta de jugador lo muestra.
+nivel, y cada tarjeta de jugador lo muestra. Solo pinta a Master Chief: un jugador con otra skin conserva los
+colores propios de ese personaje (su color vuelve cuando regresa a Master Chief).
 
 ### Skins
 Cada jugador puede verse como otro personaje de Halo CE y seguir siendo Master Chief en todo lo demás (hitbox,

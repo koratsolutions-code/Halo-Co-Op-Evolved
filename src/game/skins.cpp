@@ -377,6 +377,15 @@ bool hook_spawn() {
 
 uint16_t skins_available() { return g_available; }
 
+bool skins_is_skin_body(uintptr_t biped) {
+    if (!biped) return false;
+    uint32_t id = read_as<uint32_t>(biped);
+    if (!id) return false;
+    for (const auto& fake : g_fake_id)
+        if (fake.load() == id) return true;
+    return false;
+}
+
 void skins_start() {
     std::thread([] {
         // halo1.dll se carga al abrir Halo CE desde el menú de MCC y se vuelve a cargar cada vez que se empieza una

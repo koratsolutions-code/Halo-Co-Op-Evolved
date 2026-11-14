@@ -19,3 +19,8 @@ void local_players_start();  // lo antes posible (hilo propio): MCC registra los
 
 // Último estado de los mandos de J2-J4 que mandó el launcher.
 void local_players_set_pads(const proto::Pads& pads);
+
+// Menú F2 del host: mientras está abierto, el jugador 1 no recibe controles (teclado, mouse ni mando).
+void local_players_block_host(bool block);
+// true si los controles por jugador pasan por este DLL (modo direct sin AlphaRing): solo así se pueden bloquear.
+bool local_players_own_input();

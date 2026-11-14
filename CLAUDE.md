@@ -94,16 +94,19 @@ Lowest latency is the top priority.
 | Audio | MCC-only capture (WASAPI process loopback), Opus 10 ms |
 | Name tags | Drawn by the mod over each player (Halo 1 memory, read-only) |
 | Single program | CoOpEvolved.exe with host/join selector, English by default with Español |
-| Campaign armor colours | Writes the biped's change colours every 100 ms. Any RGB (`ArmorRgb`, protocol v7) + animated *Rainbow (Gaylo)*. Stripes are impossible: Halo CE uses one change colour for the whole armor. Tested |
+| Campaign armor colours | Writes the biped's change colours every 100 ms. Any RGB (`ArmorRgb`, protocol v7) + animated *Rainbow (Gaylo)*. Stripes are impossible: Halo CE uses one change colour for the whole armor. Only Master Chief bodies are painted: skins keep their own colours. Tested |
 | Security | Host only accepts Radmin (26/8), private networks and loopback; client validates video fragments |
 | Player 1 full screen | F6 or a panel option; stretches the top-left quadrant on the host's monitor |
+| Host F2 menu in game | `host_menu.cpp`: ImGui over MCC after the video capture (only the host sees it); F2 or View held 1 s, B closes. Color, skin, F6, subtitles, host options, Kick. Local messages `host_menu`/`host_kick` to the panel, which saves and resends `VideoConfig`. Player 1 input blocked while open. Tested |
 | Direct Mouse Aim (Mouse Support) | Client option; the mouse turns the camera directly (protocol v4). Active a few seconds after the mission starts (re-checks the last cameras, skips cutscenes). Tested OK |
 | Keyboard E = RB | Enter vehicles / pick up weapons |
 | Per-player skins | Per-player skin selector (client and host panel), protocol v5. Tested in MCC (a30) |
 
 ## 5. Open work
 
-- Skins: test Flood marine, Keyes, Jenkins, checkpoint revert and level change.
+- Skins: test Flood marine, checkpoint revert and level change. In c10 Keyes (fatigues) and Jenkins are not in
+  the mission and Keyes (dress) has a skeleton that is not the marine's: the per-mission table in
+  docs/DEVELOPMENT.md is not reliable for them (left as is by the owner).
 - Subtitle copy: a few white specks of the scene can pass through the text filter (`ps_subtitle` threshold in
   `blit.cpp`); raise it if they bother.
 - Level-end freeze fix (halo1 patch 3): not yet confirmed in a full play-through.

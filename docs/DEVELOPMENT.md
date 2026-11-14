@@ -61,6 +61,15 @@ Internal notes for people working on Halo: Co Op Evolved. Players only need [REA
   (`local_players.cpp`), hooks `IDXGISwapChain::Present`, encodes each quadrant with NVENC and sends it to its
   player (the whole screen during cutscenes). It also draws name tags, armor colours, player 1 full screen (F6),
   direct mouse aim, skins and the subtitle copy.
+- **Host F2 menu (`src/game/host_menu.cpp`)**: its own ImGui context, drawn last in the Present hook (after the
+  video capture and player 1 full screen), so only the host's monitor shows it. Opens with F2 (game in the
+  foreground, `GetAsyncKeyState`) or View/Back held 1 s on the host's real controller, read with
+  `xinput1_4.dll` because `XINPUT1_3` is hooked (only in direct mode: with ViGEmBus slot 0 can be a friend).
+  No window hook: mouse, keys and pad are polled and fed to ImGui (keyboard/gamepad navigation on; Esc is not
+  used because it opens MCC's pause). While open, `hooked_key_state` zeroes player 1's input. Changes go to the
+  panel as local messages `host_menu` (17, `HostMenu`) and `host_kick` (18); the panel saves them in
+  `coopevolved-host.ini` and resends `VideoConfig` (which carries `lang` for the menu). The menu only adopts a
+  `VideoConfig` value when it changes, so an old packet does not undo a fresh change.
 - **Client mode**: decodes the video with NVDEC, plays the audio and sends controller or keyboard/mouse input.
 - **Protocol (`src/common/protocol.h`)**: version 7. Bump `k_version` whenever a client↔host message changes size.
   v7: armor colours are `uint32_t ArmorRgb` (0 = default, `0x01RRGGBB`, `0x02000000` = animated rainbow) in
@@ -131,7 +140,8 @@ RVAs are relative to `halo1.dll`, which loads when Halo CE is opened from the MC
 - Player record: 0xC20 bytes. +0x00 salt (16 bits), +0x64 handle of the unit (biped) it controls.
 - Object entry: 12 bytes, +8 offset into the object pool (object header + 0x38 + max × 12 + 0x34).
 - Object data: +0x00 tag ID of its definition. Biped: +0x18 position, +0x5C body centre, +0x210 look vector,
-  +0x174 change colours (4 RGB floats; what armor colours write).
+  +0x174 change colours (4 RGB floats; what armor colours write). Armor colours skip bodies whose +0 tag ID is a
+  skin clone (`skins_is_skin_body`): skins keep their own colours.
 - Local player count: `halo1.dll+0x1B7B910`.
 
 ### 4-player patches (`local_players.cpp`, from AlphaRing)
@@ -227,8 +237,11 @@ Findings that shaped this:
 - Putting another mesh on Chief's skeleton is impossible: vertex bone indices are already in GPU buffers.
 - Pilot was dropped: its own animations crash the game (`+0xAFE7B4`, no weapon animations) and its 21-node
   skeleton does not fit the marine's.
-- Tested in MCC in a30 (respawn and mid-game change). Not tested yet: Flood marine, Keyes, Jenkins, checkpoint
-  revert, level change.
+- Tested in MCC in a30 (respawn and mid-game change). Not tested yet: Flood marine, checkpoint revert, level
+  change.
+- Seen in MCC c10: `captain_ingame` and `jenkins` are not in the mission's tags, and `captain` is there but its
+  model's node checksum is not the marine's (so it is greyed out). The Missions column below was not checked by
+  loading each mission in MCC: trust only what the log lists when a mission loads.
 
 | Skin | Biped tag | Animations | Missions |
 |---|---|---|---|

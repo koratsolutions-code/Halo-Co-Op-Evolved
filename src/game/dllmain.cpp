@@ -3,6 +3,7 @@
 
 #include "aim.h"
 #include "armor_colors.h"
+#include "host_menu.h"
 #include "local_players.h"
 #include "log.h"
 #include "name_tags.h"
@@ -37,6 +38,7 @@ HRESULT STDMETHODCALLTYPE hooked_present(IDXGISwapChain* swap_chain, UINT sync, 
         name_tags_draw(swap_chain);  // antes de capturar: así los nombres también van en el video
         video_on_frame(swap_chain);
         p1_view_on_frame(swap_chain);  // después de capturar: J2-J4 siguen recibiendo su cuadrante
+        host_menu_draw(swap_chain);    // al final: solo en el monitor del host, encima de todo (también con F6)
     }
     return g_original_present(swap_chain, sync, flags);
 }

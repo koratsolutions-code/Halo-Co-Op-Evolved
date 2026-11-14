@@ -124,12 +124,24 @@ your part (top left) stretched to your whole monitor; your friends still get the
   (at 2560x1440 with 4 players your part is 1280x720). With 2 or 3 players your part is a wide strip: it is
   shown without stretching, with black bars above and below.
 
+### Host menu in game (F2)
+While you play, press **F2** (with the game as the active window) or hold **View/Back** on your controller for
+1 second to open the Co Op Evolved menu over the game, without leaving MCC. It has your armor color and skin,
+player 1 full screen (same as F6), names over players, full-screen cutscenes, the subtitle options (including
+**Also in my part**, the subtitle copy in your part with F6) and who is connected, with **Kick** (it asks
+first). Changes are saved in the panel as if you had made them there.
+- Mouse, arrows + Enter, or the controller's D-pad + A. **F2** or **B** closes it; Backspace closes an open list.
+- Only you see it: it is not in your friends' video. Your character stands still while it is open.
+- Esc is not used: it opens MCC's pause menu.
+
 ### Armor colors
 MCC's armor customization only applies to multiplayer, so the game mod paints each player's armor in the
 campaign. Player 1 picks it in **Armor** (player 1 card); players 2-4 in **Armor color** in their client
 (also in F2 while playing). There are the 18 Halo CE colors plus **Default** (the usual olive green),
 **More colors...** to pick any color, and **Rainbow (Gaylo)**, which cycles through every color. The color comes
-back by itself when a player respawns or a new level loads, and every player card shows it.
+back by itself when a player respawns or a new level loads, and every player card shows it. It only paints
+Master Chief: a player with another skin keeps that character's own colors (their color comes back when they
+return to Master Chief).
 
 ### Skins
 Each player can look like another Halo CE character and still be Master Chief in everything else (hitbox,

@@ -1,6 +1,7 @@
 #include "armor_colors.h"
 #include "halo1_players.h"
 #include "log.h"
+#include "skins.h"
 #include "video.h"
 
 #include "../common/armor_colors.h"
@@ -42,6 +43,9 @@ void update(Painted& painted, int player, uint32_t color) {
         painted.biped = biped;
     }
     if (!biped) return;
+    // Las skins conservan sus colores: el de armadura es solo para Master Chief (si alcanzó a pintarse antes de que
+    // el cuerpo pasara a ser la skin, se devuelve el original).
+    if (skins_is_skin_body(biped)) color = 0;
     float wanted[12];
     if (!armor_change_colors(color, double(GetTickCount64()) / 1000.0, wanted)) {
         if (painted.color) safe_write(biped + k_change_colors, painted.original, sizeof(painted.original));

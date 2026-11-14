@@ -39,5 +39,12 @@ struct HostOptions {
     bool full_cinematics = true;                  // cinemáticas: pantalla entera para cada amigo
     bool hide_subtitles = false;                  // ocultar los subtítulos de MCC (los amigos los ven cortados)
     bool copy_subtitles = true;                   // copiar la línea de subtítulos en la parte de cada jugador
+    bool p1_subtitles = true;                     // esa copia también en la parte del jugador 1 (con F6)
+    int lang = 0;                                 // idioma del panel (para el menú F2 dentro del juego)
 };
 void net_server_set_host_options(const HostOptions& options);
+
+// Lo último que el host cambió en su menú F2 dentro del juego (true una vez por cada cambio).
+bool net_server_take_host_menu(proto::HostMenu& menu);
+// Jugador (2..4) que el host expulsó desde el menú F2 (0: ninguno). Una vez por pedido.
+int net_server_take_host_kick();

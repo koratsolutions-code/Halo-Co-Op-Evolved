@@ -30,6 +30,10 @@ Necesitas: MCC 1.3528 en Steam, una GPU NVIDIA, Radmin VPN y unos 10 Mbps de sub
   6. Usa gráficos clásicos (Tab) y deja el juego como ventana activa.
   Tú juegas con teclado y mouse.
 
+  F2 en el juego (o mantén View del mando 1 s): menú sobre el juego con tu color de
+  armadura, skin, F6, subtítulos, opciones del host y Expulsar. Solo lo ves tú. F2 o B
+  lo cierran. Los colores solo pintan a Master Chief: las otras skins conservan los suyos.
+
   En el panel:
   - Puntos de arriba: verde = listo (mod del juego, 4 jugadores, MCC, audio, video).
   - "Video a 30/60/120 FPS": más FPS = menos retraso pero más subida.
