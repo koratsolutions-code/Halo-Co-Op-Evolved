@@ -237,11 +237,26 @@ Findings that shaped this:
 - Putting another mesh on Chief's skeleton is impossible: vertex bone indices are already in GPU buffers.
 - Pilot was dropped: its own animations crash the game (`+0xAFE7B4`, no weapon animations) and its 21-node
   skeleton does not fit the marine's.
-- Tested in MCC in a30 (respawn and mid-game change). Not tested yet: Flood marine, checkpoint revert, level
-  change.
+- Tested in MCC in a30 (respawn and mid-game change), Flood marine in c10 and Sergeant Johnson in a10. Not tested
+  yet: checkpoint revert, level change.
 - Seen in MCC c10: `captain_ingame` and `jenkins` are not in the mission's tags, and `captain` is there but its
   model's node checksum is not the marine's (so it is greyed out). The Missions column below was not checked by
-  loading each mission in MCC: trust only what the log lists when a mission loads.
+  loading each mission in MCC: trust only what the log lists when a mission loads. In a10 there is no
+  `characters\marine\marine`, so the crewman (marine animations) is greyed out there too.
+
+### Model variants and Sergeant Johnson
+- A model (`mod2`) has regions at +0xC4 (block of 0x4C each: 32-byte name, permutations block at +0x40). A
+  permutation is 0x58 bytes: 32-byte name ending in `-N` (its number), flags at +0x20.
+- `marine_armored` (a10): arms `__base`, `sgt_johnson-100`; head `__base`, five helmet heads (`-10`..`-14`),
+  `head_marcus_cap-101`, `sgt_johnson-100`; legs `__base`; torso `__base`, `damaged torso-102`. The crewman has six
+  faces; Elite and grunt have armour variants.
+- A body keeps its chosen permutation per region at **+0x13C** (one byte per region) and the requested number at
+  **+0x7A** (one byte). Found by comparing 16 live armored marines in a10: head byte +0x13D = 1, 2, 4, 5, 6 exactly
+  where +0x7A = 10, 11, 12, 13, 14.
+- A skin with `Skin::variant` (only Johnson, `"sgt_johnson"`) looks the permutation up by name prefix in each
+  region when the mission loads (not available if no region has it) and, in the spawn hook, right after the body
+  becomes the skin clone, writes those region bytes and the number (100). It stays for the body's life (tested
+  taking damage).
 
 | Skin | Biped tag | Animations | Missions |
 |---|---|---|---|
@@ -254,10 +269,10 @@ Findings that shaped this:
 | Jenkins | `characters\marine_cinematic\jenkins\jenkins` | marine | c10 |
 | Flood marine | `characters\floodcombat_human\floodcombat_human` | own | c10 c20 c40 d20 d40 |
 | Elite | `characters\elite\elite` | own | a10 a30 a50 b30 b40 c40 d20 d40 |
+| Sergeant Johnson | `characters\marine_armored\marine_armored` + variant `sgt_johnson` | own | a10 (others with that variant) |
 
-Ideas not done: Sergeant Johnson (marine_armored with Johnson's face permutation); bodies placed by opening
-cutscenes born with the skin (needs that creation path).
+Ideas not done: bodies placed by opening cutscenes born with the skin (needs that creation path); other fixed
+variants (e.g. a marine face without helmet) work the same way as Johnson.
 
 ## Other ideas (not started)
-- Spawn only as many players as are connected (get_xbox_user_id decides how many local players MCC creates).
 - One window with host and client tabs instead of relaunching the exe.

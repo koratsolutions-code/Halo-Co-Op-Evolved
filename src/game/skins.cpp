@@ -12,6 +12,7 @@
 #include <atomic>
 #include <cstdio>
 #include <cstring>
+#include <cstdlib>
 #include <initializer_list>
 #include <thread>
 
@@ -200,12 +201,57 @@ uint32_t model_checksum(const Tags& tags, const Look& look) {
     return read_as<uint32_t>(tags.at(read_as<uint32_t>(entry + 0x14)) + 4);  // suma de nodos del modelo
 }
 
+// ---- Variantes del modelo (cara, brazos...) ----
+// Modelo (mod2): +0xC4 bloque de regiones (0x4C cada una: nombre de 32 bytes, +0x40 bloque de variantes); variante:
+// 0x58 bytes, nombre de 32 bytes que termina en "-N" (N = número de variante; las de Johnson, "-100").
+// Cuerpo: +0x7A número de variante pedido (1 byte) y +0x13C la variante elegida en cada región (1 byte por región).
+// Encontrado comparando los marines de a10: +0x13D (cabeza) = 1, 2, 4, 5, 6 con +0x7A = 10, 11, 12, 13, 14.
+constexpr size_t k_mod2_regions = 0xC4, k_region_size = 0x4C, k_region_permutations = 0x40, k_permutation_size = 0x58;
+constexpr size_t k_body_variant_number = 0x7A, k_body_regions = 0x13C;
+constexpr int k_max_regions = 8;
+constexpr uint8_t k_keep = 0xFF;  // esa región se queda con la variante que eligió el juego
+
+// Por skin con variante fija (lo lee el desvío de la aparición).
+volatile uint8_t g_region_variant[k_clone_slots][k_max_regions];
+volatile uint8_t g_variant_number[k_clone_slots];
+
+// Busca la variante en cada región del modelo de `look`. false si ninguna región la tiene.
+bool find_variant(const Tags& tags, const Look& look, const char* prefix, uint8_t regions_out[k_max_regions],
+                  uint8_t* number) {
+    for (int r = 0; r < k_max_regions; ++r) regions_out[r] = k_keep;
+    *number = 0;
+    uint32_t model_id;
+    memcpy(&model_id, look.model + 12, 4);
+    uintptr_t model = tags.at(read_as<uint32_t>(tags.entry(model_id & 0xFFFF) + 0x14));
+    uint32_t regions = read_as<uint32_t>(model + k_mod2_regions);
+    uintptr_t region = tags.at(read_as<uint32_t>(model + k_mod2_regions + 4));
+    size_t length = strlen(prefix);
+    bool found = false;
+    for (uint32_t r = 0; r < regions && r < uint32_t(k_max_regions); ++r, region += k_region_size) {
+        uint32_t count = read_as<uint32_t>(region + k_region_permutations);
+        uintptr_t permutation = tags.at(read_as<uint32_t>(region + k_region_permutations + 4));
+        for (uint32_t v = 0; v < count && v < 64; ++v, permutation += k_permutation_size) {
+            char name[33] = {};
+            if (!safe_read(permutation, name, 32) || strncmp(name, prefix, length) != 0) continue;
+            regions_out[r] = uint8_t(v);
+            if (const char* dash = strrchr(name, '-')) *number = uint8_t(atoi(dash + 1));
+            found = true;
+            break;
+        }
+    }
+    return found;
+}
+
 void load_mission(uintptr_t list) {
     g_first_clone_index = 0x7FFFFFFFFFFFFFFF;
     g_chief_index = -1;
     for (auto& data : g_clone_data) data = 0;
     for (auto& id : g_fake_id) id = 0;
     for (auto& skin : g_wanted) skin = 0;
+    for (int s = 0; s < k_clone_slots; ++s) {
+        for (int r = 0; r < k_max_regions; ++r) g_region_variant[s][r] = k_keep;
+        g_variant_number[s] = 0;
+    }
     g_mission = Mission{};
     g_mission.list = list;
     g_available = 0;
@@ -241,6 +287,16 @@ void load_mission(uintptr_t list) {
                 continue;
             }
             memcpy(m.looks[s].animations, marine.animations, 16);
+        }
+        if (k_skins[s].variant) {
+            uint8_t regions[k_max_regions], number = 0;
+            if (!find_variant(tags, m.looks[s], k_skins[s].variant, regions, &number)) {
+                log_write("Skins: %s: el modelo de esta misión no tiene su variante: no disponible",
+                          k_skins[s].name_es);
+                continue;
+            }
+            for (int r = 0; r < k_max_regions; ++r) g_region_variant[s][r] = regions[r];
+            g_variant_number[s] = number;
         }
         m.available |= uint16_t(1u << s);
         strncat_s(names, " ", _TRUNCATE);
@@ -352,8 +408,15 @@ uint64_t __fastcall spawn_hook(uint64_t a1, uint64_t a2, uint64_t a3, uint64_t a
         // El cuerpo nuevo dice "soy Master Chief": que diga la copia de su skin, así la conserva toda su vida
         // (aunque el jugador elija otra skin, que le llega al reaparecer).
         uint32_t chief = g_chief_id;
-        if (uintptr_t biped = halo1_player_biped(player); biped && read_as<uint32_t>(biped) == chief)
+        if (uintptr_t biped = halo1_player_biped(player); biped && read_as<uint32_t>(biped) == chief) {
             safe_write(biped, &fake, 4);
+            // Skin con variante fija (Johnson): su cara y sus brazos en vez de los que eligió el juego al azar.
+            for (int r = 0; r < k_max_regions; ++r) {
+                uint8_t variant = g_region_variant[skin][r];
+                if (variant != k_keep) safe_write(biped + k_body_regions + r, &variant, 1);
+            }
+            if (uint8_t number = g_variant_number[skin]) safe_write(biped + k_body_variant_number, &number, 1);
+        }
     }
     return result;
 }

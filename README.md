@@ -149,7 +149,7 @@ speed, jump). Player 1 picks it in **Skin** (player 1 card); players 2-4 in **Sk
 F2 while playing). Every player card shows each friend's skin.
 
 Skins: Master Chief, Marine, Armored marine, Crewman, Captain Keyes (fatigues), Captain Keyes (dress), Jenkins,
-Flood marine and Elite.
+Flood marine, Elite and Sergeant Johnson (the armored marine with Johnson's face and arms).
 - A skin only exists in the missions that have that character. Once a mission is loaded, the selector greys
   out the ones it does not have; if yours is not there, you are Master Chief in that mission.
 - A new skin shows **the next time you respawn**: the body you have keeps its look until it dies.

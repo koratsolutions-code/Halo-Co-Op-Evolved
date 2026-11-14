@@ -16,6 +16,9 @@ struct Skin {
     const char* name_es;
     const char* tag;  // biped de la misión con el modelo
     SkinAnimations animations;
+    // Variante fija del modelo (cara, brazos...): el principio del nombre de la variante en cada región que la tenga.
+    // nullptr: la que elija el juego.
+    const char* variant = nullptr;
 };
 
 // El piloto no está: con sus animaciones el juego se cierra (no traen las de las armas) y su esqueleto tiene un
@@ -31,6 +34,9 @@ inline constexpr Skin k_skins[] = {
     {"Jenkins", "Jenkins", "characters\\marine_cinematic\\jenkins\\jenkins", SkinAnimations::marine},
     {"Flood marine", "Marine Flood", "characters\\floodcombat_human\\floodcombat_human", SkinAnimations::own},
     {"Elite", "Elite", "characters\\elite\\elite", SkinAnimations::own},
+    // El marine con armadura con la cara y los brazos de Johnson (variantes "sgt_johnson-100" de su modelo).
+    {"Sergeant Johnson", "Sargento Johnson", "characters\\marine_armored\\marine_armored", SkinAnimations::own,
+     "sgt_johnson"},
 };
 inline constexpr int k_skin_count = int(sizeof(k_skins) / sizeof(k_skins[0]));
 static_assert(k_skin_count <= 16, "skins_available es una máscara de 16 bits");

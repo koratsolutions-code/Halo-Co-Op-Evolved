@@ -100,11 +100,11 @@ Lowest latency is the top priority.
 | Host F2 menu in game | `host_menu.cpp`: ImGui over MCC after the video capture (only the host sees it); F2 or View held 1 s, B closes. Color, skin, F6, subtitles, host options, Kick. Local messages `host_menu`/`host_kick` to the panel, which saves and resends `VideoConfig`. Player 1 input blocked while open. Tested |
 | Direct Mouse Aim (Mouse Support) | Client option; the mouse turns the camera directly (protocol v4). Active a few seconds after the mission starts (re-checks the last cameras, skips cutscenes). Tested OK |
 | Keyboard E = RB | Enter vehicles / pick up weapons |
-| Per-player skins | Per-player skin selector (client and host panel), protocol v5. Tested in MCC (a30) |
+| Per-player skins | Per-player skin selector (client and host panel), protocol v5. Tested in MCC (a30); Flood marine tested. Sergeant Johnson = armored marine with forced model variants (`Skin::variant`), tested in a10 |
 
 ## 5. Open work
 
-- Skins: test Flood marine, checkpoint revert and level change. In c10 Keyes (fatigues) and Jenkins are not in
+- Skins: test checkpoint revert and level change. In c10 Keyes (fatigues) and Jenkins are not in
   the mission and Keyes (dress) has a skeleton that is not the marine's: the per-mission table in
   docs/DEVELOPMENT.md is not reliable for them (left as is by the owner).
 - Subtitle copy: a few white specks of the scene can pass through the text filter (`ps_subtitle` threshold in
@@ -115,7 +115,7 @@ Lowest latency is the top priority.
 - Late joiners only get in when the mission is started again from the MCC menu: MCC asks for the users only then
   (restart from the pause menu reuses them). Forcing it on restart would mean digging into MCC's `game_restart`
   (game-manager vtable +0x20). Not started.
-- Ideas: one window with host/client tabs instead of relaunching; spawning only as many players as are connected.
+- Ideas: one window with host/client tabs instead of relaunching; opening-cutscene bodies born with their skin.
 - The old ViGEmBus + AlphaRing path is still there as a fallback: `controllers=vigem` in `coopevolved-host.ini`
   (the host then writes `mandos=vigem` to `coopevolved-juego.ini` in the game folder).
 

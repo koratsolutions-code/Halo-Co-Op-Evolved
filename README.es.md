@@ -151,7 +151,7 @@ velocidad, salto). El jugador 1 la elige en **Skin** (tarjeta del jugador 1); lo
 su cliente (también en F2 durante la partida). Cada tarjeta de jugador muestra la skin de ese amigo.
 
 Skins: Master Chief, Marine, Marine con armadura, Tripulante, Capitán Keyes (campaña), Capitán Keyes (gala),
-Jenkins, Marine Flood y Elite.
+Jenkins, Marine Flood, Elite y Sargento Johnson (el marine con armadura con la cara y los brazos de Johnson).
 - Una skin solo existe en las misiones que tienen a ese personaje. Con una misión cargada, el selector muestra
   en gris las que no tiene; si la tuya no está, en esa misión eres Master Chief.
 - Una skin nueva se ve **la próxima vez que reapareces**: el cuerpo que tienes conserva su aspecto hasta morir.
