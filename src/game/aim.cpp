@@ -1,4 +1,5 @@
 #include "aim.h"
+#include "cinematic.h"
 #include "halo1_players.h"
 #include "log.h"
 
@@ -63,25 +64,29 @@ bool cameras_match(uintptr_t cameras, const Halo1Player players[4], float tolera
     return checked >= needed;
 }
 
-uintptr_t find_cameras(const Halo1Player players[4]) {
-    int first = -1;
-    float yaw = 0, pitch = 0;
-    for (int p = 1; p < 4 && first < 0; ++p)
-        if (players[p].alive) {
-            first = p;
-            look_to_angles(players[p].look, &yaw, &pitch);
-        }
-    if (first < 0) return 0;
-    constexpr float k_tolerance = 0.002f;
+// Recorre la memoria buscando las cámaras. Recorrerla tarda: la mira de los jugadores se vuelve a leer justo antes
+// de cada bloque, así los valores se comparan casi en el mismo instante aunque estén moviendo la mira.
+uintptr_t find_cameras() {
+    constexpr float k_tolerance = 0.01f;
     MEMORY_BASIC_INFORMATION mbi{};
     uintptr_t address = 0;
     std::vector<uint8_t> buffer;
+    Halo1Player players[4];
     while (VirtualQuery(reinterpret_cast<void*>(address), &mbi, sizeof(mbi))) {
         uintptr_t base = reinterpret_cast<uintptr_t>(mbi.BaseAddress);
         bool writable = mbi.State == MEM_COMMIT && mbi.Type != MEM_MAPPED &&
                         !(mbi.Protect & (PAGE_GUARD | PAGE_NOACCESS)) &&
                         (mbi.Protect & (PAGE_READWRITE | PAGE_EXECUTE_READWRITE));
         if (writable && mbi.RegionSize < (1ull << 30)) {
+            if (!halo1_players_read(players)) return 0;
+            int first = -1;
+            float yaw = 0, pitch = 0;
+            for (int p = 1; p < 4 && first < 0; ++p)
+                if (players[p].alive) {
+                    first = p;
+                    look_to_angles(players[p].look, &yaw, &pitch);
+                }
+            if (first < 0) return 0;
             buffer.resize(mbi.RegionSize);
             if (safe_read(base, buffer.data(), buffer.size())) {
                 const float* values = reinterpret_cast<const float*>(buffer.data());
@@ -108,6 +113,8 @@ void aim_start() {
     std::thread([] {
         int misses = 0;
         ULONGLONG next_search = 0;
+        uintptr_t last_known = 0;  // dónde estaban la última vez: al empezar la misión el juego mueve la cámara un
+                                   // rato (la cápsula) y dejan de coincidir, pero después vuelven a estar ahí
         while (true) {
             Sleep(1000);
             Halo1Player players[4];
@@ -118,6 +125,11 @@ void aim_start() {
                 cameras = g_cameras;
             }
             if (cameras) {
+                // En las cinemáticas la cámara la mueve el juego: no cuenta como falla.
+                if (cinematic_now()) {
+                    misses = 0;
+                    continue;
+                }
                 // Al girar rápido la mira del biped va un poco atrás de la cámara: margen amplio y varias fallas
                 // seguidas antes de soltarlas (otro nivel, reaparecer, volver al menú).
                 misses = cameras_match(cameras, players, 0.3f, 1) ? 0 : misses + 1;
@@ -125,14 +137,20 @@ void aim_start() {
                 std::lock_guard lock(g_mutex);
                 g_cameras = 0;
                 g_ready = false;
+                last_known = cameras;
                 log_write("Mira directa: las cámaras ya no coinciden, se vuelven a buscar");
                 continue;
             }
-            if (GetTickCount64() < next_search) continue;
-            cameras = find_cameras(players);
-            if (!cameras) {
-                next_search = GetTickCount64() + 5000;  // la búsqueda recorre la memoria: no en cada segundo
-                continue;
+            // Primero donde estaban (casi gratis); la búsqueda completa recorre la memoria y va cada 3 s.
+            if (last_known && cameras_match(last_known, players, 0.05f, 1)) {
+                cameras = last_known;
+            } else {
+                if (GetTickCount64() < next_search) continue;
+                cameras = find_cameras();
+                if (!cameras) {
+                    next_search = GetTickCount64() + 3000;
+                    continue;
+                }
             }
             misses = 0;
             std::lock_guard lock(g_mutex);

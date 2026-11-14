@@ -15,9 +15,10 @@ struct Settings {
     int volume = 100;          // 0..100
     bool muted = false;
     Lang lang = Lang::en;  // idioma de la interfaz
-    int armor_color = 0;   // índice en k_armor_colors (0: por defecto)
+    uint32_t armor_color = 0;  // ArmorRgb (0: por defecto)
     int skin = 0;          // índice en k_skins (0: Master Chief)
     bool direct_aim = false;  // teclado y mouse: el mouse mueve la cámara directo (sin pasar por el stick)
+    bool subtitles = true;    // la copia de los subtítulos de MCC en su video
 };
 
 constexpr float k_min_sensitivity = 0.1f;

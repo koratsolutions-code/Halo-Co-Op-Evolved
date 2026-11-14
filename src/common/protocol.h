@@ -14,7 +14,7 @@ constexpr uint16_t k_port = 27960;
 // Puerto local (solo 127.0.0.1) del DLL del juego: ahí el launcher le dice a quién mandar el video.
 constexpr uint16_t k_video_control_port = 27961;
 constexpr uint32_t k_magic = 0x50434F48;  // "HOCP"
-constexpr uint16_t k_version = 6;
+constexpr uint16_t k_version = 7;
 constexpr int k_nickname_size = 24;       // UTF-8 con '\0'
 
 // Si el host no recibe nada de un cliente en este tiempo, libera su lugar y suelta su mando.
@@ -108,6 +108,7 @@ struct Pong {
     uint16_t skins_available = 0;  // bit i: la skin i de k_skins está en la misión actual (0: aún no se sabe)
     uint8_t watching = 0;          // 1: entraste con la misión empezada; ves la pantalla entera hasta que el host
                                    // vuelva a empezarla desde el menú de MCC
+    uint8_t host_subtitles = 1;    // 0: el host ocultó los subtítulos (o sus copias): el cliente no puede activarlos
 };
 
 // Mira directa con mouse: totales acumulados desde que el cliente se conectó, en radianes (giro: + a la
@@ -121,8 +122,9 @@ struct MouseLook {
 
 struct PlayerOptions {
     Header header{k_magic, Type::player_options};
-    uint8_t armor_color = 0;  // índice en k_armor_colors (0: por defecto)
-    uint8_t skin = 0;         // índice en k_skins (0: Master Chief)
+    uint32_t armor_color = 0;  // ArmorRgb (0: por defecto; si no, 0x01RRGGBB)
+    uint8_t skin = 0;          // índice en k_skins (0: Master Chief)
+    uint8_t subtitles = 1;     // 0: no quiere la copia de los subtítulos en su video
 };
 
 struct Bye {
@@ -171,11 +173,13 @@ struct VideoConfig {
     uint8_t name_tags = 1;    // 0: apagados
     uint8_t name_fov = 70;    // FOV horizontal del juego en grados, para proyectar los nombres
     char names[4][k_nickname_size] = {};  // jugadores 1..4 (vacío: "Player N")
-    uint8_t armor_colors[4] = {};         // jugadores 1..4, índice en k_armor_colors (0: sin cambiar)
+    uint32_t armor_colors[4] = {};        // jugadores 1..4, ArmorRgb (0: sin cambiar)
     uint8_t p1_fullscreen = 0;            // 1: el host ve solo su cuadrante a pantalla completa (F6 lo cambia)
     uint8_t skins[4] = {};                // jugadores 1..4, índice en k_skins (0: Master Chief)
     uint8_t full_cinematics = 1;          // 1: durante las cinemáticas cada amigo recibe la pantalla entera
     uint8_t hide_subtitles = 0;           // 1: el mod hace que Halo oculte los subtítulos de MCC
+    uint8_t copy_subtitles = 1;           // 1: la línea de subtítulos se copia en la parte de cada jugador
+    uint8_t subtitles_for[4] = {1, 1, 1, 1};  // jugadores 1..4: 0 si ese jugador no quiere la copia
 };
 
 // El launcher lo manda al DLL apenas llega movimiento de un cliente: radianes a sumar a la cámara.

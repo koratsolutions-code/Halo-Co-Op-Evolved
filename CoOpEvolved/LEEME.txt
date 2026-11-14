@@ -37,8 +37,12 @@ Necesitas: MCC 1.3528 en Steam, una GPU NVIDIA, Radmin VPN y unos 10 Mbps de sub
   - "Jugador 1 a pantalla completa (F6 en el juego)": ves solo tu parte, estirada al monitor.
   - "Cinemáticas completas para los amigos": durante las cinemáticas cada amigo ve la
     pantalla entera.
-  - "Ocultar los subtítulos de MCC": MCC los dibuja sobre toda la pantalla dividida y los
-    amigos los ven cortados. Vale al empezar una misión; no cambia tu configuración de MCC.
+  - "Subtítulos para cada jugador": copia la línea de subtítulos de MCC en la parte de cada
+    jugador.
+  - "Ocultar los subtítulos de MCC": los oculta para todos (los amigos no pueden activarlos).
+    Vale al empezar una misión; no cambia tu configuración de MCC.
+  - Color de armadura: los colores de Halo CE, "Más colores..." (cualquier color) y
+    "Arcoíris (Gaylo)".
   - Panel de admin, una tarjeta por jugador: nombre, IP, controles por segundo y video de cada amigo.
     "Mover": prueba los controles de ese jugador.  "Expulsar": lo desconecta.
   - "Skin": verte como otro personaje (Marine, Elite...) y seguir siendo Master Chief.
@@ -68,7 +72,8 @@ un mando de Xbox o teclado y mouse. NO necesitas Halo.
      Conéctate antes de que el host empiece la misión: si entras después, miras la
      pantalla entera hasta que el host vuelva a empezarla desde el menú de MCC.
 
-  F2 ............. menú (color de armadura, skin, volumen, sensibilidad, controles, desconectar)
+  F2 ............. menú (color de armadura, skin, volumen, subtítulos, sensibilidad, controles,
+                   desconectar)
   F1 ............. estadísticas (ping, FPS del video, pérdidas)
   F3 ............. silenciar / activar el sonido del juego
   F11 / Alt+Enter  pantalla completa o ventana
@@ -76,8 +81,9 @@ un mando de Xbox o teclado y mouse. NO necesitas Halo.
   + y - .......... sensibilidad del mouse (0.1x a 99x)
 
 Con TECLADO Y MOUSE: haz clic en el video para capturar el mouse.
-"Mira directa con mouse (beta)" (menú o F2): el mouse gira la cámara directo, como Halo en
+"Mira directa (soporte de mouse)" (menú o F2): el mouse gira la cámara directo, como Halo en
 PC, en vez de mover el stick del mando. Si el host todavía no puede usarla, se usa el stick.
+"Subtítulos" (F2): la línea de subtítulos en tu parte de la pantalla; desmárcala para quitarla.
 
   WASD ............ moverse            Mouse ............ apuntar
   Clic izquierdo .. disparar           Clic derecho ..... granada
@@ -86,7 +92,9 @@ PC, en vez de mover el stick del mando. Si el host todavía no puede usarla, se 
   Q o rueda ....... cambiar arma
   G ............... cambiar granada    Ctrl o C ......... agacharse
   Z o clic central  zoom               1-4 o flechas .... cruceta (linterna, etc.)
-  Enter ........... pausa              Tab .............. marcador
+  Tab ............. marcador
+
+Solo el host (jugador 1) puede pausar: el menú de pausa de MCC solo le responde a él.
 
 Problemas
 ---------

@@ -92,8 +92,14 @@ Halo draws cutscenes once over the whole screen. While one plays, each friend re
 cutscenes for friends** turns it off.
 
 ### Subtitles
-MCC draws subtitles once across the whole split screen, so friends see them cut. **Hide MCC subtitles** hides them
-for everyone (it takes effect when a mission starts). Your MCC settings are not changed: untick it to get them back.
+MCC draws subtitles once, centred on the whole split screen, so with 3-4 players they land cut between the bottom
+parts and the top ones do not see them. **Subtitles for each player** (on by default) copies the subtitle line into
+every player's part, including player 1 with F6, over a dark band so it reads well. Each friend can turn their copy
+off with **Subtitles** in F2.
+
+**Hide MCC subtitles** hides them for everyone (it takes effect when a mission starts); then friends cannot turn them
+on either. Your MCC settings are not changed: untick it to get them back. If subtitles are off in MCC's own
+settings, there is nothing to copy.
 
 ### Audio
 Co Op Evolved captures **only MCC's sound** (not Discord, music or other apps) and sends the same mix
@@ -121,8 +127,9 @@ your part (top left) stretched to your whole monitor; your friends still get the
 ### Armor colors
 MCC's armor customization only applies to multiplayer, so the game mod paints each player's armor in the
 campaign. Player 1 picks it in **Armor** (player 1 card); players 2-4 in **Armor color** in their client
-(also in F2 while playing). There are the 18 Halo CE colors plus **Default** (the usual olive green). The
-color comes back by itself when a player respawns or a new level loads, and every player card shows it.
+(also in F2 while playing). There are the 18 Halo CE colors plus **Default** (the usual olive green),
+**More colors...** to pick any color, and **Rainbow (Gaylo)**, which cycles through every color. The color comes
+back by itself when a player respawns or a new level loads, and every player card shows it.
 
 ### Skins
 Each player can look like another Halo CE character and still be Master Chief in everything else (hitbox,
@@ -222,7 +229,7 @@ For players 2, 3 and 4. You do **not** need Halo, Steam or MCC: the game runs on
 ### Keys
 | Key | What it does |
 |-----|--------------|
-| **F2** | Menu: armor color, skin, volume, sensitivity, controls, disconnect |
+| **F2** | Menu: armor color, skin, volume, subtitles, sensitivity, controls, disconnect |
 | **F1** | Stats: ping, video FPS, Mbps, lost frames |
 | **F3** | Mute / unmute the game sound |
 | **F11** or **Alt+Enter** | Full screen / window |
@@ -230,12 +237,16 @@ For players 2, 3 and 4. You do **not** need Halo, Steam or MCC: the game runs on
 | **+ / -** | Mouse sensitivity (0.1x to 99x) |
 
 - With a **controller** nothing else is needed (Xbox controller recommended).
+- Only the host (player 1) can pause: MCC's pause menu only answers to them.
 - With **keyboard and mouse** click the video to capture the mouse. The full key list is in
   `CoOpEvolved/README.txt` and in F2 → *Keyboard controls*.
-- **Direct mouse aim (beta)** (keyboard and mouse, in the menu or F2): the mouse turns your camera directly,
+- **Direct Mouse Aim (Mouse Support)** (keyboard and mouse, in the menu or F2): the mouse turns your camera directly,
   like Halo on PC, instead of moving the controller's right stick (no dead zone or stick acceleration). Next to
   it, *active* means it is working; if the host's game cannot use it yet, the stick is used as before. The host's
-  panel shows *mouse aim* on your card. Adjust it with **+ / -**.
+  panel shows *mouse aim* on your card. Adjust it with **+ / -**. It turns on a few seconds after the mission
+  starts.
+- **Subtitles** (F2): MCC's subtitle line copied into your part of the screen. Untick it if you do not want it; it
+  is greyed out when the host turned subtitles off.
 - If the video freezes for a moment after packet loss, it recovers by itself in under half a second.
 - **Game volume** is set with the slider in the main menu or in F2 (it is saved); **F3** mutes.
 

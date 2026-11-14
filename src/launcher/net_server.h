@@ -9,7 +9,7 @@ struct PlayerInfo {
     char address[64] = {};
     unsigned ms_since_packet = 0;
     unsigned inputs_per_second = 0;
-    int armor_color = 0;  // índice en k_armor_colors
+    uint32_t armor_color = 0;  // ArmorRgb
     int skin = 0;         // índice en k_skins (lo que eligió; si no está en la misión se ve como Master Chief)
     bool direct_aim = false;  // usa la mira directa con mouse
 };
@@ -33,10 +33,11 @@ struct HostOptions {
     bool enabled = true;  // nombres sobre los jugadores
     int fov = 70;         // FOV horizontal del juego (grados), para los nombres
     char host_name[proto::k_nickname_size] = {};  // jugador 1
-    int host_armor_color = 0;                     // jugador 1, índice en k_armor_colors
+    uint32_t host_armor_color = 0;                // jugador 1, ArmorRgb
     int host_skin = 0;                            // jugador 1, índice en k_skins
     bool p1_fullscreen = false;                   // jugador 1 a pantalla completa al abrir el juego
     bool full_cinematics = true;                  // cinemáticas: pantalla entera para cada amigo
     bool hide_subtitles = false;                  // ocultar los subtítulos de MCC (los amigos los ven cortados)
+    bool copy_subtitles = true;                   // copiar la línea de subtítulos en la parte de cada jugador
 };
 void net_server_set_host_options(const HostOptions& options);

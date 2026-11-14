@@ -33,6 +33,7 @@ HRESULT STDMETHODCALLTYPE hooked_present(IDXGISwapChain* swap_chain, UINT sync, 
             log_write("Pantalla del juego: %ux%u formato %d", desc.BufferDesc.Width, desc.BufferDesc.Height,
                       int(desc.BufferDesc.Format));
         }
+        subtitles_copy_draw(swap_chain);  // antes de los nombres (que no se copien) y antes de capturar
         name_tags_draw(swap_chain);  // antes de capturar: así los nombres también van en el video
         video_on_frame(swap_chain);
         p1_view_on_frame(swap_chain);  // después de capturar: J2-J4 siguen recibiendo su cuadrante

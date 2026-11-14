@@ -49,11 +49,12 @@ struct HostSettings {
     bool name_tags = true;
     int fov = 70;
     int fps = 60;
-    int armor_color = 0;  // jugador 1, índice en k_armor_colors
+    uint32_t armor_color = 0;  // jugador 1, ArmorRgb
     int skin = 0;         // jugador 1, índice en k_skins
     bool p1_fullscreen = false;
     bool full_cinematics = true;
     bool hide_subtitles = false;  // los subtítulos de MCC cruzan toda la pantalla dividida: los amigos los ven cortados
+    bool copy_subtitles = true;   // la línea de subtítulos se copia en la parte de cada jugador
     // Mandos de J2-J4: true = directo al juego (sin ViGEmBus; sin AlphaRing el mod pone los 4 jugadores),
     // false = mandos virtuales de ViGEmBus + AlphaRing (el sistema anterior). Clave "controllers" del .ini.
     bool direct_pads = true;
@@ -85,13 +86,19 @@ void settings_load() {
     bool valid_fps = false;
     for (int fps : proto::k_fps_options) valid_fps |= fps == g_settings.fps;
     if (!valid_fps) g_settings.fps = 60;
-    g_settings.armor_color = GetPrivateProfileIntW(L"host", L"armor_color", 0, ini.c_str());
-    if (g_settings.armor_color < 0 || g_settings.armor_color >= k_armor_color_count) g_settings.armor_color = 0;
+    // "armor" = ArmorRgb en hexadecimal; las versiones anteriores guardaban "armor_color" = índice en la lista.
+    wchar_t armor[16] = {};
+    GetPrivateProfileStringW(L"host", L"armor", L"", armor, 16, ini.c_str());
+    if (armor[0])
+        g_settings.armor_color = armor_sanitize(uint32_t(wcstoul(armor, nullptr, 16)));
+    else
+        g_settings.armor_color = armor_preset(GetPrivateProfileIntW(L"host", L"armor_color", 0, ini.c_str()));
     g_settings.skin = GetPrivateProfileIntW(L"host", L"skin", 0, ini.c_str());
     if (g_settings.skin < 0 || g_settings.skin >= k_skin_count) g_settings.skin = 0;
     g_settings.p1_fullscreen = GetPrivateProfileIntW(L"host", L"p1_fullscreen", 0, ini.c_str()) != 0;
     g_settings.full_cinematics = GetPrivateProfileIntW(L"host", L"full_cinematics", 1, ini.c_str()) != 0;
     g_settings.hide_subtitles = GetPrivateProfileIntW(L"host", L"hide_subtitles", 0, ini.c_str()) != 0;
+    g_settings.copy_subtitles = GetPrivateProfileIntW(L"host", L"copy_subtitles", 1, ini.c_str()) != 0;
     wchar_t controllers[16] = {};
     GetPrivateProfileStringW(L"host", L"controllers", L"direct", controllers, 16, ini.c_str());
     g_settings.direct_pads = _wcsicmp(controllers, L"vigem") != 0;
@@ -107,11 +114,15 @@ void settings_save() {
     WritePrivateProfileStringW(L"host", L"name_tags", g_settings.name_tags ? L"1" : L"0", ini.c_str());
     WritePrivateProfileStringW(L"host", L"fov", std::to_wstring(g_settings.fov).c_str(), ini.c_str());
     WritePrivateProfileStringW(L"host", L"fps", std::to_wstring(g_settings.fps).c_str(), ini.c_str());
-    WritePrivateProfileStringW(L"host", L"armor_color", std::to_wstring(g_settings.armor_color).c_str(), ini.c_str());
+    wchar_t armor[16];
+    swprintf(armor, 16, L"%08X", g_settings.armor_color);
+    WritePrivateProfileStringW(L"host", L"armor", armor, ini.c_str());
+    WritePrivateProfileStringW(L"host", L"armor_color", nullptr, ini.c_str());
     WritePrivateProfileStringW(L"host", L"skin", std::to_wstring(g_settings.skin).c_str(), ini.c_str());
     WritePrivateProfileStringW(L"host", L"p1_fullscreen", g_settings.p1_fullscreen ? L"1" : L"0", ini.c_str());
     WritePrivateProfileStringW(L"host", L"full_cinematics", g_settings.full_cinematics ? L"1" : L"0", ini.c_str());
     WritePrivateProfileStringW(L"host", L"hide_subtitles", g_settings.hide_subtitles ? L"1" : L"0", ini.c_str());
+    WritePrivateProfileStringW(L"host", L"copy_subtitles", g_settings.copy_subtitles ? L"1" : L"0", ini.c_str());
     WritePrivateProfileStringW(L"host", L"controllers", g_settings.direct_pads ? L"direct" : L"vigem", ini.c_str());
 }
 
@@ -125,6 +136,7 @@ void apply_host_options() {
     options.p1_fullscreen = g_settings.p1_fullscreen;
     options.full_cinematics = g_settings.full_cinematics;
     options.hide_subtitles = g_settings.hide_subtitles;
+    options.copy_subtitles = g_settings.copy_subtitles;
     net_server_set_host_options(options);
 }
 
@@ -463,6 +475,20 @@ void draw_name_tags_card() {
                                   "Your MCC settings are not changed. Applies when a mission starts.",
                                   "MCC dibuja los subtítulos sobre toda la pantalla dividida, así que tus amigos los ven\n"
                                   "cortados. No cambia tu configuración de MCC. Vale al empezar una misión."));
+    ImGui::SameLine(0, 36);
+    ImGui::BeginDisabled(g_settings.hide_subtitles);
+    if (ImGui::Checkbox(T("Subtitles for each player", "Subtítulos para cada jugador"), &g_settings.copy_subtitles)) {
+        apply_host_options();
+        settings_save();
+    }
+    ImGui::EndDisabled();
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+        ImGui::SetTooltip("%s", T("MCC draws each subtitle line once, centered on the whole split screen. This copies\n"
+                                  "the line into each player's part (friends' video and player 1 with F6), over a\n"
+                                  "dark band. It needs subtitles turned on in MCC.",
+                                  "MCC dibuja cada línea de subtítulos una vez, centrada en toda la pantalla dividida.\n"
+                                  "Esto la copia en la parte de cada jugador (video de los amigos y jugador 1 con F6),\n"
+                                  "sobre una banda oscura. Necesita los subtítulos activados en MCC."));
     ui_halo_panel_end();
 }
 
@@ -539,7 +565,7 @@ void draw_player_card(int player, float width, float height) {
         ImGui::SameLine();
         ui_armor_swatch(info.armor_color);
         ImGui::SameLine();
-        ImGui::TextColored(k_muted, "%s", T(k_armor_colors[info.armor_color].name_en, k_armor_colors[info.armor_color].name_es));
+        ImGui::TextColored(k_muted, "%s", armor_name(info.armor_color));
         if (info.skin > 0 && info.skin < k_skin_count) {
             char label[160];
             ImGui::SameLine();

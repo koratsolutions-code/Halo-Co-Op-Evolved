@@ -60,9 +60,12 @@ Internal notes for people working on Halo: Co Op Evolved. Players only need [REA
 - **Game mod (`src/game`, built as `VERSION.dll`)**: sets up 4 local players and the network controllers
   (`local_players.cpp`), hooks `IDXGISwapChain::Present`, encodes each quadrant with NVENC and sends it to its
   player (the whole screen during cutscenes). It also draws name tags, armor colours, player 1 full screen (F6),
-  direct mouse aim and skins.
+  direct mouse aim, skins and the subtitle copy.
 - **Client mode**: decodes the video with NVDEC, plays the audio and sends controller or keyboard/mouse input.
-- **Protocol (`src/common/protocol.h`)**: version 6. Bump `k_version` whenever a client↔host message changes size.
+- **Protocol (`src/common/protocol.h`)**: version 7. Bump `k_version` whenever a client↔host message changes size.
+  v7: armor colours are `uint32_t ArmorRgb` (0 = default, `0x01RRGGBB`, `0x02000000` = animated rainbow) in
+  `PlayerOptions` and `VideoConfig`; `PlayerOptions.subtitles`, `Pong.host_subtitles`,
+  `VideoConfig.copy_subtitles` and `VideoConfig.subtitles_for[4]`.
 
 ## What we know about MCC-Win64-Shipping.exe (Steam 1.3528)
 
@@ -95,12 +98,26 @@ PE timestamp `0x68A0E5D7` (checked before hooking). Offsets are RVAs of the exe.
   `UMCCSubtitlesViewModel`, `SubtitleManager`, `OnQueueSubtitles`). The texts come from
   `Data\UI\Localization\EN_Halo1.bin` (UTF-8, `cor&idCORTANA` + U+E900 + line; a sorted table of 32-bit hashes,
   not of the dialog sound names). MCC converts them to UTF-16 at load and the line on screen lives in UI objects that
-  move around the heap, so drawing each line per player would need Unreal reflection work. Not done.
+  move around the heap, so reading the text itself would need Unreal reflection work. The copy works on pixels
+  instead (below).
 - **Hiding them** works through halo1.dll (`subtitles.cpp`): `halo1+0x47B180` reads the option
   `GameOpt.Subtitles` into `options+0x50` (prologue `40 57 48 83 EC 30 48 C7 44 24 20 FE FF FF FF`); its caller, when
   the value is 0, calls `+0x47B230`, which sends `HideAll` to the subtitle interface. The mod hooks `+0x47B180` and
   writes 0 when the host ticks *Hide MCC subtitles* (`VideoConfig.hide_subtitles`). It hooks `KernelBase!LoadLibraryExW`
   to catch every load of halo1.dll before MCC uses it (and polls as a fallback).
+- **When a line is up** (`subtitles.cpp`): halo1.dll calls `+0x47A860` ShowText(rcx, rdx, xmm2 = duration, always 0)
+  and `+0x47AB40` HideText(rcx, rdx). `*rdx` is the address of the sound name (`sound\dialog\a30\a30_030_cortana`),
+  used as the line key. ShowText returns early when the subtitle flag `*(halo1+0x2E3D1F8) + 0x50` is 0 (MCC option
+  off or *Hide MCC subtitles*). The mod hooks both and keeps the open lines (dropped after 30 s if HideText never
+  comes).
+- **Where it is drawn**: always centred on the whole screen, not per player: about 26-74 % of the width and
+  84.5-87 % of the height (measured at 2560x1440 with 1 and 4 players); two-line subtitles grow upwards.
+- **Copy** (`subtitle_copy.cpp`, before the name tags in the Present hook, so it goes into the video and F6):
+  while a line is up, copy the band 10-90 % × 80-92 % of the back buffer and draw it in every player view that
+  does not contain it whole, centred at 72 % of the view height and scaled to its width. `ps_subtitle` keeps
+  only the white text (smoothstep on the darkest channel) over a dark band (alpha 0.6). Views where a piece of the
+  original line falls get an almost opaque band (0.98) plus a dark strip across the view to hide it.
+  Skipped for players with `subtitles_for[i] = 0` and during full-screen cutscenes.
 - `%USERPROFILE%\AppData\LocalLow\MCC\Config\Halo1\UserConfigs\user.cfg` (`GameOpt { Subtitles = 1 }`) is only
   a copy: MCC rewrites it from its own profile settings when it starts and when a mission starts. Never edit it.
 
@@ -149,6 +166,10 @@ starts), only if all three match the original bytes:
   the left) then float pitch (up is +). Found by matching each player's look vector. Writing there turns the
   camera.
 - A similar block with players **0x30 apart** is only a copy that the game rewrites every frame.
+- Finding them: full scan of writable memory comparing against the first alive friend's look vector (biped
+  +0x210), re-read before each region so a moving mouse still matches (tolerance 0.01). At a mission start the
+  game moves the camera for a while (a30 lifeboat) and they stop matching; the address is remembered and checked
+  again every second before a new full scan (every 3 s). Mismatches during cutscenes do not count.
 
 ### Tags (`skins.cpp`)
 - `*(halo1.dll+0x1C34FB0)` = tag array; `*(halo1.dll+0x2B22F50)` = tag data block (array = block + 0x28).

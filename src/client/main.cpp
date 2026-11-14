@@ -223,9 +223,9 @@ void sensitivity_slider() {
     if (ImGui::IsItemDeactivatedAfterEdit()) settings_save(g_settings);
 }
 
-// Mira directa con mouse (beta): solo para teclado y mouse. Si el host no la puede usar, sigue el stick.
+// Mira directa (soporte de mouse): solo para teclado y mouse. Si el host no la puede usar, sigue el stick.
 void direct_aim_control(const NetStatus& status) {
-    if (ImGui::Checkbox(T("Direct mouse aim (beta)", "Mira directa con mouse (beta)"), &g_settings.direct_aim)) {
+    if (ImGui::Checkbox(T("Direct Mouse Aim (Mouse Support)", "Mira directa (soporte de mouse)"), &g_settings.direct_aim)) {
         net_update_settings(g_settings);
         settings_save(g_settings);
     }
@@ -240,6 +240,24 @@ void direct_aim_control(const NetStatus& status) {
         ImGui::TextColored(k_green, "%s", T("active", "activa"));
     else
         ImGui::TextColored(k_orange, "%s", T("not available yet: using the stick", "todavía no disponible: se usa el stick"));
+}
+
+// Subtítulos: la copia de la línea de MCC en su video. Si el host los ocultó, nadie los puede activar.
+void subtitles_control(const NetStatus& status) {
+    bool host_off = status.state == NetState::connected && !status.host_subtitles;
+    bool shown = g_settings.subtitles && !host_off;
+    ImGui::BeginDisabled(host_off);
+    if (ImGui::Checkbox(T("Subtitles", "Subtítulos"), &shown)) {
+        g_settings.subtitles = shown;
+        net_update_settings(g_settings);
+        settings_save(g_settings);
+    }
+    ImGui::EndDisabled();
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+        ImGui::SetTooltip("%s", host_off ? T("The host turned subtitles off for everyone.",
+                                             "El host desactivó los subtítulos para todos.")
+                                         : T("MCC's subtitle line, copied into your part of the screen.",
+                                             "La línea de subtítulos de MCC, copiada en tu parte de la pantalla."));
 }
 
 void volume_controls() {
@@ -375,6 +393,7 @@ void draw_ingame_panel(const NetStatus& status) {
     armor_color_control();
     skin_control(status);
     volume_controls();
+    subtitles_control(status);
     if (g_settings.control == ControlMode::gamepad) {
         if (input_gamepad_connected())
             ImGui::TextUnformatted(T("Using your controller.", "Usando tu mando."));
@@ -390,11 +409,11 @@ void draw_ingame_panel(const NetStatus& status) {
                 "WASD move · Mouse aim · Left click shoot · Right click grenade\n"
                 "Space jump · E action (vehicles, pick up) · R reload · F/V melee · Q or wheel switch weapon\n"
                 "G switch grenade · Ctrl/C crouch · Z or middle click zoom\n"
-                "1-4 or arrows d-pad (flashlight, etc.) · Enter pause · Tab scoreboard",
+                "1-4 or arrows d-pad (flashlight, etc.) · Tab scoreboard · only the host can pause",
                 "WASD moverse · Mouse apuntar · Clic izq. disparar · Clic der. granada\n"
                 "Espacio saltar · E acción (vehículos, recoger) · R recargar · F/V golpe · Q o rueda cambiar arma\n"
                 "G cambiar granada · Ctrl/C agacharse · Z o clic central zoom\n"
-                "1-4 o flechas cruceta (linterna, etc.) · Enter pausa · Tab marcador"));
+                "1-4 o flechas cruceta (linterna, etc.) · Tab marcador · solo el host puede pausar"));
         }
     }
     ImGui::TextDisabled("%s", T("F1 stats · F2 this menu · F3 mute · F11 full screen",

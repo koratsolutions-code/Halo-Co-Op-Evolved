@@ -16,6 +16,17 @@ Output vs_main(uint id : SV_VertexID) {
     return o;
 }
 float4 ps_main(Output i) : SV_Target { return float4(source.Sample(linear_sampler, i.uv).rgb, 1); }
+// Subtítulos de MCC: texto blanco con borde oscuro. Solo pasa lo casi blanco en los tres canales (así no se cuela
+// la imagen de otro jugador que haya detrás); lo demás oscurece lo que ya había (alfa BAND_ALPHA, mezcla normal).
+#ifndef BAND_ALPHA
+#define BAND_ALPHA 0.6
+#endif
+float4 ps_subtitle(Output i) : SV_Target {
+    float3 c = source.Sample(linear_sampler, i.uv).rgb;
+    float text = smoothstep(0.72, 0.90, min(c.r, min(c.g, c.b)));
+    return float4(c * text, max(text, BAND_ALPHA));
+}
+float4 ps_dark(Output i) : SV_Target { return float4(0, 0, 0, BAND_ALPHA); }
 )";
 
 template <typename T>
@@ -102,6 +113,10 @@ struct SavedState {
 }  // namespace
 
 void Blitter::release_all() {
+    release(m_blend_alpha);
+    release(m_ps_subtitle);
+    release(m_ps_subtitle_cover);
+    release(m_ps_dark);
     release(m_depth);
     release(m_blend);
     release(m_raster);
@@ -114,14 +129,33 @@ void Blitter::release_all() {
 bool Blitter::create(ID3D11Device* device) {
     ID3DBlob* vs = nullptr;
     ID3DBlob* ps = nullptr;
+    ID3DBlob* ps_subtitle = nullptr;
+    ID3DBlob* ps_cover = nullptr;
+    ID3DBlob* ps_dark = nullptr;
+    const D3D_SHADER_MACRO cover_alpha[] = {{"BAND_ALPHA", "0.98"}, {nullptr, nullptr}};
     bool ok = SUCCEEDED(D3DCompile(k_shader, sizeof(k_shader) - 1, nullptr, nullptr, nullptr, "vs_main", "vs_4_0", 0, 0,
                                    &vs, nullptr)) &&
               SUCCEEDED(D3DCompile(k_shader, sizeof(k_shader) - 1, nullptr, nullptr, nullptr, "ps_main", "ps_4_0", 0, 0,
                                    &ps, nullptr)) &&
+              SUCCEEDED(D3DCompile(k_shader, sizeof(k_shader) - 1, nullptr, nullptr, nullptr, "ps_subtitle", "ps_4_0",
+                                   0, 0, &ps_subtitle, nullptr)) &&
+              SUCCEEDED(D3DCompile(k_shader, sizeof(k_shader) - 1, nullptr, cover_alpha, nullptr, "ps_subtitle",
+                                   "ps_4_0", 0, 0, &ps_cover, nullptr)) &&
+              SUCCEEDED(D3DCompile(k_shader, sizeof(k_shader) - 1, nullptr, cover_alpha, nullptr, "ps_dark", "ps_4_0",
+                                   0, 0, &ps_dark, nullptr)) &&
               SUCCEEDED(device->CreateVertexShader(vs->GetBufferPointer(), vs->GetBufferSize(), nullptr, &m_vs)) &&
-              SUCCEEDED(device->CreatePixelShader(ps->GetBufferPointer(), ps->GetBufferSize(), nullptr, &m_ps));
+              SUCCEEDED(device->CreatePixelShader(ps->GetBufferPointer(), ps->GetBufferSize(), nullptr, &m_ps)) &&
+              SUCCEEDED(device->CreatePixelShader(ps_subtitle->GetBufferPointer(), ps_subtitle->GetBufferSize(),
+                                                  nullptr, &m_ps_subtitle)) &&
+              SUCCEEDED(device->CreatePixelShader(ps_cover->GetBufferPointer(), ps_cover->GetBufferSize(), nullptr,
+                                                  &m_ps_subtitle_cover)) &&
+              SUCCEEDED(device->CreatePixelShader(ps_dark->GetBufferPointer(), ps_dark->GetBufferSize(), nullptr,
+                                                  &m_ps_dark));
     if (vs) vs->Release();
     if (ps) ps->Release();
+    if (ps_subtitle) ps_subtitle->Release();
+    if (ps_cover) ps_cover->Release();
+    if (ps_dark) ps_dark->Release();
     if (!ok) return false;
 
     D3D11_SAMPLER_DESC sampler{};
@@ -134,27 +168,37 @@ bool Blitter::create(ID3D11Device* device) {
     raster.DepthClipEnable = TRUE;
     D3D11_BLEND_DESC blend{};
     blend.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
+    D3D11_BLEND_DESC alpha{};
+    alpha.RenderTarget[0].BlendEnable = TRUE;
+    alpha.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+    alpha.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+    alpha.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+    alpha.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ZERO;
+    alpha.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ONE;
+    alpha.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+    alpha.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
     D3D11_DEPTH_STENCIL_DESC depth{};
     return SUCCEEDED(device->CreateSamplerState(&sampler, &m_sampler)) &&
            SUCCEEDED(device->CreateRasterizerState(&raster, &m_raster)) &&
            SUCCEEDED(device->CreateBlendState(&blend, &m_blend)) &&
+           SUCCEEDED(device->CreateBlendState(&alpha, &m_blend_alpha)) &&
            SUCCEEDED(device->CreateDepthStencilState(&depth, &m_depth));
 }
 
-bool Blitter::draw(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11ShaderResourceView* source,
-                   ID3D11RenderTargetView* target, UINT width, UINT height, float source_aspect) {
+bool Blitter::ready(ID3D11Device* device) {
     if (device != m_device) {
         release_all();
         m_failed = !create(device);
         m_device = device;
     }
-    if (m_failed) return false;
-    SavedState saved;
-    saved.save(context);
+    return !m_failed;
+}
+
+bool Blitter::draw(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11ShaderResourceView* source,
+                   ID3D11RenderTargetView* target, UINT width, UINT height, float source_aspect) {
+    if (!ready(device)) return false;
     D3D11_VIEWPORT viewport{0, 0, float(width), float(height), 0, 1};
     if (source_aspect > 0) {
-        const FLOAT black[4] = {0, 0, 0, 1};
-        context->ClearRenderTargetView(target, black);
         float target_aspect = float(width) / float(height);
         if (source_aspect > target_aspect) {
             viewport.Height = float(width) / source_aspect;
@@ -164,16 +208,43 @@ bool Blitter::draw(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11Sha
             viewport.TopLeftX = (float(width) - viewport.Width) / 2;
         }
     }
+    draw_with(context, m_ps, m_blend, source, target, viewport, source_aspect > 0);
+    return true;
+}
+
+bool Blitter::draw_subtitle(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11ShaderResourceView* source,
+                            ID3D11RenderTargetView* target, const D3D11_VIEWPORT& area, bool cover) {
+    if (!ready(device)) return false;
+    draw_with(context, cover ? m_ps_subtitle_cover : m_ps_subtitle, m_blend_alpha, source, target, area, false);
+    return true;
+}
+
+bool Blitter::draw_dark(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11RenderTargetView* target,
+                        const D3D11_VIEWPORT& area) {
+    if (!ready(device)) return false;
+    draw_with(context, m_ps_dark, m_blend_alpha, nullptr, target, area, false);
+    return true;
+}
+
+void Blitter::draw_with(ID3D11DeviceContext* context, ID3D11PixelShader* shader, ID3D11BlendState* blend,
+                        ID3D11ShaderResourceView* source, ID3D11RenderTargetView* target,
+                        const D3D11_VIEWPORT& viewport, bool clear) {
+    SavedState saved;
+    saved.save(context);
+    if (clear) {
+        const FLOAT black[4] = {0, 0, 0, 1};
+        context->ClearRenderTargetView(target, black);
+    }
     context->OMSetRenderTargets(1, &target, nullptr);
     context->RSSetViewports(1, &viewport);
     context->RSSetState(m_raster);
     const FLOAT factor[4] = {};
-    context->OMSetBlendState(m_blend, factor, 0xFFFFFFFF);
+    context->OMSetBlendState(blend, factor, 0xFFFFFFFF);
     context->OMSetDepthStencilState(m_depth, 0);
     context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
     context->IASetInputLayout(nullptr);
     context->VSSetShader(m_vs, nullptr, 0);
-    context->PSSetShader(m_ps, nullptr, 0);
+    context->PSSetShader(shader, nullptr, 0);
     context->GSSetShader(nullptr, nullptr, 0);
     context->HSSetShader(nullptr, nullptr, 0);
     context->DSSetShader(nullptr, nullptr, 0);
@@ -181,7 +252,6 @@ bool Blitter::draw(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11Sha
     context->PSSetSamplers(0, 1, &m_sampler);
     context->Draw(3, 0);
     saved.restore(context);
-    return true;
 }
 
 void OwnTexture::release() {

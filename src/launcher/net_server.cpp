@@ -26,8 +26,9 @@ struct Slot {
     unsigned inputs = 0;             // contador de la ventana actual
     unsigned inputs_per_second = 0;  // último valor medido
     uint32_t keyframe_requests = 0;
-    uint8_t armor_color = 0;  // índice en k_armor_colors (lo manda el cliente)
+    uint32_t armor_color = 0;  // ArmorRgb (lo manda el cliente)
     uint8_t skin = 0;         // índice en k_skins (lo manda el cliente)
+    uint8_t subtitles = 1;    // 0: no quiere la copia de los subtítulos (lo manda el cliente)
     // Mira directa con mouse: último total recibido (el primero de cada conexión solo marca el punto de partida).
     bool look_started = false;
     uint32_t look_sequence = 0;
@@ -52,11 +53,12 @@ void send_video_config() {
     config.name_tags = g_host_options.enabled ? 1 : 0;
     config.name_fov = uint8_t(g_host_options.fov);
     memcpy(config.names[0], g_host_options.host_name, sizeof(config.names[0]));
-    config.armor_colors[0] = uint8_t(g_host_options.host_armor_color);
+    config.armor_colors[0] = armor_sanitize(g_host_options.host_armor_color);
     config.skins[0] = uint8_t(g_host_options.host_skin);
     config.p1_fullscreen = g_host_options.p1_fullscreen ? 1 : 0;
     config.full_cinematics = g_host_options.full_cinematics ? 1 : 0;
     config.hide_subtitles = g_host_options.hide_subtitles ? 1 : 0;
+    config.copy_subtitles = g_host_options.copy_subtitles ? 1 : 0;
     for (int i = 0; i < k_remote_players; ++i) {
         config.targets[i].active = g_slots[i].connected ? 1 : 0;
         config.targets[i].ip = g_slots[i].address.sin_addr.s_addr;
@@ -66,6 +68,7 @@ void send_video_config() {
             memcpy(config.names[i + 1], g_slots[i].nickname, sizeof(config.names[i + 1]));
             config.armor_colors[i + 1] = g_slots[i].armor_color;
             config.skins[i + 1] = g_slots[i].skin;
+            config.subtitles_for[i + 1] = g_slots[i].subtitles;
         }
     }
     sockaddr_in game{};
@@ -241,6 +244,7 @@ void server_thread() {
                         // Jugador que no está en la misión en curso (se conectó después de que empezó).
                         pong.watching = game && index >= 0 && g_video_status.local_players &&
                                         index + k_first_remote_player > g_video_status.local_players;
+                        pong.host_subtitles = !g_host_options.hide_subtitles && g_host_options.copy_subtitles;
                         send_to(from, pong);
                     }
                     break;
@@ -250,9 +254,9 @@ void server_thread() {
                 case proto::Type::player_options:
                     if (auto* m = proto::as<proto::PlayerOptions>(buffer, size)) {
                         int index = slot_of(from);
-                        if (index >= 0 && m->armor_color < k_armor_color_count)
-                            g_slots[index].armor_color = m->armor_color;
+                        if (index >= 0) g_slots[index].armor_color = armor_sanitize(m->armor_color);
                         if (index >= 0 && m->skin < k_skin_count) g_slots[index].skin = m->skin;
+                        if (index >= 0) g_slots[index].subtitles = m->subtitles ? 1 : 0;
                     }
                     break;
                 case proto::Type::bye: {

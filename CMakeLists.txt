@@ -57,6 +57,7 @@ add_library(CoOpEvolvedGame SHARED
     src/game/blit.cpp
     src/game/cinematic.cpp
     src/game/subtitles.cpp
+    src/game/subtitle_copy.cpp
     src/game/log.cpp
     src/game/version.def
 )

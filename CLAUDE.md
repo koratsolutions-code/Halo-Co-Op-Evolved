@@ -73,8 +73,9 @@ Lowest latency is the top priority.
 - `src/client` (join mode, `client_main`): NVDEC video, audio, controller or keyboard/mouse input.
 - `src/game` → **VERSION.dll** (proxy DLL loaded by MCC): 4 local players and network controllers
   (`local_players.cpp`), Present hook, NVENC video per quadrant, full-screen cutscenes (`cinematic.cpp`), name
-  tags, armor colours, player 1 full screen, direct mouse aim, skins. Talks to the host over 127.0.0.1:27961.
-- `src/common/protocol.h`: UDP protocol, **version 6**. Bump `k_version` whenever a message between client and
+  tags, armor colours, player 1 full screen, direct mouse aim, skins, subtitle copy. Talks to the host over
+  127.0.0.1:27961.
+- `src/common/protocol.h`: UDP protocol, **version 7**. Bump `k_version` whenever a message between client and
   host changes size (local host↔mod messages ship together and do not need it).
 - `tools/test_game.cpp`: the test game.
 
@@ -88,24 +89,26 @@ Lowest latency is the top priority.
 | Video | NVENC H.264 per quadrant, NVDEC in the client, 30/60/120 FPS |
 | Full-screen cutscenes | While `halo1+0x1B87A20` is 1 every friend gets the whole screen scaled down. Tested |
 | Hide MCC subtitles | Host option; hooks `halo1+0x47B180` so Halo sends `HideAll` (MCC settings untouched). Tested |
+| Subtitles for each player | Host option + client *Subtitles* (F2). Hooks halo1 ShowText/HideText to know when a line is up and copies the subtitle band of the back buffer into every player's part (`subtitle_copy.cpp`), protocol v7. Tested 2-4 players |
 | Halo-launcher look | Logo, icon, Halo-font images for fixed texts, Bahnschrift tabs, admin panel (`ui_halo.*`) |
 | Audio | MCC-only capture (WASAPI process loopback), Opus 10 ms |
 | Name tags | Drawn by the mod over each player (Halo 1 memory, read-only) |
 | Single program | CoOpEvolved.exe with host/join selector, English by default with Español |
-| Campaign armor colours | Writes the biped's change colours every 100 ms |
+| Campaign armor colours | Writes the biped's change colours every 100 ms. Any RGB (`ArmorRgb`, protocol v7) + animated *Rainbow (Gaylo)*. Stripes are impossible: Halo CE uses one change colour for the whole armor. Tested |
 | Security | Host only accepts Radmin (26/8), private networks and loopback; client validates video fragments |
 | Player 1 full screen | F6 or a panel option; stretches the top-left quadrant on the host's monitor |
-| Direct mouse aim (beta) | Client option; the mouse turns the camera directly (protocol v4). Tested OK |
+| Direct Mouse Aim (Mouse Support) | Client option; the mouse turns the camera directly (protocol v4). Active a few seconds after the mission starts (re-checks the last cameras, skips cutscenes). Tested OK |
 | Keyboard E = RB | Enter vehicles / pick up weapons |
 | Per-player skins | Per-player skin selector (client and host panel), protocol v5. Tested in MCC (a30) |
 
 ## 5. Open work
 
 - Skins: test Flood marine, Keyes, Jenkins, checkpoint revert and level change.
-- Subtitles per player: MCC's Unreal interface draws them over the whole split screen. The host can hide them
-  (*Hide MCC subtitles*, `subtitles.cpp`); drawing each line in every friend's part would need Unreal reflection
-  work (see docs/DEVELOPMENT.md). Not started.
-- Level-end freeze fix (halo1 patch 3) and pause with 4 players: not yet confirmed in a full play-through.
+- Subtitle copy: a few white specks of the scene can pass through the text filter (`ps_subtitle` threshold in
+  `blit.cpp`); raise it if they bother.
+- Level-end freeze fix (halo1 patch 3): not yet confirmed in a full play-through.
+- Pause: only player 1 can open MCC's pause menu (MCC's menu only listens to the main user). The owner chose to
+  keep it that way; friends' Start/Enter still reaches the game but does not pause.
 - Late joiners only get in when the mission is started again from the MCC menu: MCC asks for the users only then
   (restart from the pause menu reuses them). Forcing it on restart would mean digging into MCC's `game_restart`
   (game-manager vtable +0x20). Not started.

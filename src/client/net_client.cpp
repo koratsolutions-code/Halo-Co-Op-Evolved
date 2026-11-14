@@ -2,6 +2,7 @@
 #include "audio_player.h"
 #include "input.h"
 
+#include "../common/armor_colors.h"
 #include "../common/lang.h"
 
 #include <winsock2.h>
@@ -247,6 +248,7 @@ void run(Settings settings) {
                     g_status.host_aim_ready = pong->direct_aim_ready != 0;
                     g_status.skins_available = pong->skins_available;
                     g_status.watching = pong->watching != 0;
+                    g_status.host_subtitles = pong->host_subtitles != 0;
                 }
                 break;
             case proto::Type::kicked:
@@ -335,8 +337,9 @@ void run(Settings settings) {
             proto::PlayerOptions options;  // se repite: si se pierde uno, llega el siguiente
             {
                 std::lock_guard lock(g_mutex);
-                options.armor_color = uint8_t(g_settings.armor_color);
+                options.armor_color = armor_sanitize(g_settings.armor_color);
                 options.skin = uint8_t(g_settings.skin);
+                options.subtitles = g_settings.subtitles ? 1 : 0;
             }
             send_message(options);
             last_ping = now;

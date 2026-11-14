@@ -35,8 +35,10 @@ You need: MCC 1.3528 on Steam, an NVIDIA GPU, Radmin VPN and about 10 Mbps of up
   - "Show names over players": if they do not sit right, set "Game FOV" to the game's FOV.
   - "Player 1 full screen (F6 in game)": you see only your part, stretched to your monitor.
   - "Full-screen cutscenes for friends": during cutscenes each friend sees the whole screen.
-  - "Hide MCC subtitles": MCC draws them across the split screen and friends see them cut.
+  - "Subtitles for each player": copies MCC's subtitle line into every player's part.
+  - "Hide MCC subtitles": hides them for everyone (friends cannot turn them on).
     Takes effect when a mission starts; your MCC settings are not changed.
+  - Armor color: the Halo CE colors, "More colors..." (any color) and "Rainbow (Gaylo)".
   - Admin panel, one card per player: name, IP, inputs per second and video of each friend.
     "Move": tests that player's controls.  "Kick": disconnects them.
   - "Skin": look like another character (Marine, Elite...) while still being Master Chief.
@@ -64,7 +66,7 @@ network, and an Xbox controller or keyboard and mouse. You do NOT need Halo.
      Connect before the host starts the mission: if you join later you watch the whole
      screen until the host starts the mission again from the MCC menu.
 
-  F2 ............. menu (armor color, skin, volume, sensitivity, controls, disconnect)
+  F2 ............. menu (armor color, skin, volume, subtitles, sensitivity, controls, disconnect)
   F1 ............. stats (ping, video FPS, losses)
   F3 ............. mute / unmute the game sound
   F11 / Alt+Enter  full screen or window
@@ -72,8 +74,9 @@ network, and an Xbox controller or keyboard and mouse. You do NOT need Halo.
   + and - ........ mouse sensitivity (0.1x to 99x)
 
 With KEYBOARD AND MOUSE: click the video to capture the mouse.
-"Direct mouse aim (beta)" (menu or F2): the mouse turns the camera directly, like Halo on PC,
+"Direct Mouse Aim (Mouse Support)" (menu or F2): the mouse turns the camera directly, like Halo on PC,
 instead of moving the controller's stick. If the host cannot use it yet, the stick is used.
+"Subtitles" (F2): the subtitle line in your part of the screen; untick it to hide it.
 
   WASD ............ move               Mouse ............ aim
   Left click ...... shoot              Right click ...... grenade
@@ -82,7 +85,9 @@ instead of moving the controller's stick. If the host cannot use it yet, the sti
   Q or wheel ...... switch weapon
   G ............... switch grenade     Ctrl or C ........ crouch
   Z or middle click zoom               1-4 or arrows .... d-pad (flashlight, etc.)
-  Enter ........... pause              Tab .............. scoreboard
+  Tab ............. scoreboard
+
+Only the host (player 1) can pause: MCC's pause menu only answers to them.
 
 Problems
 --------

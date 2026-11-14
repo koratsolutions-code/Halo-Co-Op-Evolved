@@ -10,10 +10,22 @@ public:
     // proporción (ancho/alto) y sobra negro arriba y abajo o a los lados.
     bool draw(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11ShaderResourceView* source,
               ID3D11RenderTargetView* target, UINT width, UINT height, float source_aspect = 0);
+    // Línea de subtítulos: dibuja `source` en `area` del render target dejando solo el texto blanco; el resto queda
+    // como una banda oscura semitransparente sobre lo que ya había (casi opaca con `cover`, para tapar debajo otra
+    // línea que no coincide).
+    bool draw_subtitle(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11ShaderResourceView* source,
+                       ID3D11RenderTargetView* target, const D3D11_VIEWPORT& area, bool cover);
+    // Banda oscura casi opaca en `area` (la misma de draw_subtitle con `cover`), sin texto.
+    bool draw_dark(ID3D11Device* device, ID3D11DeviceContext* context, ID3D11RenderTargetView* target,
+                   const D3D11_VIEWPORT& area);
 
 private:
     bool create(ID3D11Device* device);
+    bool ready(ID3D11Device* device);
     void release_all();
+    void draw_with(ID3D11DeviceContext* context, ID3D11PixelShader* shader, ID3D11BlendState* blend,
+                   ID3D11ShaderResourceView* source, ID3D11RenderTargetView* target, const D3D11_VIEWPORT& viewport,
+                   bool clear);
 
     ID3D11Device* m_device = nullptr;
     ID3D11VertexShader* m_vs = nullptr;
@@ -21,6 +33,10 @@ private:
     ID3D11SamplerState* m_sampler = nullptr;
     ID3D11RasterizerState* m_raster = nullptr;
     ID3D11BlendState* m_blend = nullptr;
+    ID3D11PixelShader* m_ps_subtitle = nullptr;
+    ID3D11PixelShader* m_ps_subtitle_cover = nullptr;
+    ID3D11PixelShader* m_ps_dark = nullptr;
+    ID3D11BlendState* m_blend_alpha = nullptr;
     ID3D11DepthStencilState* m_depth = nullptr;
     bool m_failed = false;
 };

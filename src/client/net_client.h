@@ -24,6 +24,7 @@ struct NetStatus {
     bool direct_aim = false;       // la mira directa está en uso ahora
     uint16_t skins_available = 0;  // bit i: la skin i está en la misión del host (0: no se sabe)
     bool watching = false;         // entró con la misión empezada: mira la pantalla entera hasta la próxima
+    bool host_subtitles = true;    // false: el host ocultó los subtítulos (la casilla del cliente no sirve)
 };
 
 struct VideoFrame {

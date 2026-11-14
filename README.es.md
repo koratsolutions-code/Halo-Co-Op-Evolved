@@ -93,9 +93,14 @@ pantalla entera** (reducida a su tamaño) en vez de su cuarto, y al terminar vue
 completas para los amigos** lo desactiva.
 
 ### Subtítulos
-MCC dibuja los subtítulos una sola vez sobre toda la pantalla dividida, así que los amigos los ven cortados.
-**Ocultar los subtítulos de MCC** los oculta para todos (vale al empezar una misión). No cambia tu configuración de
-MCC: desmárcala para que vuelvan.
+MCC dibuja los subtítulos una sola vez, centrados en toda la pantalla dividida, así que con 3-4 jugadores quedan
+cortados entre las partes de abajo y las de arriba no los ven. **Subtítulos para cada jugador** (activado por
+defecto) copia la línea de subtítulos en la parte de cada jugador, incluido el jugador 1 con F6, sobre una banda
+oscura para que se lea bien. Cada amigo puede quitar su copia con **Subtítulos** en F2.
+
+**Ocultar los subtítulos de MCC** los oculta para todos (vale al empezar una misión) y entonces los amigos tampoco
+pueden activarlos. No cambia tu configuración de MCC: desmárcala para que vuelvan. Si los subtítulos están
+apagados en las opciones de MCC, no hay nada que copiar.
 
 ### Audio
 Co Op Evolved captura **solo el sonido de MCC** (no Discord, música ni otras apps) y manda la misma mezcla a
@@ -124,8 +129,9 @@ solo tu parte (arriba a la izquierda) estirada a todo tu monitor; tus amigos sig
 La personalización de armadura de MCC solo vale en multijugador, así que el mod del juego pinta la armadura
 de cada jugador en la campaña. El jugador 1 la elige en **Armadura** (tarjeta del jugador 1); los jugadores
 2-4 en **Color de armadura** de su cliente (también en F2 durante la partida). Están los 18 colores de Halo CE
-más **Por defecto** (el verde oliva de siempre). El color se vuelve a poner solo al reaparecer o al cargar
-otro nivel, y cada tarjeta de jugador lo muestra.
+más **Por defecto** (el verde oliva de siempre), **Más colores...** para elegir cualquier color y **Arcoíris
+(Gaylo)**, que va pasando por todos los colores. El color se vuelve a poner solo al reaparecer o al cargar otro
+nivel, y cada tarjeta de jugador lo muestra.
 
 ### Skins
 Cada jugador puede verse como otro personaje de Halo CE y seguir siendo Master Chief en todo lo demás (hitbox,
@@ -229,7 +235,7 @@ Para los jugadores 2, 3 y 4. **No** necesitas Halo, Steam ni MCC: el juego corre
 ### Teclas
 | Tecla | Qué hace |
 |-------|----------|
-| **F2** | Menú: color de armadura, skin, volumen, sensibilidad, controles, desconectar |
+| **F2** | Menú: color de armadura, skin, volumen, subtítulos, sensibilidad, controles, desconectar |
 | **F1** | Estadísticas: ping, FPS del video, Mbps, fotogramas perdidos |
 | **F3** | Silenciar / activar el sonido del juego |
 | **F11** o **Alt+Enter** | Pantalla completa / ventana |
@@ -237,12 +243,16 @@ Para los jugadores 2, 3 y 4. **No** necesitas Halo, Steam ni MCC: el juego corre
 | **+ / -** | Sensibilidad del mouse (0,1x a 99x) |
 
 - Con **mando** no hace falta nada más (se recomienda un mando de Xbox).
+- Solo el host (jugador 1) puede pausar: el menú de pausa de MCC solo le responde a él.
 - Con **teclado y mouse** haz clic en el video para capturar el mouse. La lista completa de teclas está en
   `CoOpEvolved/LEEME.txt` y en F2 → *Controles del teclado*.
-- **Mira directa con mouse (beta)** (teclado y mouse, en el menú o F2): el mouse gira tu cámara directo,
+- **Mira directa (soporte de mouse)** (teclado y mouse, en el menú o F2): el mouse gira tu cámara directo,
   como Halo en PC, en vez de mover el stick derecho del mando (sin zona muerta ni aceleración del stick). A su
   lado, *activa* significa que está funcionando; si el juego del host todavía no puede usarla, se usa el stick
-  como antes. El panel del host muestra *mira con mouse* en tu tarjeta. Ajústala con **+ / -**.
+  como antes. El panel del host muestra *mira con mouse* en tu tarjeta. Ajústala con **+ / -**. Se activa unos
+  segundos después de empezar la misión.
+- **Subtítulos** (F2): la línea de subtítulos de MCC copiada en tu parte de la pantalla. Desmárcala si no la
+  quieres; queda gris cuando el host desactivó los subtítulos.
 - Si el video se congela un momento por paquetes perdidos, se recupera solo en menos de medio segundo.
 - El **volumen del juego** se ajusta con el control del menú principal o en F2 (se guarda); **F3** silencia.
 
