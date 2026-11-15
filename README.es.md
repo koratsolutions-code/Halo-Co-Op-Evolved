@@ -72,8 +72,10 @@ El jugador 1 (tú) juega con **teclado y mouse**.
   el 3 y el 4 en ese orden.
 - La pantalla se reparte según eso: **2 jugadores** = mitades arriba y abajo; **3 jugadores** = el jugador 1 en la
   mitad de arriba, el 2 abajo a la izquierda y el 3 abajo a la derecha; **4 jugadores** = cuartos.
-- Un amigo que se conecta **con la misión ya empezada** mira la pantalla entera con un aviso. Para que entre,
-  vuelve al menú de MCC y empieza la misión otra vez: reiniciar desde el menú de pausa deja los mismos jugadores.
+- Un amigo que se conecta **con la misión ya empezada** mira la pantalla entera con un aviso, y tú ves
+  *"1 amigo(s) esperando entrar"* arriba en tu pantalla. Para que entre, abre el menú del host (**F2**) y presiona
+  **Recargar misión**: la misión empieza otra vez desde el principio con todos los conectados. Reiniciar desde el
+  menú de pausa de MCC deja los mismos jugadores. *Recargar misión* solo está disponible mientras alguien espera.
 
 ### Carpeta del juego
 Para encontrar la carpeta `mcc\binaries\win64` del juego: en Steam, clic derecho en
@@ -130,7 +132,7 @@ Mientras juegas, presiona **F2** (con el juego como ventana activa) o mantén **
 para abrir el menú de Co Op Evolved sobre el juego, sin salir de MCC. Tiene tu color de armadura y tu skin, el
 jugador 1 a pantalla completa (lo mismo que F6), los nombres sobre los jugadores, las cinemáticas completas, las
 opciones de subtítulos (incluida **También en mi parte**, la copia de los subtítulos en tu parte con F6) y quién
-está conectado, con **Expulsar** (pregunta antes). Los cambios se guardan en el panel como si los hubieras hecho
+está conectado, con **Expulsar** (pregunta antes) y **Recargar misión** para los amigos que llegaron tarde. Los cambios se guardan en el panel como si los hubieras hecho
 ahí.
 - Mouse, flechas + Enter, o la cruceta + A del mando. **F2** o **B** lo cierran; Retroceso cierra una lista abierta.
 - Solo lo ves tú: no sale en el video de tus amigos. Tu personaje se queda quieto mientras está abierto.
@@ -240,8 +242,8 @@ Para los jugadores 2, 3 y 4. **No** necesitas Halo, Steam ni MCC: el juego corre
      Cada amigo uno distinto; usa siempre el mismo.
    - **Mando** o **Teclado y mouse**.
 4. Presiona **Conectar**. Cuando el host abre el juego, el cliente pasa a **pantalla completa** con tu parte
-   de la pantalla y el sonido del juego. Conéctate **antes de que el host empiece la misión**: si entras después,
-   miras la pantalla entera hasta que el host vuelva a empezar la misión desde el menú de MCC.
+   de la pantalla y el sonido del juego. Si te conectas **con la misión ya empezada**, miras la pantalla entera
+   hasta que el host la recargue (F2 → *Recargar misión*).
 5. Para salir: **F2 → Desconectar**, o cierra la ventana.
 
 ### Teclas
@@ -261,8 +263,8 @@ Para los jugadores 2, 3 y 4. **No** necesitas Halo, Steam ni MCC: el juego corre
 - **Mira directa (soporte de mouse)** (teclado y mouse, en el menú o F2): el mouse gira tu cámara directo,
   como Halo en PC, en vez de mover el stick derecho del mando (sin zona muerta ni aceleración del stick). A su
   lado, *activa* significa que está funcionando; si el juego del host todavía no puede usarla, se usa el stick
-  como antes. El panel del host muestra *mira con mouse* en tu tarjeta. Ajústala con **+ / -**. Se activa unos
-  segundos después de empezar la misión.
+  como antes. El panel del host muestra *mira con mouse* en tu tarjeta. Ajústala con **+ / -**. Se activa apenas
+  aparece tu personaje, con el aviso *"Mouse activado: puedes apuntar con el mouse"*.
 - **Subtítulos** (F2): la línea de subtítulos de MCC copiada en tu parte de la pantalla. Desmárcala si no la
   quieres; queda gris cuando el host desactivó los subtítulos.
 - Si el video se congela un momento por paquetes perdidos, se recupera solo en menos de medio segundo.
@@ -273,8 +275,8 @@ Para los jugadores 2, 3 y 4. **No** necesitas Halo, Steam ni MCC: el juego corre
   que el host tenga Co Op Evolved abierto en **Crear partida**.
 - **"Esperando video...":** el host todavía no abre MCC, o su panel muestra que falta el mod del juego.
 - **"Ese jugador ya está ocupado":** otro amigo eligió tu número; elige otro.
-- **"Entraste con la misión ya empezada":** estás mirando; jugarás cuando el host vuelva a empezar la misión desde
-  el menú de MCC.
+- **"Entraste con la misión ya empezada":** estás mirando; jugarás cuando el host recargue la misión
+  (F2 → *Recargar misión*).
 - **"Tu cliente y el del host son de versiones distintas":** el host y tú tienen que usar la misma versión de Co Op Evolved; descárgala de nuevo.
 - **Pantalla negra o error de NVIDIA en un portátil:** *Configuración de Windows → Pantalla → Gráficos* →
   pon `CoOpEvolved.exe` en **Alto rendimiento**.

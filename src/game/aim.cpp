@@ -48,15 +48,19 @@ float yaw_distance(float a, float b) {
 
 // ¿Las cámaras de los jugadores vivos coinciden con su mira (J1 cuenta solo si coincide)? Para encontrarlas hacen falta al menos
 // dos, para no confundirse con otro par de floats parecido; para seguir usándolas basta uno (con 2 jugadores, si
-// uno muere solo queda el otro).
-bool cameras_match(uintptr_t cameras, const Halo1Player players[4], float tolerance, int needed) {
+// uno muere solo queda el otro). J1 (el host) suele estar moviendo el mouse y la mira de su biped va un poco atrás
+// de su cámara: se compara con un margen más amplio (host_tolerance).
+bool cameras_match(uintptr_t cameras, const Halo1Player players[4], float tolerance, int needed,
+                   float host_tolerance = -1) {
+    if (host_tolerance < 0) host_tolerance = tolerance;
     int checked = 0;
     for (int p = 0; p < 4; ++p) {
         if (!players[p].alive) continue;
         float yaw, pitch, camera[2];
         look_to_angles(players[p].look, &yaw, &pitch);
+        float limit = p == 0 ? host_tolerance : tolerance;
         bool match = safe_read(cameras + p * k_stride, camera, 8) && std::isfinite(camera[0]) &&
-                     yaw_distance(camera[0], yaw) <= tolerance && std::fabs(camera[1] - pitch) <= tolerance;
+                     yaw_distance(camera[0], yaw) <= limit && std::fabs(camera[1] - pitch) <= limit;
         if (!match && p == 0) continue;  // J1 suma si coincide, pero no descarta (su cámara no está confirmada)
         if (!match) return false;
         ++checked;
@@ -97,12 +101,34 @@ uintptr_t find_cameras() {
                     uintptr_t at = base + i * 4;
                     if (at < first * k_stride) continue;
                     uintptr_t cameras = at - first * k_stride;
-                    if (cameras_match(cameras, players, k_tolerance, 2)) return cameras;
+                    if (cameras_match(cameras, players, k_tolerance, 2, 0.15f)) return cameras;
                 }
             }
         }
         address = base + mbi.RegionSize;
         if (address < base) break;
+    }
+    return 0;
+}
+
+// Dónde las tiene halo1.dll (MCC Steam 1.3528): las cámaras están en el bloque del estado del juego, y halo1.dll
+// guarda punteros fijos hacia ellas. Se comprueba que coincidan con la mira antes de usarlas; si no, se buscan.
+struct CameraPointer {
+    uintptr_t rva;      // dónde está el puntero en halo1.dll
+    uintptr_t offset;   // cámaras = puntero + offset
+};
+constexpr CameraPointer k_camera_pointers[] = {
+    {0x1C403B8, 0x124},     // la estructura que contiene las cámaras
+    {0x2B259C0, 0x35D4A0},  // el principio del bloque del estado del juego
+};
+
+uintptr_t cameras_from_pointers(const Halo1Player players[4]) {
+    auto halo1 = reinterpret_cast<uintptr_t>(GetModuleHandleW(L"halo1.dll"));
+    if (!halo1) return 0;
+    for (const CameraPointer& pointer : k_camera_pointers) {
+        uintptr_t base = 0;
+        if (!safe_read(halo1 + pointer.rva, &base, sizeof(base)) || !base) continue;
+        if (cameras_match(base + pointer.offset, players, 0.05f, 1, 0.3f)) return base + pointer.offset;
     }
     return 0;
 }
@@ -116,7 +142,7 @@ void aim_start() {
         uintptr_t last_known = 0;  // dónde estaban la última vez: al empezar la misión el juego mueve la cámara un
                                    // rato (la cápsula) y dejan de coincidir, pero después vuelven a estar ahí
         while (true) {
-            Sleep(1000);
+            Sleep(g_ready ? 1000 : 200);  // sin cámaras se mira seguido: la mira directa empieza apenas se puede
             Halo1Player players[4];
             if (!halo1_players_read(players)) continue;
             uintptr_t cameras;
@@ -141,8 +167,13 @@ void aim_start() {
                 log_write("Mira directa: las cámaras ya no coinciden, se vuelven a buscar");
                 continue;
             }
-            // Primero donde estaban (casi gratis); la búsqueda completa recorre la memoria y va cada 3 s.
-            if (last_known && cameras_match(last_known, players, 0.05f, 1)) {
+            // Primero los punteros de halo1.dll y donde estaban (casi gratis); la búsqueda completa recorre la
+            // memoria y va cada 3 s.
+            bool by_pointer = false;
+            if (uintptr_t found = cameras_from_pointers(players)) {
+                cameras = found;
+                by_pointer = true;
+            } else if (last_known && cameras_match(last_known, players, 0.05f, 1)) {
                 cameras = last_known;
             } else {
                 if (GetTickCount64() < next_search) continue;
@@ -156,7 +187,7 @@ void aim_start() {
             std::lock_guard lock(g_mutex);
             g_cameras = cameras;
             g_ready = true;
-            log_write("Mira directa: cámaras de los jugadores encontradas");
+            log_write("Mira directa: cámaras de los jugadores encontradas%s", by_pointer ? "" : " (buscándolas)");
         }
     }).detach();
 }

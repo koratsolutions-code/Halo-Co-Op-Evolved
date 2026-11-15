@@ -109,7 +109,7 @@ struct Pong {
     uint8_t direct_aim_ready = 0;  // 1: el mod del juego puede mover la cámara directo (mira directa con mouse)
     uint16_t skins_available = 0;  // bit i: la skin i de k_skins está en la misión actual (0: aún no se sabe)
     uint8_t watching = 0;          // 1: entraste con la misión empezada; ves la pantalla entera hasta que el host
-                                   // vuelva a empezarla desde el menú de MCC
+                                   // la recargue (menú F2 del host) o la vuelva a empezar desde el menú de MCC
     uint8_t host_subtitles = 1;    // 0: el host ocultó los subtítulos (o sus copias): el cliente no puede activarlos
 };
 

@@ -72,8 +72,10 @@ Player 1 (you) plays with **keyboard and mouse**.
   2, 3 and 4 in that order.
 - The screen is split accordingly: **2 players** = top and bottom halves; **3 players** = player 1 on the top
   half, player 2 bottom left, player 3 bottom right; **4 players** = quarters.
-- A friend who connects **after the mission started** watches the whole screen with a notice. To let them in,
-  go back to the MCC menu and start the mission again: restarting from the pause menu keeps the same players.
+- A friend who connects **after the mission started** watches the whole screen with a notice, and you see
+  *"1 friend(s) waiting to join"* at the top of your screen. To let them in, open the host menu (**F2**) and press
+  **Reload Mission**: the mission starts again from the beginning with everyone connected. Restarting from MCC's
+  pause menu keeps the same players. *Reload Mission* is only available while someone is waiting.
 
 ### Game folder
 To find the game's `mcc\binaries\win64` folder: in Steam, right-click
@@ -129,7 +131,7 @@ While you play, press **F2** (with the game as the active window) or hold **View
 1 second to open the Co Op Evolved menu over the game, without leaving MCC. It has your armor color and skin,
 player 1 full screen (same as F6), names over players, full-screen cutscenes, the subtitle options (including
 **Also in my part**, the subtitle copy in your part with F6) and who is connected, with **Kick** (it asks
-first). Changes are saved in the panel as if you had made them there.
+first) and **Reload Mission** for friends who connected late. Changes are saved in the panel as if you had made them there.
 - Mouse, arrows + Enter, or the controller's D-pad + A. **F2** or **B** closes it; Backspace closes an open list.
 - Only you see it: it is not in your friends' video. Your character stands still while it is open.
 - Esc is not used: it opens MCC's pause menu.
@@ -234,8 +236,8 @@ For players 2, 3 and 4. You do **not** need Halo, Steam or MCC: the game runs on
      one; keep the same one every time.
    - **Controller** or **Keyboard and mouse**.
 4. Press **Connect**. When the host opens the game, the client switches to **full screen** with your part
-   of the screen and the game sound. Connect **before the host starts the mission**: if you join later you watch
-   the whole screen until the host starts the mission again from the MCC menu.
+   of the screen and the game sound. If you connect **after the host started the mission** you watch the whole
+   screen until the host reloads it (F2 → *Reload Mission*).
 5. To leave: **F2 → Disconnect**, or close the window.
 
 ### Keys
@@ -255,8 +257,8 @@ For players 2, 3 and 4. You do **not** need Halo, Steam or MCC: the game runs on
 - **Direct Mouse Aim (Mouse Support)** (keyboard and mouse, in the menu or F2): the mouse turns your camera directly,
   like Halo on PC, instead of moving the controller's right stick (no dead zone or stick acceleration). Next to
   it, *active* means it is working; if the host's game cannot use it yet, the stick is used as before. The host's
-  panel shows *mouse aim* on your card. Adjust it with **+ / -**. It turns on a few seconds after the mission
-  starts.
+  panel shows *mouse aim* on your card. Adjust it with **+ / -**. It turns on as soon as your character appears,
+  with the message *"Mouse enabled: you can aim with the mouse"*.
 - **Subtitles** (F2): MCC's subtitle line copied into your part of the screen. Untick it if you do not want it; it
   is greyed out when the host turned subtitles off.
 - If the video freezes for a moment after packet loss, it recovers by itself in under half a second.
@@ -267,8 +269,8 @@ For players 2, 3 and 4. You do **not** need Halo, Steam or MCC: the game runs on
   and that the host has Co Op Evolved open in **Host a game**.
 - **"Waiting for video...":** the host has not opened MCC yet, or their panel shows the game mod missing.
 - **"That player is already taken":** another friend picked your number; pick another one.
-- **"You joined with the mission already started":** you are watching; you will play when the host starts the
-  mission again from the MCC menu.
+- **"You joined with the mission already started":** you are watching; you will play when the host reloads the
+  mission (F2 → *Reload Mission*).
 - **"Your client and the host's are different versions":** you and the host must use the same version of Co Op Evolved; download it again.
 - **Black screen or NVIDIA error on a laptop:** *Windows Settings → Display → Graphics* → set
   `CoOpEvolved.exe` to **High performance**.

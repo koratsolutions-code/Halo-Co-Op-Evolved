@@ -24,3 +24,9 @@ void local_players_set_pads(const proto::Pads& pads);
 void local_players_block_host(bool block);
 // true si los controles por jugador pasan por este DLL (modo direct sin AlphaRing): solo así se pueden bloquear.
 bool local_players_own_input();
+
+// Entrar con la misión empezada: cuántos amigos conectados no están en la misión (0 si no hay misión que se pueda
+// recargar), y la recarga de la misión desde el principio con todos los conectados (la hace el hilo del
+// juego; solo si hay alguien esperando: si la cantidad de jugadores no cambia, MCC deja su pantalla de carga encima).
+int local_players_waiting();
+void local_players_reload_mission();

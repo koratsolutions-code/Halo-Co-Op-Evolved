@@ -99,7 +99,7 @@ PE timestamp `0x68A0E5D7` (checked before hooking). Offsets are RVAs of the exe.
   "signed in" for indices 1..count-1 with fake xuids (and the friends' names), where count = J1 + friends up to the
   highest connected player number (4 if the host app is not running). MCC calls get_xbox_user_id **only when a
   mission is started from the menu** (a burst of ~40 calls), not during play nor on restart from the pause menu,
-  so the count is fixed per mission and late joiners wait for the next start from the menu; get_key_state fills index 0 from the
+  so the count is fixed per mission (see *Joining a started mission* for the host's Reload Mission); get_key_state fills index 0 from the
   keyboard/mouse device and 1-3 from pad devices 0-2; profile and gamepad mapping are always player 1's;
   get_index_by_xuid maps the fake xuids to 1-3. If `WTSAPI32.dll` (AlphaRing) is loaded from the game folder,
   none of this is installed (only the XInput hook).
@@ -171,15 +171,39 @@ starts), only if all three match the original bytes:
 - During cutscenes Halo draws a single full-screen view, so the mod copies the back buffer, scales it down to a
   quadrant's size (`blit.cpp`) and sends that to every friend; player 1 full screen (F6) is skipped.
 
+### Joining a started mission (`local_players.cpp`)
+- halo1.dll has a command layer with named functions (strings in the binary: `LoadLevelSolo(map: string,
+  difficulty: int, isNew: bool = false, fillStat: bool = true)`, `LoadLevelCoop`, `RestartLevel()`,
+  `RestartCheckpoint()`, `LoadMainMenu()`, `SetSplitScreenInput(plr_count)`...). Handlers are registered next to
+  the strings (`lea rcx,[handler]` before `call 0x6C200/0x6C2D0`): LoadLevelSolo `+0x66AF0`, LoadLevelCoop
+  `+0x67AB0`, RestartCheckpoint `+0x68210`, RestartLevel `+0x68310`.
+- `LoadLevelSolo` handler: rcx = command object (also at `[halo1+0x2E3B488]`), rdx = pointer to a string
+  (refcount int, length, capacity, chars at +12; the handler drops one reference at the end), r8d = difficulty,
+  r9b = isNew, 5th argument = fillStat. The map is a `ugc://<guid>/<guid>` id. It calls `+0x66DF0`, which asks for
+  users 0-3 (call at `+0x67356`) and writes the count to the int16 **`halo1+0x1B7B910`** (at `+0x674AC`).
+- The pause menu's *Restart* goes through `RestartLevel` (from `+0x94E89`, MCC's message dispatch) and never
+  recounts. Calling `LoadLevelSolo` inside it, or after it, leaves MCC's loading screen up forever.
+- What works: save the arguments of the last `LoadLevelSolo` (the mod's own string copy with a huge refcount) and
+  call the original again from the game thread (player 1's get_key_state hook, which halo1 calls every frame).
+  When the player count changes, MCC immediately issues its own `LoadLevelSolo` (isNew = 1) and handles its
+  loading screen. When it does not change (2→2), MCC does nothing and its loading screen stays up (also with
+  isNew = 1), so the host menu only enables *Reload Mission* while `connected > mission count`.
+- Hooking all ~100 game-manager vtable entries at once to trace calls crashed MCC at startup: do not.
+
 ### Cameras (`aim.cpp`)
 - Real per-player camera: one structure per player, **0x58 bytes apart**: float yaw (radians, [0, 2π), grows to
   the left) then float pitch (up is +). Found by matching each player's look vector. Writing there turns the
   camera.
 - A similar block with players **0x30 apart** is only a copy that the game rewrites every frame.
-- Finding them: full scan of writable memory comparing against the first alive friend's look vector (biped
-  +0x210), re-read before each region so a moving mouse still matches (tolerance 0.01). At a mission start the
-  game moves the camera for a while (a30 lifeboat) and they stop matching; the address is remembered and checked
-  again every second before a new full scan (every 3 s). Mismatches during cutscenes do not count.
+- They live in the game-state block. halo1.dll keeps fixed pointers to them: **`[halo1+0x1C403B8] + 0x124`** (the
+  structure that holds them) and **`[halo1+0x2B259C0] + 0x35D4A0`** (start of the game-state block). Every 0.2 s
+  until found, both are checked against the players' look (one alive player within 0.05; player 1 within 0.3
+  because the host's mouse keeps moving): the cameras are ready as soon as the players appear (~5 s after load,
+  tested in b30 and after Reload Mission).
+- Fallback: full scan of writable memory comparing against the first alive friend's look vector (biped +0x210),
+  re-read before each region so a moving mouse still matches (tolerance 0.01; player 1 within 0.15). At a mission
+  start the game moves the camera for a while (a30 lifeboat) and they stop matching; the address is remembered and
+  checked again before a new full scan (every 3 s). Mismatches during cutscenes do not count.
 
 ### Tags (`skins.cpp`)
 - `*(halo1.dll+0x1C34FB0)` = tag array; `*(halo1.dll+0x2B22F50)` = tag data block (array = block + 0x28).

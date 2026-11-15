@@ -30,7 +30,7 @@ You need: MCC 1.3528 on Steam, an NVIDIA GPU, Radmin VPN and about 10 Mbps of up
   You play with keyboard and mouse.
 
   F2 in game (or hold View on the controller 1 s): menu over the game with your armor color,
-  skin, F6, subtitles, host options and Kick. Only you see it. F2 or B closes it.
+  skin, F6, subtitles, host options, Kick and Reload Mission. Only you see it. F2 or B closes it.
   Armor colors only paint Master Chief: other skins keep their own colors.
 
   In the panel:
@@ -48,9 +48,10 @@ You need: MCC 1.3528 on Steam, an NVIDIA GPU, Radmin VPN and about 10 Mbps of up
   - "Skin": look like another character (Marine, Elite...) while still being Master Chief.
     Only the skins of the loaded mission work. A new skin shows the next time you respawn.
 
-  A friend who connects after the mission started watches the whole screen. To let
-  them in, go back to the MCC menu and start the mission again (restarting from the
-  pause menu keeps the same players).
+  A friend who connects after the mission started watches the whole screen, and you see
+  "friend(s) waiting to join" at the top. To let them in: F2 > "Reload Mission" (the
+  mission starts again from the beginning with everyone). Restarting from MCC's pause
+  menu keeps the same players.
 
   To test on one PC: open CoOpEvolved.exe a second time; it opens as "Join a game" by itself
   (IP 127.0.0.1). Only one host can run per PC.
@@ -67,8 +68,8 @@ network, and an Xbox controller or keyboard and mouse. You do NOT need Halo.
        Player 2 = top right    Player 3 = bottom left    Player 4 = bottom right
   4. Choose "Controller" or "Keyboard and mouse" and press "Connect".
   5. When the host opens the game, the window switches to full screen with your video.
-     Connect before the host starts the mission: if you join later you watch the whole
-     screen until the host starts the mission again from the MCC menu.
+     If you connect after the host started the mission, you watch the whole screen
+     until the host reloads it (F2 > Reload Mission).
 
   F2 ............. menu (armor color, skin, volume, subtitles, sensitivity, controls, disconnect)
   F1 ............. stats (ping, video FPS, losses)
@@ -80,6 +81,7 @@ network, and an Xbox controller or keyboard and mouse. You do NOT need Halo.
 With KEYBOARD AND MOUSE: click the video to capture the mouse.
 "Direct Mouse Aim (Mouse Support)" (menu or F2): the mouse turns the camera directly, like Halo on PC,
 instead of moving the controller's stick. If the host cannot use it yet, the stick is used.
+It turns on when your character appears ("Mouse enabled: you can aim with the mouse").
 "Subtitles" (F2): the subtitle line in your part of the screen; untick it to hide it.
 
   WASD ............ move               Mouse ............ aim

@@ -84,7 +84,8 @@ Lowest latency is the top priority.
 | Feature | Notes |
 |---|---|
 | Local players without AlphaRing | `local_players.cpp`: MCC game-manager hooks + 3 halo1.dll patches (from AlphaRing, MIT). Tested |
-| Only connected players | Mission gets J1 + friends up to the highest connected number (2-4); video, name tags, J1 full screen and mouse aim follow the 2/3/4 split (`split_layout.h`). Late joiners watch the whole screen (Pong.watching, protocol v6). Tested |
+| Only connected players | Mission gets J1 + friends up to the highest connected number (2-4); video, name tags, J1 full screen and mouse aim follow the 2/3/4 split (`split_layout.h`). Late joiners watch the whole screen (Pong.watching, protocol v6) until the host presses F2 → Reload Mission. Tested |
+| Join a started mission | Host F2 → *Reload Mission* (enabled only while a friend is waiting; notice at the top of the host's screen): repeats halo1's `LoadLevelSolo` (`+0x66AF0`, args saved from the last load) from the game thread (player 1's get_key_state hook), which recounts the players; MCC then does its own load and clears its loading screen. With the same count MCC leaves its loading screen up, so it is not offered. Tested 1→2 |
 | Network controllers without ViGEmBus | XInputGetState/SetState hook; slots 0-2 = players 2-4 (`proto::Pads`). Tested |
 | Video | NVENC H.264 per quadrant, NVDEC in the client, 30/60/120 FPS |
 | Full-screen cutscenes | While `halo1+0x1B87A20` is 1 every friend gets the whole screen scaled down. Tested |
@@ -97,8 +98,8 @@ Lowest latency is the top priority.
 | Campaign armor colours | Writes the biped's change colours every 100 ms. Any RGB (`ArmorRgb`, protocol v7) + animated *Rainbow (Gaylo)*. Stripes are impossible: Halo CE uses one change colour for the whole armor. Only Master Chief bodies are painted: skins keep their own colours. Tested |
 | Security | Host only accepts Radmin (26/8), private networks and loopback; client validates video fragments |
 | Player 1 full screen | F6 or a panel option; stretches the top-left quadrant on the host's monitor |
-| Host F2 menu in game | `host_menu.cpp`: ImGui over MCC after the video capture (only the host sees it); F2 or View held 1 s, B closes. Color, skin, F6, subtitles, host options, Kick. Local messages `host_menu`/`host_kick` to the panel, which saves and resends `VideoConfig`. Player 1 input blocked while open. Tested |
-| Direct Mouse Aim (Mouse Support) | Client option; the mouse turns the camera directly (protocol v4). Active a few seconds after the mission starts (re-checks the last cameras, skips cutscenes). Tested OK |
+| Host F2 menu in game | `host_menu.cpp`: ImGui over MCC after the video capture (only the host sees it); F2 or View held 1 s, B closes. Color, skin, F6, subtitles, host options, Kick, Reload Mission. Local messages `host_menu`/`host_kick` to the panel, which saves and resends `VideoConfig`. Player 1 input blocked while open. Tested |
+| Direct Mouse Aim (Mouse Support) | Client option; the mouse turns the camera directly (protocol v4). Cameras from fixed halo1 pointers (`aim.cpp`), active as soon as the players appear; full scan only as a fallback. The client shows *Mouse enabled* when it starts working. Tested OK |
 | Keyboard E = RB | Enter vehicles / pick up weapons |
 | Per-player skins | Per-player skin selector (client and host panel), protocol v5. Tested in MCC (a30); Flood marine tested. Sergeant Johnson = armored marine with forced model variants (`Skin::variant`), tested in a10 |
 
@@ -112,9 +113,9 @@ Lowest latency is the top priority.
 - Level-end freeze fix (halo1 patch 3): not yet confirmed in a full play-through.
 - Pause: only player 1 can open MCC's pause menu (MCC's menu only listens to the main user). The owner chose to
   keep it that way; friends' Start/Enter still reaches the game but does not pause.
-- Late joiners only get in when the mission is started again from the MCC menu: MCC asks for the users only then
-  (restart from the pause menu reuses them). Forcing it on restart would mean digging into MCC's `game_restart`
-  (game-manager vtable +0x20). Not started.
+- Reload Mission with the same player count (e.g. after a kick, or with nobody new) leaves MCC's loading screen
+  up: MCC only does its own load when the count changes. Not offered for now; finding what halo1 tells MCC when the
+  count changes would allow it.
 - Ideas: one window with host/client tabs instead of relaunching; opening-cutscene bodies born with their skin.
 - The old ViGEmBus + AlphaRing path is still there as a fallback: `controllers=vigem` in `coopevolved-host.ini`
   (the host then writes `mandos=vigem` to `coopevolved-juego.ini` in the game folder).

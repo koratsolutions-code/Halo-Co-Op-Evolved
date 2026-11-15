@@ -185,7 +185,10 @@ bool __fastcall hooked_user_id(void* manager, int64_t* id, wchar_t* name, int si
     return true;
 }
 
+void reload_if_requested();
+
 bool __fastcall hooked_key_state(void* manager, DWORD index, void* input) {
+    if (index == 0) reload_if_requested();  // menú F2 del host: "Recargar la misión"
     if (!input) return false;
     memset(input, 0, k_input_size);
     if (index >= DWORD(g_player_count)) return false;
@@ -335,11 +338,97 @@ void patch_halo1(uintptr_t halo1) {
     log_write("Jugadores: halo1.dll listo para 4 jugadores");
 }
 
+// ---- Entrar con la misión empezada ----
+// halo1.dll cuenta los jugadores locales solo en la carga completa de una misión: la orden LoadLevelSolo(mapa,
+// dificultad, isNew, fillStat) de su capa de órdenes (halo1+0x66AF0: rcx = objeto de órdenes, rdx = puntero al texto
+// del mapa, r8d = dificultad, r9b y el quinto argumento = las dos opciones). Esa función pregunta por los usuarios 0-3
+// y guarda la cantidad en el int16 halo1+0x1B7B910. "Reiniciar misión" de la pausa (RestartLevel) no vuelve a
+// contar. Por eso se guardan los argumentos de la última carga y, cuando el host lo pide, se repite la misma carga
+// desde el hilo del juego (el desvío de los controles de J1, que el juego llama en cada cuadro): la misión empieza
+// de nuevo con los conectados. Como la cantidad de jugadores cambia, MCC hace enseguida su propia carga (isNew = 1)
+// y maneja su pantalla de carga. Si la cantidad no cambia, MCC no la hace y su pantalla de carga queda encima para
+// siempre (probado también con isNew = 1): por eso solo se recarga si hay amigos esperando. Hacerla dentro del
+// reinicio de la pausa de MCC también deja la pantalla de carga encima.
+// Texto de halo1.dll: contador de referencias (int), largo, capacidad y los caracteres en +12; halo1.dll descuenta
+// una referencia al terminar, así que el nuestro empieza con un contador alto y nunca se libera.
+constexpr uintptr_t k_load_level_solo_rva = 0x66AF0, k_mission_players_rva = 0x1B7B910;
+constexpr uint8_t k_load_level_solo_bytes[] = {0x40, 0x55, 0x56, 0x57, 0x41, 0x54, 0x41, 0x55, 0x41, 0x56};
+
+using LoadLevelFn = void(__fastcall*)(void*, void**, int, uint8_t, uint8_t);
+LoadLevelFn g_original_load_level = nullptr;
+std::atomic<uintptr_t> g_halo1{0};
+
+struct LastLoad {
+    std::atomic<bool> valid{false};
+    void* commands = nullptr;
+    alignas(8) uint8_t text[12 + 256] = {};
+    void* text_pointer = nullptr;
+    int difficulty = 0;
+    uint8_t is_new = 0, fill = 0;
+} g_last_load;
+std::atomic<bool> g_reload_requested{false};
+
+void __fastcall hooked_load_level(void* commands, void** text, int difficulty, uint8_t is_new, uint8_t fill) {
+    int header[3] = {};
+    // Mientras se repite la carga se llama con nuestro propio texto: no se vuelve a copiar.
+    if (text && *text && *text != g_last_load.text &&
+        safe_read(reinterpret_cast<uintptr_t>(*text), header, sizeof(header)) && header[1] > 0 && header[1] < 255) {
+        LastLoad& last = g_last_load;
+        last.valid = false;
+        memset(last.text, 0, sizeof(last.text));
+        const int ours[3] = {1 << 24, header[1], header[1]};
+        memcpy(last.text, ours, sizeof(ours));
+        if (safe_read(reinterpret_cast<uintptr_t>(*text) + 12, last.text + 12, size_t(header[1]))) {
+            last.text_pointer = last.text;
+            last.commands = commands;
+            last.difficulty = difficulty;
+            last.is_new = is_new;
+            last.fill = fill;
+            last.valid = true;
+        }
+    }
+    g_original_load_level(commands, text, difficulty, is_new, fill);
+}
+
+// Cada carga de halo1.dll trae su código original: se quita el desvío de la anterior y se pone otra vez.
+void hook_load_level(uintptr_t halo1) {
+    uint8_t bytes[sizeof(k_load_level_solo_bytes)];
+    if (!safe_read(halo1 + k_load_level_solo_rva, bytes, sizeof(bytes)) ||
+        memcmp(bytes, k_load_level_solo_bytes, sizeof(bytes)) != 0)
+        return;  // ya desviada (o no es el halo1.dll esperado)
+    g_last_load.valid = false;
+    auto* target = reinterpret_cast<void*>(halo1 + k_load_level_solo_rva);
+    MH_RemoveHook(target);
+    MH_STATUS status = MH_CreateHook(target, reinterpret_cast<void*>(&hooked_load_level),
+                                     reinterpret_cast<void**>(&g_original_load_level));
+    if (status == MH_OK) status = MH_EnableHook(target);
+    if (status != MH_OK) log_write("Jugadores: no se pudo desviar la carga de misión (%s)", MH_StatusToString(status));
+}
+
+int mission_players() {
+    uintptr_t halo1 = g_halo1;
+    return halo1 ? read_as<int16_t>(halo1 + k_mission_players_rva, -1) : -1;
+}
+
+// Desde el hilo del juego.
+void reload_if_requested() {
+    if (!g_reload_requested.exchange(false)) return;
+    LastLoad& last = g_last_load;
+    if (!last.valid || !g_original_load_level) return;
+    log_write("Jugadores: recargando la misión con %d jugadores (tenía %d)", connected_players(), mission_players());
+    g_original_load_level(last.commands, &last.text_pointer, last.difficulty, last.is_new, last.fill);
+}
+
 // halo1.dll se carga al elegir Halo CE en el menú y se vuelve a cargar al empezar cada misión (a veces en la misma
 // dirección): se miran los bytes cada 20 ms y se parchea cada carga antes de que empiece la misión.
 void watch_halo1() {
     while (true) {
-        if (uintptr_t halo1 = reinterpret_cast<uintptr_t>(GetModuleHandleW(L"halo1.dll"))) patch_halo1(halo1);
+        uintptr_t halo1 = reinterpret_cast<uintptr_t>(GetModuleHandleW(L"halo1.dll"));
+        if (halo1 != g_halo1.exchange(halo1)) g_last_load.valid = false;
+        if (halo1) {
+            patch_halo1(halo1);
+            hook_load_level(halo1);
+        }
         Sleep(20);
     }
 }
@@ -394,6 +483,17 @@ void local_players_block_host(bool block) {
 
 bool local_players_own_input() {
     return g_original_key_state != nullptr;
+}
+
+int local_players_waiting() {
+    int mission = mission_players();
+    if (!g_original_key_state || !g_last_load.valid || mission < 1 || mission > k_players) return 0;
+    int connected = connected_players();
+    return connected > mission ? connected - mission : 0;
+}
+
+void local_players_reload_mission() {
+    if (local_players_waiting() > 0) g_reload_requested = true;
 }
 
 void local_players_start() {

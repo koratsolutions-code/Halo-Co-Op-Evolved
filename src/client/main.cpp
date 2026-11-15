@@ -120,9 +120,9 @@ bool create_device(HWND hwnd) {
     return true;
 }
 
-void toast(const char* text) {
+void toast(const char* text, float seconds = 2.5f) {
     snprintf(g_toast, sizeof(g_toast), "%s", text);
-    g_toast_until = float(ImGui::GetTime()) + 2.5f;
+    g_toast_until = float(ImGui::GetTime()) + seconds;
 }
 
 void set_fullscreen(bool fullscreen) {
@@ -559,6 +559,13 @@ int client_main(HINSTANCE instance) {
         }
         previous_state = status.state;
         if (connected) decode_pending_frames();
+        // Aviso cuando la mira directa empieza a funcionar (el host encontró las cámaras), también si vuelve después
+        // de un cambio de nivel o de recargar la misión.
+        static bool aim_was_active = false;
+        bool aim_active = connected && status.direct_aim;
+        if (aim_active && !aim_was_active && g_has_video)
+            toast(T("Mouse enabled: you can aim with the mouse", "Mouse activado: puedes apuntar con el mouse"), 4.0f);
+        if (aim_active || !connected) aim_was_active = aim_active;
 
         ImGui_ImplDX11_NewFrame();
         ImGui_ImplWin32_NewFrame();
@@ -596,9 +603,9 @@ int client_main(HINSTANCE instance) {
                              ImGuiWindowFlags_NoSavedSettings);
             ImGui::TextColored(k_orange, "%s",
                                T("You joined with the mission already started: you are watching. You will play when "
-                                 "the host starts the mission again from the MCC menu.",
-                                 "Entraste con la misión ya empezada: estás mirando. Jugarás cuando el host vuelva a "
-                                 "empezar la misión desde el menú de MCC."));
+                                 "the host reloads the mission (F2 > Reload Mission).",
+                                 "Entraste con la misión ya empezada: estás mirando. Jugarás cuando el host recargue "
+                                 "la misión (F2 > Recargar misión)."));
             ImGui::End();
         }
         if (ImGui::GetTime() < g_toast_until) {

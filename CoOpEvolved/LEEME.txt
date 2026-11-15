@@ -31,7 +31,7 @@ Necesitas: MCC 1.3528 en Steam, una GPU NVIDIA, Radmin VPN y unos 10 Mbps de sub
   Tú juegas con teclado y mouse.
 
   F2 en el juego (o mantén View del mando 1 s): menú sobre el juego con tu color de
-  armadura, skin, F6, subtítulos, opciones del host y Expulsar. Solo lo ves tú. F2 o B
+  armadura, skin, F6, subtítulos, opciones del host, Expulsar y Recargar misión. Solo lo ves tú. F2 o B
   lo cierran. Los colores solo pintan a Master Chief: las otras skins conservan los suyos.
 
   En el panel:
@@ -52,9 +52,10 @@ Necesitas: MCC 1.3528 en Steam, una GPU NVIDIA, Radmin VPN y unos 10 Mbps de sub
   - "Skin": verte como otro personaje (Marine, Elite...) y seguir siendo Master Chief.
     Solo sirven las skins de la misión cargada. Una skin nueva se ve al reaparecer.
 
-  Un amigo que se conecta con la misión empezada mira la pantalla entera. Para que entre,
-  vuelve al menú de MCC y empieza la misión otra vez (reiniciar desde la pausa deja los
-  mismos jugadores).
+  Un amigo que se conecta con la misión empezada mira la pantalla entera, y tú ves
+  "amigo(s) esperando entrar" arriba. Para que entre: F2 > "Recargar misión" (la misión
+  empieza otra vez desde el principio con todos). Reiniciar desde la pausa de MCC deja
+  los mismos jugadores.
 
   Para probar en un solo PC: abre CoOpEvolved.exe otra vez; se abre solo en "Unirse"
   (IP 127.0.0.1). Solo puede haber un host por PC.
@@ -73,8 +74,8 @@ un mando de Xbox o teclado y mouse. NO necesitas Halo.
        Jugador 4 = abajo a la derecha
   4. Elige Mando o Teclado y mouse y presiona Conectar.
   5. Cuando el host abre el juego, la ventana pasa sola a pantalla completa con tu video.
-     Conéctate antes de que el host empiece la misión: si entras después, miras la
-     pantalla entera hasta que el host vuelva a empezarla desde el menú de MCC.
+     Si te conectas con la misión ya empezada, miras la pantalla entera hasta que el
+     host la recargue (F2 > Recargar misión).
 
   F2 ............. menú (color de armadura, skin, volumen, subtítulos, sensibilidad, controles,
                    desconectar)
@@ -87,6 +88,7 @@ un mando de Xbox o teclado y mouse. NO necesitas Halo.
 Con TECLADO Y MOUSE: haz clic en el video para capturar el mouse.
 "Mira directa (soporte de mouse)" (menú o F2): el mouse gira la cámara directo, como Halo en
 PC, en vez de mover el stick del mando. Si el host todavía no puede usarla, se usa el stick.
+Se activa cuando aparece tu personaje ("Mouse activado: puedes apuntar con el mouse").
 "Subtítulos" (F2): la línea de subtítulos en tu parte de la pantalla; desmárcala para quitarla.
 
   WASD ............ moverse            Mouse ............ apuntar

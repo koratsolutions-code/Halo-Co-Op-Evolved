@@ -331,6 +331,48 @@ bool draw_menu(const proto::VideoConfig& config, bool have_config, float scale) 
     } else {
         s_kick = 0;  // se cerró con B o haciendo clic afuera
     }
+    // Recargar la misión: así entran los amigos que se conectaron con la misión empezada.
+    static bool s_reload = false;
+    ImGui::Spacing();
+    if (int waiting = local_players_waiting())
+        ImGui::TextColored(k_orange, T("%d friend(s) waiting to join the mission.", "%d amigo(s) esperando entrar a la misión."),
+                           waiting);
+    // Solo con alguien esperando: si la cantidad de jugadores no cambia, MCC deja su pantalla de carga encima.
+    bool can_reload = local_players_waiting() > 0;
+    ImGui::BeginDisabled(!can_reload);
+    if (ImGui::Button(T("Reload Mission", "Recargar misión"), ImVec2(-1, 0))) s_reload = true;
+    ImGui::EndDisabled();
+    if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled))
+        ImGui::SetTooltip("%s", can_reload ? T("Starts the mission again with everyone connected.",
+                                               "Empieza la misión otra vez con todos los conectados.")
+                                           : T("Available during a mission when a friend is waiting to join.\n"
+                                               "To restart without new friends, use Restart in MCC's pause menu.",
+                                               "Disponible en una misión cuando un amigo espera entrar.\n"
+                                               "Para reiniciar sin amigos nuevos, usa Reiniciar en la pausa de MCC."));
+    if (!can_reload) s_reload = false;
+    if (s_reload && !ImGui::IsPopupOpen("##reload")) ImGui::OpenPopup("##reload");
+    if (ImGui::BeginPopup("##reload")) {
+        ImGui::TextUnformatted(T("The mission starts again from the beginning with everyone connected.",
+                                 "La misión empieza otra vez desde el principio con todos los conectados."));
+        ImGui::TextColored(k_muted, "%s",
+                           T("Progress since the start of the mission is lost.",
+                             "Se pierde lo avanzado desde el inicio de la misión."));
+        if (ImGui::Button(T("Reload", "Recargar"), ImVec2(140 * scale, 0))) {
+            local_players_reload_mission();
+            log_write("Menú F2 del host: recargar la misión");
+            s_reload = false;
+            ImGui::CloseCurrentPopup();
+            set_open(false);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button(T("Cancel", "Cancelar"), ImVec2(140 * scale, 0))) {
+            s_reload = false;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    } else {
+        s_reload = false;
+    }
     if (!have_config)
         ImGui::TextColored(k_orange, "%s",
                            T("Co Op Evolved is closed: changes are not saved.",
@@ -339,6 +381,22 @@ bool draw_menu(const proto::VideoConfig& config, bool have_config, float scale) 
     g_popup_open = ImGui::IsPopupOpen("", ImGuiPopupFlags_AnyPopupId | ImGuiPopupFlags_AnyPopupLevel);
     ImGui::End();
     return changed;
+}
+
+// Con el menú cerrado: aviso arriba al centro si hay amigos esperando entrar (solo lo ve el host).
+void draw_waiting_notice(int waiting, float scale) {
+    const ImGuiViewport* viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(ImVec2(viewport->Size.x / 2, 40 * scale), ImGuiCond_Always, ImVec2(0.5f, 0));
+    ImGui::SetNextWindowBgAlpha(0.75f);
+    ImGui::Begin("##waiting", nullptr,
+                 ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoNav |
+                     ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize |
+                     ImGuiWindowFlags_NoFocusOnAppearing);
+    ImGui::TextColored(k_orange,
+                       T("%d friend(s) waiting to join  ·  F2 > Reload Mission",
+                         "%d amigo(s) esperando entrar  ·  F2 > Recargar misión"),
+                       waiting);
+    ImGui::End();
 }
 
 }  // namespace
@@ -354,7 +412,8 @@ void host_menu_draw(IDXGISwapChain* swap_chain) {
         adopt(from_config(config));
         g_lang = config.lang == 1 ? Lang::es : Lang::en;
     }
-    if (!g_open) return;
+    int waiting = g_open ? 0 : local_players_waiting();
+    if (!g_open && !waiting) return;
 
     ID3D11Device* device = nullptr;
     if (FAILED(swap_chain->GetDevice(IID_PPV_ARGS(&device)))) return;
@@ -379,11 +438,15 @@ void host_menu_draw(IDXGISwapChain* swap_chain) {
         ImGui::GetStyle() = g_base_style;
         ImGui::GetStyle().ScaleAllSizes(scale);
         io.FontGlobalScale = scale;
-        feed_input(swap_chain, desc, pad_ok, pad);
+        io.MouseDrawCursor = g_open;  // el aviso no usa el mouse
+        if (g_open) feed_input(swap_chain, desc, pad_ok, pad);
 
         ImGui_ImplDX11_NewFrame();
         ImGui::NewFrame();
-        if (draw_menu(config, have_config, scale)) send_values();
+        if (!g_open)
+            draw_waiting_notice(waiting, scale);
+        else if (draw_menu(config, have_config, scale))
+            send_values();
         ImGui::Render();
         // Guardamos y restauramos los render targets del juego (el backend de ImGui restaura el resto del estado).
         ID3D11RenderTargetView* old_rtvs[D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT] = {};
