@@ -639,8 +639,14 @@ int local_players_waiting() {
     return connected > mission ? connected - mission : 0;
 }
 
+// Un doble clic (o volver a pedirlo mientras la misión todavía carga) no debe cargarla dos veces: mientras MCC
+// carga, el conteo de la misión aún es el viejo y "Recargar" seguiría disponible.
 void local_players_reload_mission() {
-    if (local_players_waiting() > 0) g_reload_requested = true;
+    static ULONGLONG last = 0;
+    ULONGLONG now = GetTickCount64();
+    if (local_players_waiting() <= 0 || (last && now - last < 15000)) return;
+    last = now;
+    g_reload_requested = true;
 }
 
 void local_players_start() {

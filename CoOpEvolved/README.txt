@@ -120,3 +120,12 @@ coopevolved-host.log / coopevolved-cliente.log, all in this folder. The logs con
 and Radmin IPs: only send them privately.
 
 Full instructions: README.md in the repository (Español: LEEME.txt).
+
+Privacy and legal
+-----------------
+No accounts, ads, analytics or servers of our own: everything travels only between the host and
+the friends through your Radmin VPN network. Settings and logs (with the players' names and Radmin
+IPs) stay in this folder; delete it to remove them.
+Free fan project, not made, affiliated with or endorsed by Microsoft, Xbox Game Studios or Halo
+Studios. Halo is a trademark of Microsoft. The host needs their own copy of MCC on Steam. Campaign
+only, with MCC's anti-cheat disabled. Provided "as is", without warranty: use at your own risk.

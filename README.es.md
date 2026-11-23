@@ -326,3 +326,23 @@ La compilación también crea una carpeta `build/` con archivos temporales; pued
 Borra `VERSION.dll` (este mod), `coopevolved-juego.ini` y `coopevolved-juego.log` de la carpeta
 `mcc\binaries\win64` del juego.
 Después en Steam: clic derecho en MCC → Propiedades → Archivos instalados → **Verificar integridad**.
+Por último borra la carpeta `CoOpEvolved`: sus archivos `.ini` y `.log` son el único otro lugar donde Co Op Evolved
+guarda algo (tu configuración, y los nombres e IPs de Radmin de los jugadores que se conectaron). No escribe nada
+en el registro ni en ningún otro lado.
+
+## Privacidad
+
+Co Op Evolved no tiene cuentas, publicidad, estadísticas de uso ni servidores propios. El video, el sonido, los
+controles, los nombres, los colores y las skins solo viajan entre el PC del host y los de los amigos, por su propia
+red de Radmin VPN. No se envía nada a los autores ni a nadie más.
+
+## Aviso legal
+
+Halo: Co Op Evolved es un proyecto gratuito hecho por fans. No está hecho, afiliado ni respaldado por Microsoft,
+Xbox Game Studios ni Halo Studios. Halo y Halo: The Master Chief Collection son marcas registradas de Microsoft. El
+host necesita su propia copia de Halo: The Master Chief Collection en Steam; el mod no trae archivos del juego.
+El mod solo funciona con el anticheat de MCC desactivado (solo campaña, sin partidas en línea). Se entrega "tal
+cual", sin garantía: úsalo bajo tu propia responsabilidad.
+
+El código se publica con la [licencia MIT](LICENSE); las librerías de `deps/` mantienen sus propias licencias
+(ver [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md)).

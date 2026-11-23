@@ -26,6 +26,7 @@ struct Slot {
     unsigned inputs = 0;             // contador de la ventana actual
     unsigned inputs_per_second = 0;  // último valor medido
     uint32_t keyframe_requests = 0;
+    ULONGLONG last_keyframe_request = 0;  // para no aceptar más de 4 por segundo
     uint32_t armor_color = 0;  // ArmorRgb (lo manda el cliente)
     uint8_t skin = 0;         // índice en k_skins (lo manda el cliente)
     uint8_t subtitles = 1;    // 0: no quiere la copia de los subtítulos (lo manda el cliente)
@@ -48,6 +49,38 @@ HostOptions g_host_options;  // con g_mutex
 proto::HostMenu g_host_menu;  // con g_mutex
 bool g_host_menu_pending = false;
 int g_host_kick = 0;  // con g_mutex
+
+// El nombre llega tal cual de la red: se deja solo UTF-8 válido (sin cortar una letra por la mitad) y sin
+// caracteres de control, para que el log, el panel y los nombres sobre los personajes no muestren basura.
+void clean_nickname(char* name, size_t size) {
+    char out[proto::k_nickname_size] = {};
+    size_t used = 0;
+    auto* in = reinterpret_cast<const unsigned char*>(name);
+    size_t length = strnlen(name, size);
+    for (size_t i = 0; i < length;) {
+        unsigned char c = in[i];
+        size_t bytes = c < 0x80 ? 1 : (c & 0xE0) == 0xC0 ? 2 : (c & 0xF0) == 0xE0 ? 3 : (c & 0xF8) == 0xF0 ? 4 : 0;
+        bool valid = bytes > 0 && i + bytes <= length && !(bytes == 2 && c < 0xC2);
+        for (size_t k = 1; valid && k < bytes; ++k) valid = (in[i + k] & 0xC0) == 0x80;
+        if (!valid) {  // byte suelto o letra cortada: se salta
+            ++i;
+            continue;
+        }
+        if (used + bytes >= sizeof(out)) break;
+        if (bytes == 1 && (c < 0x20 || c == 0x7F)) {
+            if (used && out[used - 1] != ' ') out[used++] = ' ';  // control (salto de línea, tab...) -> espacio
+        } else {
+            memcpy(out + used, in + i, bytes);
+            used += bytes;
+        }
+        i += bytes;
+    }
+    size_t start = 0;
+    while (start < used && out[start] == ' ') ++start;
+    while (used > start && out[used - 1] == ' ') --used;
+    memset(name, 0, size);
+    memcpy(name, out + start, used - start);
+}
 
 // Con g_mutex tomado. Le dice al DLL del juego a quién mandar cada cuadrante y qué nombres y colores poner.
 void send_video_config() {
@@ -158,7 +191,7 @@ void handle_hello(const proto::Hello& hello, const sockaddr_in& from) {
             slot.connected = true;
             slot.address = from;
             memcpy(slot.nickname, hello.nickname, sizeof(slot.nickname));
-            slot.nickname[sizeof(slot.nickname) - 1] = '\0';
+            clean_nickname(slot.nickname, sizeof(slot.nickname));
             slot.last_seen = GetTickCount64();
             slot.last_sequence = 0;
             slot.look_started = false;
@@ -166,8 +199,12 @@ void handle_hello(const proto::Hello& hello, const sockaddr_in& from) {
             if (is_new) log_write("Jugador %d conectado: \"%s\" desde %s", hello.player, slot.nickname, ip);
         }
     }
-    if (!welcome.accepted)
+    // Alguien que insiste miles de veces no llena el log: como mucho una línea por segundo.
+    static ULONGLONG last_rejected_log = 0;
+    if (!welcome.accepted && GetTickCount64() - last_rejected_log >= 1000) {
+        last_rejected_log = GetTickCount64();
         log_write("Rechazado %s como jugador %d (motivo %d)", ip, hello.player, int(welcome.reason));
+    }
     send_to(from, welcome);
 }
 
@@ -271,7 +308,9 @@ void server_thread() {
                 }
                 case proto::Type::keyframe_request: {
                     int index = slot_of(from);
-                    if (index >= 0) {
+                    // Cada pedido hace una imagen completa (pesada): más de 4 por segundo no ayudan y saturan la subida.
+                    if (index >= 0 && GetTickCount64() - g_slots[index].last_keyframe_request >= 250) {
+                        g_slots[index].last_keyframe_request = GetTickCount64();
                         ++g_slots[index].keyframe_requests;
                         g_slots[index].last_seen = GetTickCount64();
                         send_video_config();  // que llegue ya, no en el próximo envío periódico
