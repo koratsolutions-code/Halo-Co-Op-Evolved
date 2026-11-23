@@ -10,8 +10,6 @@ add_compile_definitions(UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX _WINSOCK_D
 file(TO_NATIVE_PATH "${CMAKE_SOURCE_DIR}" source_dir_native)
 add_compile_options("/d1trimfile:${source_dir_native}")
 
-add_subdirectory(deps/ViGEmClient EXCLUDE_FROM_ALL)
-
 # Opus (audio). Solo la librería: sin pruebas, programas ni archivos de instalación.
 set(OPUS_BUILD_TESTING OFF CACHE BOOL "" FORCE)
 set(OPUS_BUILD_PROGRAMS OFF CACHE BOOL "" FORCE)
@@ -47,7 +45,10 @@ add_library(CoOpEvolvedGame SHARED
     src/game/proxy_version.cpp
     src/game/video.cpp
     src/game/encoder.cpp
+    src/game/halo1_load.cpp
     src/game/halo1_players.cpp
+    src/game/coop_follow.cpp
+    src/game/extra_vehicles.cpp
     src/game/armor_colors.cpp
     src/game/name_tags.cpp
     src/game/p1_view.cpp
@@ -88,7 +89,7 @@ add_executable(CoOpEvolved WIN32
 # El recurso incluye imágenes: que se vuelva a compilar si cambian (ninja no lo detecta solo).
 set_source_files_properties(src/app/app.rc PROPERTIES OBJECT_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/app/ui_text.png;${CMAKE_CURRENT_SOURCE_DIR}/src/app/logo.png;${CMAKE_CURRENT_SOURCE_DIR}/src/app/app.ico")
-target_link_libraries(CoOpEvolved PRIVATE ViGEmClient opus imgui nvcodec d3d11 dxgi d3dcompiler setupapi xinput shell32
+target_link_libraries(CoOpEvolved PRIVATE opus imgui nvcodec d3d11 dxgi d3dcompiler xinput shell32
                                       ws2_32 iphlpapi advapi32 mmdevapi ole32 winmm comctl32 windowscodecs)
 
 # Solo para pruebas: "juego" falso que carga el mod (no se distribuye).

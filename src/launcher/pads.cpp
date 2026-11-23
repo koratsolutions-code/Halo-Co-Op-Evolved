@@ -8,21 +8,15 @@
 #include <windows.h>
 #include <xinput.h>
 
-#include <ViGEm/Client.h>
-
 #include <atomic>
 #include <mutex>
 #include <thread>
 
-static PVIGEM_CLIENT g_client = nullptr;
-static PVIGEM_TARGET g_pads[k_remote_players]{};
 static int g_slots[k_remote_players] = {-1, -1, -1};
-static int g_occupied_before = 0;
 static std::mutex g_mutex;
 
-// Modo direct: último estado de cada mando, que se manda al DLL del juego al cambiar y cada 50 ms (por si el DLL
-// arrancó después o se perdió un paquete).
-static bool g_direct = false;
+// Último estado de cada mando, que se manda al DLL del juego al cambiar y cada 50 ms (por si el DLL arrancó después
+// o se perdió un paquete).
 static SOCKET g_socket = INVALID_SOCKET;
 static proto::Pads g_direct_pads;
 
@@ -35,123 +29,42 @@ static void send_direct_pads() {
            reinterpret_cast<const sockaddr*>(&game), sizeof(game));
 }
 
-bool pads_direct() {
-    return g_direct;
-}
-
 static int index_of(int player) {
     int index = player - k_first_remote_player;
     return index >= 0 && index < k_remote_players ? index : -1;
 }
 
-static int count_connected_slots() {
-    int count = 0;
-    for (DWORD slot = 0; slot < XUSER_MAX_COUNT; ++slot) {
-        XINPUT_STATE state{};
-        if (XInputGetState(slot, &state) == ERROR_SUCCESS) ++count;
-    }
-    return count;
-}
-
-PadsError pads_init(bool direct) {
-    g_direct = direct;
-    if (direct) {
-        WSADATA wsa;
-        WSAStartup(MAKEWORD(2, 2), &wsa);
-        g_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-        for (int i = 0; i < k_remote_players; ++i) g_slots[i] = i;
-        std::thread([] {
-            while (true) {
-                {
-                    std::lock_guard lock(g_mutex);
-                    send_direct_pads();
-                }
-                Sleep(50);
+void pads_init() {
+    WSADATA wsa;
+    WSAStartup(MAKEWORD(2, 2), &wsa);
+    g_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    for (int i = 0; i < k_remote_players; ++i) g_slots[i] = i;
+    std::thread([] {
+        while (true) {
+            {
+                std::lock_guard lock(g_mutex);
+                send_direct_pads();
             }
-        }).detach();
-        log_write("Mandos de los jugadores 2-4: directo al juego (sin ViGEmBus)");
-        return PadsError::none;
-    }
-    g_occupied_before = count_connected_slots();
-    log_write("Mandos ya conectados antes de crear los virtuales: %d", g_occupied_before);
-
-    g_client = vigem_alloc();
-    if (!g_client) return PadsError::create_failed;
-    VIGEM_ERROR error = vigem_connect(g_client);
-    if (!VIGEM_SUCCESS(error)) {
-        log_write("ViGEmBus no responde (0x%08X): el driver no está instalado", error);
-        vigem_free(g_client);
-        g_client = nullptr;
-        return PadsError::driver_missing;
-    }
-    // Se crean en orden para que reciban slots consecutivos: jugador 2, 3, 4 -> slots 0, 1, 2
-    // (lo que AlphaRing asigna por defecto) si no hay mandos físicos conectados.
-    for (int i = 0; i < k_remote_players; ++i) {
-        g_pads[i] = vigem_target_x360_alloc();
-        error = vigem_target_add(g_client, g_pads[i]);
-        if (!VIGEM_SUCCESS(error)) {
-            log_write("No se pudo crear el mando del jugador %d (0x%08X)", i + k_first_remote_player, error);
-            pads_shutdown();
-            return PadsError::create_failed;
+            Sleep(50);
         }
-        ULONG user_index = 0xFF;
-        vigem_target_x360_get_user_index(g_client, g_pads[i], &user_index);
-        g_slots[i] = user_index < XUSER_MAX_COUNT ? int(user_index) : -1;
-        log_write("Mando del jugador %d creado: slot XInput %d ('Controller %d' en AlphaRing)",
-                  i + k_first_remote_player, g_slots[i], g_slots[i] + 1);
-    }
-    // Estado neutro explícito: sin esto los mandos reportan ruido en los sticks hasta la primera actualización.
-    // Un reporte todo en cero igual al inicial no llega a XInput, así que primero se manda uno distinto.
-    PadState nudge;
-    nudge.lx = 1;
-    for (int i = 0; i < k_remote_players; ++i) pads_update(i + k_first_remote_player, nudge);
-    Sleep(50);
-    for (int i = 0; i < k_remote_players; ++i) pads_reset(i + k_first_remote_player);
-    return PadsError::none;
-}
-
-void pads_shutdown() {
-    std::lock_guard lock(g_mutex);
-    for (auto& pad : g_pads) {
-        if (!pad) continue;
-        vigem_target_remove(g_client, pad);
-        vigem_target_free(pad);
-        pad = nullptr;
-    }
-    if (g_client) {
-        vigem_disconnect(g_client);
-        vigem_free(g_client);
-        g_client = nullptr;
-    }
+    }).detach();
+    log_write("Mandos de los jugadores 2-4: directo al juego");
 }
 
 bool pads_update(int player, const PadState& state) {
     int index = index_of(player);
     if (index < 0) return false;
-    if (g_direct) {
-        std::lock_guard lock(g_mutex);
-        proto::GamepadState& pad = g_direct_pads.pads[index];
-        pad.buttons = state.buttons;
-        pad.left_trigger = state.left_trigger;
-        pad.right_trigger = state.right_trigger;
-        pad.lx = state.lx;
-        pad.ly = state.ly;
-        pad.rx = state.rx;
-        pad.ry = state.ry;
-        send_direct_pads();
-        return g_socket != INVALID_SOCKET;
-    }
-    if (!g_client || !g_pads[index]) return false;
-    XUSB_REPORT report{};
-    report.wButtons = state.buttons;
-    report.bLeftTrigger = state.left_trigger;
-    report.bRightTrigger = state.right_trigger;
-    report.sThumbLX = state.lx;
-    report.sThumbLY = state.ly;
-    report.sThumbRX = state.rx;
-    report.sThumbRY = state.ry;
     std::lock_guard lock(g_mutex);
-    return VIGEM_SUCCESS(vigem_target_x360_update(g_client, g_pads[index], report));
+    proto::GamepadState& pad = g_direct_pads.pads[index];
+    pad.buttons = state.buttons;
+    pad.left_trigger = state.left_trigger;
+    pad.right_trigger = state.right_trigger;
+    pad.lx = state.lx;
+    pad.ly = state.ly;
+    pad.rx = state.rx;
+    pad.ry = state.ry;
+    send_direct_pads();
+    return g_socket != INVALID_SOCKET;
 }
 
 void pads_reset(int player) {
@@ -161,10 +74,6 @@ void pads_reset(int player) {
 int pads_slot(int player) {
     int index = index_of(player);
     return index < 0 ? -1 : g_slots[index];
-}
-
-int pads_occupied_slots_before() {
-    return g_occupied_before;
 }
 
 bool pads_move_test(int player) {
@@ -185,9 +94,9 @@ bool pads_move_test(int player) {
             {"camina a la derecha", 32767, 0, 0, 0, 0, 1500},
             {"gira a la derecha", 0, 0, 24000, 0, 0, 1500},
             {"gira a la izquierda", 0, 0, -24000, 0, 0, 1500},
-            {"salta (A)", 0, 0, 0, 0, XUSB_GAMEPAD_A, 300},
+            {"salta (A)", 0, 0, 0, 0, XINPUT_GAMEPAD_A, 300},
             {"suelta", 0, 0, 0, 0, 0, 400},
-            {"salta (A)", 0, 0, 0, 0, XUSB_GAMEPAD_A, 300},
+            {"salta (A)", 0, 0, 0, 0, XINPUT_GAMEPAD_A, 300},
         };
         log_write("Prueba de movimiento del jugador %d (slot %d) empieza", player, pads_slot(player));
         int failures = 0;

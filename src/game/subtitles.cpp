@@ -1,4 +1,5 @@
 #include "subtitles.h"
+#include "halo1_load.h"
 #include "log.h"
 #include "video.h"
 
@@ -22,9 +23,7 @@ constexpr uint8_t k_read_option_bytes[] = {0x40, 0x57, 0x48, 0x83, 0xEC, 0x30, 0
                                            0x44, 0x24, 0x20, 0xFE, 0xFF, 0xFF, 0xFF};
 
 using ReadOptionFn = void(__fastcall*)(void* options);
-using LoadLibraryExWFn = HMODULE(WINAPI*)(LPCWSTR, HANDLE, DWORD);
 ReadOptionFn g_original = nullptr;
-LoadLibraryExWFn g_original_load = nullptr;
 std::mutex g_mutex;
 bool g_gave_up = false;
 
@@ -178,17 +177,6 @@ void hook_if_needed(uintptr_t halo1) {
     }
 }
 
-// MCC carga halo1.dll con LoadLibraryExW: el desvío se pone apenas vuelve, antes de que MCC lo use.
-HMODULE WINAPI hooked_load(LPCWSTR name, HANDLE file, DWORD flags) {
-    HMODULE module = g_original_load(name, file, flags);
-    if (module && name) {
-        size_t length = wcslen(name);
-        if (length >= 9 && _wcsicmp(name + length - 9, L"halo1.dll") == 0)
-            hook_if_needed(reinterpret_cast<uintptr_t>(module));
-    }
-    return module;
-}
-
 }  // namespace
 
 bool subtitles_showing() {
@@ -200,17 +188,5 @@ bool subtitles_showing() {
 }
 
 void subtitles_start() {
-    if (HMODULE kernelbase = GetModuleHandleW(L"KernelBase.dll")) {
-        void* load = reinterpret_cast<void*>(GetProcAddress(kernelbase, "LoadLibraryExW"));
-        if (load && MH_CreateHook(load, reinterpret_cast<void*>(&hooked_load),
-                                  reinterpret_cast<void**>(&g_original_load)) == MH_OK)
-            MH_EnableHook(load);
-    }
-    // Por si halo1.dll ya estaba cargado o se cargó por otro camino.
-    std::thread([] {
-        while (!g_gave_up || !g_lines_gave_up) {
-            hook_if_needed(reinterpret_cast<uintptr_t>(GetModuleHandleW(L"halo1.dll")));
-            Sleep(50);
-        }
-    }).detach();
+    halo1_load_subscribe(&hook_if_needed);  // en cada carga de halo1.dll (ver halo1_load.h)
 }

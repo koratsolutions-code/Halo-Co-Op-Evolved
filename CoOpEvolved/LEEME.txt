@@ -11,7 +11,7 @@ propia pantalla completa, por Radmin VPN. Un solo programa para todos:
                      copia solo a la carpeta del juego.
 
 El programa viene en inglés. Para usarlo en español elige "Español" arriba a la derecha (se
-guarda). No hay que instalar nada más (ni AlphaRing ni drivers de mandos virtuales).
+guarda). No hay que instalar nada más (los 4 jugadores vienen integrados, sin drivers extra).
 
 HOST (jugador 1)
 ----------------
@@ -57,6 +57,12 @@ Necesitas: MCC 1.3528 en Steam, una GPU NVIDIA, Radmin VPN y unos 10 Mbps de sub
   empieza otra vez desde el principio con todos). Reiniciar desde la pausa de MCC deja
   los mismos jugadores.
 
+  Jugadores 3 y 4: las misiones solo tienen lugar para 2 jugadores, así que el mod pone al
+  jugador 3 junto al 1 y al 4 junto al 2 al empezar la misión, los lleva en los Pelican y
+  otros vehículos y hace que sigan los movimientos del guion. Los muertos vuelven en unos
+  3 segundos, aunque haya combate. Vehículos extra: un segundo Warthog en "Halo" con 4
+  jugadores y un Banshee más por cada jugador extra en "Two Betrayals".
+
   Para probar en un solo PC: abre CoOpEvolved.exe otra vez; se abre solo en "Unirse"
   (IP 127.0.0.1). Solo puede haber un host por PC.
 
@@ -97,9 +103,10 @@ Se activa cuando aparece tu personaje ("Mouse activado: puedes apuntar con el mo
   R ............... recargar           F o V ............ golpe
   Q o rueda ....... cambiar arma
   G ............... cambiar granada    Ctrl o C ......... agacharse
-  Z o clic central  zoom               1-4 o flechas .... cruceta (linterna, etc.)
-  Tab ............. marcador
+  Z o clic central  zoom               1 o flecha arriba  linterna
+  Tab ............. marcador           2-4 u otras flechas cruceta
 
+Las teclas funcionan igual sin importar la configuración de control que eligió el host en MCC.
 Solo el host (jugador 1) puede pausar: el menú de pausa de MCC solo le responde a él.
 
 Problemas

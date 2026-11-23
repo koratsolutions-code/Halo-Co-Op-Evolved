@@ -45,7 +45,7 @@ this repository.
 - Xbox controller, or keyboard and mouse.
 - They do **not** need Halo, Steam or MCC.
 
-Nothing else needs installing: no AlphaRing and no virtual-controller drivers.
+Nothing else needs installing: the 4 local players are built into the mod, with no extra drivers.
 
 ---
 
@@ -76,6 +76,19 @@ Player 1 (you) plays with **keyboard and mouse**.
   *"1 friend(s) waiting to join"* at the top of your screen. To let them in, open the host menu (**F2**) and press
   **Reload Mission**: the mission starts again from the beginning with everyone connected. Restarting from MCC's
   pause menu keeps the same players. *Reload Mission* is only available while someone is waiting.
+
+### Players 3 and 4 in the campaign
+The original missions only have places for 2 players. With 3 or 4 players the mod takes care of the rest:
+- **Start of a mission:** player 3 appears next to player 1 and player 4 next to player 2, on a spot where one of
+  them just stood (so nobody ends up inside a wall). If players 1 and 2 have not moved yet, they wait a moment
+  until one of them takes a few steps.
+- **Pelicans and other vehicles:** when the mission puts players 1 and 2 in a vehicle (for example the Pelican at
+  the start of *The Silent Cartographer*), players 3 and 4 sit in a free seat next to them. If there is no free
+  seat they travel hidden with them and appear at their side when they get out.
+- **Scripted moves:** when a mission moves or freezes player 1 or 2 (cutscenes, teleports), player 3 or 4 follows.
+- **Respawn:** a dead player comes back in about 3 seconds, even during combat.
+- **Extra vehicles:** in *Halo*, with 4 players, a second Warthog appears next to the one the Pelican drops. In
+  *Two Betrayals* there is one extra Banshee for each player beyond 2.
 
 ### Game folder
 To find the game's `mcc\binaries\win64` folder: in Steam, right-click
@@ -195,9 +208,6 @@ FPS and name settings in `coopevolved-host.ini`, next to `CoOpEvolved.exe`.
 - **The game does not have the players it should:** the number is set when the mission starts from the MCC
   menu (see *Players and late arrivals*). Check that the panel shows a green *4 players: built in* dot and that
   `VERSION.dll` is installed (*Game mod* dot). It only works with MCC 1.3528 on Steam.
-- **AlphaRing is still installed** (from an older version of Co Op Evolved): it still works, but then
-  AlphaRing sets the players (F4 → Players = 4 every time). To use the built-in 4 players, delete
-  `WTSAPI32.dll` from the game's `mcc\binaries\win64` folder.
 - **Video: game not responding:** wait about 10 seconds after opening MCC. If it persists, check that
   the panel shows a green *Game mod* dot and look at `coopevolved-juego.log` in the `mcc\binaries\win64`
   folder.
@@ -206,7 +216,6 @@ FPS and name settings in `coopevolved-host.ini`, next to `CoOpEvolved.exe`.
 
 ### Known issues with 4 players
 - With remastered graphics only players 1 and 2 are shown → use classic graphics (Tab).
-- In some levels (*Assault on the Control Room*, *Keyes*) players 3 and 4 may spawn outside the map.
 - Finishing a level with 4 players used to freeze the game; the mod includes a fix, but if it still happens,
   save and restart the mission.
 
@@ -253,7 +262,10 @@ For players 2, 3 and 4. You do **not** need Halo, Steam or MCC: the game runs on
 - With a **controller** nothing else is needed (Xbox controller recommended).
 - Only the host (player 1) can pause: MCC's pause menu only answers to them.
 - With **keyboard and mouse** click the video to capture the mouse. The full key list is in
-  `CoOpEvolved/README.txt` and in F2 → *Keyboard controls*.
+  `CoOpEvolved/README.txt` and in F2 → *Keyboard controls*. The keys are the same as player 1's default keyboard
+  (R reloads, E is action, 1 or Up is the flashlight), whatever controller layout the host picked in MCC.
+- With a **controller**, players 2-4 use the standard layout: A jump, B melee, X reload, Y switch weapon,
+  RB action, LB switch grenade, LT grenade, RT fire, d-pad up flashlight.
 - **Direct Mouse Aim (Mouse Support)** (keyboard and mouse, in the menu or F2): the mouse turns your camera directly,
   like Halo on PC, instead of moving the controller's right stick (no dead zone or stick acceleration). Next to
   it, *active* means it is working; if the host's game cannot use it yet, the stick is used as before. The host's
@@ -305,10 +317,5 @@ The build also creates a `build/` folder with temporary files; you can delete it
 ## Uninstall
 
 Delete `VERSION.dll` (this mod), `coopevolved-juego.ini` and `coopevolved-juego.log` from the game's
-`mcc\binaries\win64` folder (and `WTSAPI32.dll` if you installed AlphaRing for an older version).
+`mcc\binaries\win64` folder.
 Then in Steam: right-click MCC → Properties → Installed Files → **Verify integrity**.
-
-## Credits
-
-The 4-player split screen follows [AlphaRing](https://github.com/WinterSquire/AlphaRing) by WinterSquire
-(MIT licence); see [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

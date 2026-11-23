@@ -12,7 +12,7 @@ Requirements:
   includes CMake and Ninja, which `build.cmd` uses. All other dependencies are already in `deps/`.
 - An **NVIDIA GPU** (video uses NVENC/NVDEC).
 - To test in the game: **Halo: The Master Chief Collection on Steam** (the code targets version 1.3528). Nothing
-  else: the mod sets up the 4 players and the controllers by itself (no AlphaRing, no ViGEmBus).
+  else: the mod sets up the 4 players and the controllers by itself (no extra drivers).
 
 ```bash
 git clone https://github.com/koratsolutions-code/Halo-Co-Op-Evolved.git
@@ -83,10 +83,10 @@ Lowest latency is the top priority.
 
 | Feature | Notes |
 |---|---|
-| Local players without AlphaRing | `local_players.cpp`: MCC game-manager hooks + 3 halo1.dll patches (from AlphaRing, MIT). Tested |
+| 4 local players | `local_players.cpp`: MCC game-manager hooks + 3 halo1.dll patches. Tested |
 | Only connected players | Mission gets J1 + friends up to the highest connected number (2-4); video, name tags, J1 full screen and mouse aim follow the 2/3/4 split (`split_layout.h`). Late joiners watch the whole screen (Pong.watching, protocol v6) until the host presses F2 → Reload Mission. Tested |
 | Join a started mission | Host F2 → *Reload Mission* (enabled only while a friend is waiting; notice at the top of the host's screen): repeats halo1's `LoadLevelSolo` (`+0x66AF0`, args saved from the last load) from the game thread (player 1's get_key_state hook), which recounts the players; MCC then does its own load and clears its loading screen. With the same count MCC leaves its loading screen up, so it is not offered. Tested 1→2 |
-| Network controllers without ViGEmBus | XInputGetState/SetState hook; slots 0-2 = players 2-4 (`proto::Pads`). Tested |
+| Network controllers | Launcher sends J2-J4 pads over UDP 127.0.0.1; XInputGetState/SetState hook; slots 0-2 = players 2-4 (`proto::Pads`). Tested |
 | Video | NVENC H.264 per quadrant, NVDEC in the client, 30/60/120 FPS |
 | Full-screen cutscenes | While `halo1+0x1B87A20` is 1 every friend gets the whole screen scaled down. Tested |
 | Hide MCC subtitles | Host option; hooks `halo1+0x47B180` so Halo sends `HideAll` (MCC settings untouched). Tested |
@@ -101,6 +101,12 @@ Lowest latency is the top priority.
 | Host F2 menu in game | `host_menu.cpp`: ImGui over MCC after the video capture (only the host sees it); F2 or View held 1 s, B closes. Color, skin, F6, subtitles, host options, Kick, Reload Mission. Local messages `host_menu`/`host_kick` to the panel, which saves and resends `VideoConfig`. Player 1 input blocked while open. Tested |
 | Direct Mouse Aim (Mouse Support) | Client option; the mouse turns the camera directly (protocol v4). Cameras from fixed halo1 pointers (`aim.cpp`), active as soon as the players appear; full scan only as a fallback. The client shows *Mouse enabled* when it starts working. Tested OK |
 | Keyboard E = RB | Enter vehicles / pick up weapons |
+| Players 3 and 4 in original missions | `coop_follow.cpp`: first spawn on J1/J2's recent footsteps (waits suspended until they move), script teleport/suspend/enter/exit repeated for J3/J4, Pelican middle seats (copied Chief animations) or hidden ride, nothing on maps with 4+ starts. Tested a30, b30 |
+| Respawn in combat | halo1 patch `+0xAD0402`: ~3 s respawn even near enemies. Tested |
+| Extra vehicles | `extra_vehicles.cpp`: c40 one Banshee per player beyond 2 (tested); a30 second Warthog with 4 players (not seen in game yet) |
+| Friends' buttons | `hooked_mapping`: J2-J4 get a fixed layout matching the client's keys (R reload, E action, 1 flashlight). Tested |
+| halo1 load notice | `halo1_load.cpp`: every halo1 patch/hook is applied from the LoadLibraryExW hook (no more freeze when leaving to the menu). Tested |
+| MCC close crash | Hook on MCC `+0x8AD5E0` ignores events sent to the destroyed event manager. Tested |
 | Per-player skins | Per-player skin selector (client and host panel), protocol v5. Tested in MCC (a30); Flood marine tested. Sergeant Johnson = armored marine with forced model variants (`Skin::variant`), tested in a10 |
 
 ## 5. Open work
@@ -116,17 +122,13 @@ Lowest latency is the top priority.
 - Reload Mission with the same player count (e.g. after a kick, or with nobody new) leaves MCC's loading screen
   up: MCC only does its own load when the count changes. Not offered for now; finding what halo1 tells MCC when the
   count changes would allow it.
-- Ideas: one window with host/client tabs instead of relaunching; opening-cutscene bodies born with their skin.
-- The old ViGEmBus + AlphaRing path is still there as a fallback: `controllers=vigem` in `coopevolved-host.ini`
-  (the host then writes `mandos=vigem` to `coopevolved-juego.ini` in the game folder).
+- Ideas: opening-cutscene bodies born with their skin. The host/join selector that relaunches the exe stays as it is (owner's decision).
 
 ## 6. Rules (keep them)
 
 - **Ask the owner before risky or outward-facing steps**: installing into MCC, anything that writes game memory,
   pushing, merging to main. Say what can fail and what they need to do. The owner runs commits and pushes
   themselves: give them the commands.
-- In the ViGEmBus fallback, **never write AlphaRing's profiles or options** and never change how or when the
-  virtual pads are created: that broke movement in an earlier version.
 - **Reverse engineering in steps**: read-only diagnostic first → small write test → real implementation. Hooks
   and patches check the expected bytes (or module timestamp) first and turn themselves off on another version.
 - **No personal data in the repository**: no IPs, local paths, Steam IDs, e-mails, logs or `.ini` files. Before
@@ -137,7 +139,7 @@ Lowest latency is the top priority.
   `T("English", "Español")` (English is the default).
 - **Documentation**: player-facing changes go into README.md (English) and README.es.md (Spanish), plus
   `CoOpEvolved\README.txt` / `LEEME.txt`. Do not mention internal phases in the public README. Technical findings
-  go into docs/DEVELOPMENT.md. Keep THIRD-PARTY-NOTICES.md (AlphaRing's MIT notice).
+  go into docs/DEVELOPMENT.md. Keep THIRD-PARTY-NOTICES.md (licences of the libraries in `deps/`).
 
 ## 7. Gotchas
 
@@ -148,10 +150,9 @@ Lowest latency is the top priority.
 - Halo CE shows players 3 and 4 only with classic graphics.
 - `halo1.dll` loads when Halo CE is opened from MCC's menu, not when MCC starts, and **reloads every time a
   mission is started from the menu** (often at the same address): its code is back to the original bytes, so
-  every patch and hook on halo1.dll must be re-applied when the original bytes reappear (local_players and skins
-  check the bytes, not the module address).
-- If AlphaRing (`WTSAPI32.dll` in the game folder) is present, the mod leaves the 4 players to it and only
-  provides the network controllers.
+  every patch and hook on halo1.dll must be re-applied on each load. Do it only from `halo1_load_subscribe`
+  (called right after LoadLibraryExW returns halo1.dll), never from a polling thread: hooking while the DLL is
+  being unloaded froze MCC when leaving to the menu.
 - A body's node buffers are sized for its model when it is created: skins must be in place at spawn, never later.
 - The only key used by the mod in game is F6 (player 1 full screen).
 - The host and client windows open maximized.

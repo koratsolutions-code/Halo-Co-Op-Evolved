@@ -21,7 +21,7 @@ namespace {
 constexpr float k_eye_height = 0.62f;
 constexpr float k_label_height = 0.42f;
 
-// ImGui propio (AlphaRing tiene el suyo en su DLL; cada uno usa su contexto).
+// ImGui propio (otro DLL cargado en el juego puede tener el suyo; cada uno usa su contexto).
 ImGuiContext* g_imgui = nullptr;
 ID3D11Device* g_device = nullptr;
 ImFont* g_font = nullptr;

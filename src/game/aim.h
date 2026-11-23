@@ -5,7 +5,7 @@
 // crece hacia la izquierda) y float altura (+ hacia arriba). Se encontraron con un diagnóstico que escribió +30°
 // y vio girar la cámara; el bloque parecido de cada 0x30 bytes es solo una copia que el juego rehace.
 // Se ubican comparando con la mira de cada jugador y se vuelven a buscar si dejan de coincidir (otro nivel).
-// Solo se escriben esos 8 bytes de J2-J4: nada de mandos, perfiles ni AlphaRing.
+// Solo se escriben esos 8 bytes de J2-J4: nada de mandos ni perfiles.
 
 void aim_start();  // hilo que ubica las cámaras
 bool aim_ready();  // true si las encontró

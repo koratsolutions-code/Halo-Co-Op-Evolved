@@ -1,7 +1,7 @@
 #pragma once
 #include "../common/protocol.h"
 
-// Servidor UDP del host: recibe el input de los jugadores 2, 3 y 4 y lo aplica a sus mandos virtuales.
+// Servidor UDP del host: recibe el input de los jugadores 2, 3 y 4 y lo manda al mod del juego como sus mandos.
 
 struct PlayerInfo {
     bool connected = false;

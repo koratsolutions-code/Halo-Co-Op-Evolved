@@ -114,10 +114,8 @@ bool pick_live(const std::vector<Tables>& copies, Tables* out) {
     return false;
 }
 
-uintptr_t biped_address(const Tables& t, int p) {
-    if (!t.players_header) return 0;
-    uint32_t handle = read_as<uint32_t>(t.players_data + size_t(p) * size_t(t.player_size) + 0x64, 0xFFFFFFFF);
-    if (handle == 0xFFFFFFFF) return 0;
+uintptr_t object_address(const Tables& t, uint32_t handle) {
+    if (!t.objects_header || handle == 0xFFFFFFFF) return 0;
     uint8_t entry[12];
     if (!safe_read(t.objects_data + size_t(handle & 0xFFFF) * 12, entry, 12)) return 0;
     uint16_t salt;
@@ -125,6 +123,11 @@ uintptr_t biped_address(const Tables& t, int p) {
     memcpy(&salt, entry, 2);
     memcpy(&offset, entry + 8, 4);
     return salt == (handle >> 16) ? t.pool + offset : 0;
+}
+
+uintptr_t biped_address(const Tables& t, int p) {
+    if (!t.players_header) return 0;
+    return object_address(t, read_as<uint32_t>(t.players_data + size_t(p) * size_t(t.player_size) + 0x64, 0xFFFFFFFF));
 }
 
 }  // namespace
@@ -166,6 +169,11 @@ void halo1_players_start() {
 uintptr_t halo1_player_biped(int player) {
     std::lock_guard lock(g_mutex);
     return player >= 0 && player < 4 ? biped_address(g_tables, player) : 0;
+}
+
+uintptr_t halo1_object(uint32_t handle) {
+    std::lock_guard lock(g_mutex);
+    return object_address(g_tables, handle);
 }
 
 uintptr_t halo1_player_record(int player) {

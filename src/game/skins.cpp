@@ -1,4 +1,5 @@
 #include "skins.h"
+#include "halo1_load.h"
 #include "halo1_players.h"
 #include "log.h"
 #include "video.h"
@@ -449,35 +450,49 @@ bool skins_is_skin_body(uintptr_t biped) {
     return false;
 }
 
+namespace {
+
+// halo1.dll se carga al abrir Halo CE desde el menú de MCC y se vuelve a cargar cada vez que se empieza una misión
+// desde el menú: su código vuelve a estar como en el disco y los desvíos se pierden. Se ponen otra vez en el aviso de
+// carga (halo1_load.h), nunca mientras se descarga.
+std::atomic<bool> g_hooked_once{false}, g_disabled{false};
+
+void on_halo1_loaded(uintptr_t base) {
+    if (g_disabled) return;
+    g_halo1 = base;
+    uint8_t bytes[sizeof(k_tag_lookup_bytes)];
+    if (safe_read(base + k_tag_lookup_rva, bytes, sizeof(bytes)) &&
+        memcmp(bytes, k_tag_lookup_bytes, sizeof(bytes)) == 0) {
+        // Los de la carga anterior: MinHook los da por puestos y guarda sus trampolines.
+        MH_RemoveHook(reinterpret_cast<void*>(base + k_tag_lookup_rva));
+        MH_RemoveHook(reinterpret_cast<void*>(base + k_spawn_rva));
+        if (!hook_tag_lookup()) {
+            g_disabled = true;
+            return;
+        }
+        hook_spawn();
+        log_write(g_hooked_once ? "Skins: halo1.dll se recargó, desvíos puestos otra vez" : "Skins: listas");
+        g_hooked_once = true;
+    } else if (!g_hooked_once) {
+        log_write("Skins: esta versión de MCC no coincide con la esperada, skins desactivadas");
+        g_disabled = true;
+    }
+}
+
+}  // namespace
+
 void skins_start() {
+    halo1_load_subscribe(&on_halo1_loaded);
     std::thread([] {
-        // halo1.dll se carga al abrir Halo CE desde el menú de MCC y se vuelve a cargar cada vez que se empieza una
-        // misión desde el menú: su código vuelve a estar como en el disco y los desvíos se pierden. Cuando la
-        // búsqueda de tags vuelve a tener sus bytes originales, se ponen otra vez.
-        bool hooked_once = false;
         ULONGLONG retry_at = 0;
-        while (true) {
+        while (!g_disabled) {
             Sleep(50);
             uintptr_t base = reinterpret_cast<uintptr_t>(GetModuleHandleW(L"halo1.dll"));
-            if (!base) {
+            if (!base || !g_hooked_once) {
                 if (g_mission.list) load_mission(0);
                 continue;
             }
             g_halo1 = base;
-            uint8_t bytes[sizeof(k_tag_lookup_bytes)];
-            if (safe_read(base + k_tag_lookup_rva, bytes, sizeof(bytes)) &&
-                memcmp(bytes, k_tag_lookup_bytes, sizeof(bytes)) == 0) {
-                // Los de la carga anterior: MinHook los da por puestos y guarda sus trampolines.
-                MH_RemoveHook(reinterpret_cast<void*>(base + k_tag_lookup_rva));
-                MH_RemoveHook(reinterpret_cast<void*>(base + k_spawn_rva));
-                if (!hook_tag_lookup()) return;
-                hook_spawn();
-                log_write(hooked_once ? "Skins: halo1.dll se recargó, desvíos puestos otra vez" : "Skins: listas");
-                hooked_once = true;
-            } else if (!hooked_once) {
-                log_write("Skins: esta versión de MCC no coincide con la esperada, skins desactivadas");
-                return;
-            }
             uintptr_t list = read_as<uintptr_t>(g_halo1 + k_tag_list_rva);
             if (!list) {
                 if (g_mission.list) load_mission(0);

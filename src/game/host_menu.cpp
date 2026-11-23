@@ -124,7 +124,7 @@ bool read_pad(XINPUT_STATE& state) {
         if (HMODULE xinput = LoadLibraryW(L"xinput1_4.dll"))
             g_pad_get = reinterpret_cast<XInputGetStateFn>(GetProcAddress(xinput, "XInputGetState"));
     }
-    // Solo si los mandos de los amigos pasan por este DLL: con ViGEmBus el slot 0 puede ser el mando de un amigo.
+    // Solo si los mandos de los amigos pasan por este DLL: si no, el slot 0 podría ser el mando de un amigo.
     if (!g_pad_get || !local_players_own_input()) return false;
     memset(&state, 0, sizeof(state));
     return g_pad_get(0, &state) == ERROR_SUCCESS;

@@ -1,6 +1,5 @@
 // CoOpEvolvedHost: launcher del host.
-// Crea los 3 mandos virtuales ANTES de abrir MCC (si no, MCC no siempre los registra y los jugadores 2-4 no
-// se mueven) y muestra el panel del host.
+// Manda los mandos de los jugadores 2-4 al mod del juego y muestra el panel del host.
 
 #include "audio_capture.h"
 #include "game_install.h"
@@ -38,8 +37,6 @@ namespace {
 constexpr wchar_t k_title[] = L"Halo: Co Op Evolved - Host";
 constexpr wchar_t k_mcc_exe[] = L"MCC-Win64-Shipping.exe";
 constexpr wchar_t k_mcc_steam_url[] = L"steam://rungameid/976730";
-constexpr wchar_t k_vigembus_url[] = L"https://github.com/nefarius/ViGEmBus/releases/latest";
-constexpr wchar_t k_alpharing_url[] = L"https://github.com/wouter51/AlphaRing/releases";
 
 // ---------------------------------------------------------------- configuración (coopevolved-host.ini)
 
@@ -56,9 +53,6 @@ struct HostSettings {
     bool hide_subtitles = false;  // los subtítulos de MCC cruzan toda la pantalla dividida: los amigos los ven cortados
     bool copy_subtitles = true;   // la línea de subtítulos se copia en la parte de cada jugador
     bool p1_subtitles = true;     // esa copia también en la parte del jugador 1 (se ve con F6); solo en el menú F2
-    // Mandos de J2-J4: true = directo al juego (sin ViGEmBus; sin AlphaRing el mod pone los 4 jugadores),
-    // false = mandos virtuales de ViGEmBus + AlphaRing (el sistema anterior). Clave "controllers" del .ini.
-    bool direct_pads = true;
 };
 HostSettings g_settings;
 
@@ -101,9 +95,6 @@ void settings_load() {
     g_settings.hide_subtitles = GetPrivateProfileIntW(L"host", L"hide_subtitles", 0, ini.c_str()) != 0;
     g_settings.copy_subtitles = GetPrivateProfileIntW(L"host", L"copy_subtitles", 1, ini.c_str()) != 0;
     g_settings.p1_subtitles = GetPrivateProfileIntW(L"host", L"p1_subtitles", 1, ini.c_str()) != 0;
-    wchar_t controllers[16] = {};
-    GetPrivateProfileStringW(L"host", L"controllers", L"direct", controllers, 16, ini.c_str());
-    g_settings.direct_pads = _wcsicmp(controllers, L"vigem") != 0;
     g_lang = g_settings.lang;
 }
 
@@ -126,7 +117,6 @@ void settings_save() {
     WritePrivateProfileStringW(L"host", L"hide_subtitles", g_settings.hide_subtitles ? L"1" : L"0", ini.c_str());
     WritePrivateProfileStringW(L"host", L"copy_subtitles", g_settings.copy_subtitles ? L"1" : L"0", ini.c_str());
     WritePrivateProfileStringW(L"host", L"p1_subtitles", g_settings.p1_subtitles ? L"1" : L"0", ini.c_str());
-    WritePrivateProfileStringW(L"host", L"controllers", g_settings.direct_pads ? L"direct" : L"vigem", ini.c_str());
 }
 
 void apply_host_options() {
@@ -250,7 +240,6 @@ void focus_mcc() {
 struct Status {
     bool mcc_open = false;
     ModState mod = ModState::game_not_found;
-    bool alpharing = false;
     std::string radmin_ip;
     bool video_ok = false;
     proto::VideoStatus video;
@@ -266,7 +255,6 @@ void refresh_status() {
     last = now;
     g_status.mcc_open = find_mcc_window() != nullptr;
     g_status.mod = game_mod_state(g_binaries_dir);
-    g_status.alpharing = game_alpharing_present(g_binaries_dir);
     g_status.video_ok = net_server_video_status(g_status.video);
     g_status.audio = audio_capture_active();
     for (int i = 0; i < k_remote_players; ++i) g_status.players[i] = net_server_player(i + k_first_remote_player);
@@ -367,11 +355,7 @@ void draw_connection_card() {
     case ModState::game_not_found: status_dot(k_red, T("MCC not found in Steam", "No se encontró MCC en Steam")); break;
     }
     ImGui::SameLine(0, 18);
-    if (pads_direct())  // sin AlphaRing, el mod pone los 4 jugadores
-        status_dot(k_green, g_status.alpharing ? "AlphaRing" : T("4 players: built in", "4 jugadores: integrado"));
-    else
-        status_dot(g_status.alpharing ? k_green : k_red,
-                   g_status.alpharing ? "AlphaRing" : T("AlphaRing: missing", "AlphaRing: falta"));
+    status_dot(k_green, T("4 players: built in", "4 jugadores: integrado"));  // los pone el mod del juego
     ImGui::SameLine(0, 18);
     status_dot(g_status.mcc_open ? k_green : k_muted, g_status.mcc_open ? T("MCC open", "MCC abierto") : T("MCC closed", "MCC cerrado"));
     ImGui::SameLine(0, 18);
@@ -424,15 +408,9 @@ void draw_connection_card() {
     }
     ImGui::SameLine();
     ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 12);
-    if (g_settings.direct_pads && !g_status.alpharing)
-        ImGui::TextColored(k_muted, "%s",
-                           T("Choose \"without anti-cheat\"  ·  use classic graphics (Tab) and keep the game window active",
-                             "Elige \"sin anticheat\"  ·  usa gráficos clásicos (Tab) y deja activa la ventana del juego"));
-    else
-        ImGui::TextColored(k_muted, "%s",
-                           T("Choose \"without anti-cheat\"  ·  AlphaRing (F4): Players = 4  ·  classic graphics (Tab)",
-                             "Elige \"sin anticheat\"  ·  AlphaRing (F4): Players = 4  ·  gráficos clásicos (Tab)"));
-
+    ImGui::TextColored(k_muted, "%s",
+                       T("Choose \"without anti-cheat\"  ·  use classic graphics (Tab) and keep the game window active",
+                         "Elige \"sin anticheat\"  ·  usa gráficos clásicos (Tab) y deja activa la ventana del juego"));
     float combo_width = 170;
     ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - combo_width);
     ImGui::SetNextItemWidth(combo_width);
@@ -793,7 +771,7 @@ bool run_panel(HINSTANCE instance) {
 
 int host_main(HINSTANCE instance) {
     settings_load();
-    // Un solo host por PC: dos crearían 6 mandos y desordenarían los slots. El segundo se abre inactivo.
+    // Un solo host por PC: dos mandarían dos veces los mandos al juego. El segundo se abre inactivo.
     HANDLE single = CreateMutexW(nullptr, TRUE, L"CoOpEvolvedHost.SingleInstance");
     if (GetLastError() == ERROR_ALREADY_EXISTS) {
         g_inactive = true;
@@ -805,57 +783,11 @@ int host_main(HINSTANCE instance) {
     log_init(L"coopevolved-host.log");
     log_write("Co Op Evolved Host iniciado");
 
-    // Con ViGEmBus los mandos tienen que existir antes que MCC. En modo directo los pone el mod del juego.
-    while (!g_settings.direct_pads && find_mcc_pid()) {
-        log_write("MCC ya estaba abierto al iniciar");
-        if (MessageBoxW(nullptr,
-                        T(L"MCC is already open.\n\nClose it and press Retry: the controllers for players 2, 3 and 4 "
-                          L"must be created before the game opens.",
-                          L"MCC ya está abierto.\n\nCiérralo y presiona Reintentar: los mandos de los jugadores 2, 3 "
-                          L"y 4 tienen que crearse antes de abrir el juego."),
-                        k_title, MB_RETRYCANCEL | MB_ICONWARNING) != IDRETRY)
-            return 0;
-    }
-
-    switch (pads_init(g_settings.direct_pads)) {
-    case PadsError::none:
-        break;
-    case PadsError::driver_missing:
-        if (MessageBoxW(nullptr,
-                        T(L"The ViGEmBus driver (virtual controllers) is missing.\n\nOpen the download page? Install "
-                          L"ViGEmBus_..._x64_x86_arm64.exe, restart the PC and open Co Op Evolved again.",
-                          L"Falta el driver ViGEmBus (mandos virtuales).\n\n¿Abrir la página de descarga? Instala el "
-                          L"archivo ViGEmBus_..._x64_x86_arm64.exe, reinicia el PC y vuelve a abrir Co Op Evolved."),
-                        k_title, MB_YESNO | MB_ICONERROR) == IDYES)
-            ShellExecuteW(nullptr, L"open", k_vigembus_url, nullptr, nullptr, SW_SHOWNORMAL);
-        return 1;
-    case PadsError::create_failed:
-        MessageBoxW(nullptr,
-                    T(L"Could not create the virtual controllers. See coopevolved-host.log.",
-                      L"No se pudieron crear los mandos virtuales. Revisa coopevolved-host.log."),
-                    k_title, MB_ICONERROR);
-        return 1;
-    }
-
-    if (!g_settings.direct_pads && (pads_occupied_slots_before() > 0 || pads_slot(2) != 0 || pads_slot(3) != 1 || pads_slot(4) != 2)) {
-        MessageBoxW(nullptr,
-                    T(L"A physical controller is plugged in, so the virtual controllers did not get Controller 1, 2 "
-                      L"and 3.\n\nEasiest fix: unplug the physical controller and open Co Op Evolved again. "
-                      L"Otherwise, in AlphaRing assign each player the Controller shown in the panel.",
-                      L"Hay un mando físico conectado, así que los mandos virtuales no quedaron en Controller 1, 2 y "
-                      L"3.\n\nLo más fácil: desconecta el mando físico y vuelve a abrir Co Op Evolved. Si no, en "
-                      L"AlphaRing asigna a cada jugador el Controller que muestra el panel."),
-                    k_title, MB_ICONWARNING);
-    }
+    pads_init();
 
     // El DLL del juego (video y nombres): instalarlo o actualizarlo ahora que MCC está cerrado.
     g_binaries_dir = game_binaries_dir();
     log_write("Carpeta del juego: %s", g_binaries_dir.empty() ? "no encontrada" : "encontrada");
-    // El mod del juego lee aquí cómo le llegan los mandos (lo lee al abrir MCC).
-    if (!g_binaries_dir.empty() &&
-        !WritePrivateProfileStringW(L"juego", L"mandos", g_settings.direct_pads ? L"direct" : L"vigem",
-                                    (g_binaries_dir + L"\\coopevolved-juego.ini").c_str()))
-        log_write("No se pudo escribir coopevolved-juego.ini en la carpeta del juego");
     ModState mod = game_mod_state(g_binaries_dir);
     bool auto_install = !GetEnvironmentVariableW(L"COOPEVOLVED_NO_INSTALL", nullptr, 0);  // pruebas: no tocar el juego
     if (auto_install && (mod == ModState::not_installed || mod == ModState::outdated)) {
@@ -868,14 +800,6 @@ int host_main(HINSTANCE instance) {
                             .c_str(),
                         k_title, MB_ICONWARNING);
     }
-    if (!g_settings.direct_pads && !g_binaries_dir.empty() && !game_alpharing_present(g_binaries_dir) &&
-        MessageBoxW(nullptr,
-                    T(L"AlphaRing (4-player split screen) is missing from the game folder.\n\nOpen its download page? "
-                      L"Copy WTSAPI32.dll from Release1.0.zip into mcc\\binaries\\win64.",
-                      L"Falta AlphaRing (pantalla dividida de 4 jugadores) en la carpeta del juego.\n\n¿Abrir su "
-                      L"página de descarga? Copia WTSAPI32.dll de Release1.0.zip en mcc\\binaries\\win64."),
-                    k_title, MB_YESNO | MB_ICONWARNING) == IDYES)
-        ShellExecuteW(nullptr, L"open", k_alpharing_url, nullptr, nullptr, SW_SHOWNORMAL);
 
     net_server_set_fps(g_settings.fps);
     apply_host_options();
@@ -903,7 +827,6 @@ int host_main(HINSTANCE instance) {
     run_panel(instance);
     audio_capture_stop();
     net_server_stop();
-    pads_shutdown();
     log_write("Co Op Evolved Host cerrado");
     if (single) CloseHandle(single);
     return 0;

@@ -27,8 +27,6 @@ Internal notes for people working on Halo: Co Op Evolved. Players only need [REA
   `README.md` / `README.es.md` and in `CoOpEvolved\` (`README.txt` / `LEEME.txt`).
 - Everything found by reverse engineering is for **MCC Steam 1.3528**. Code that patches or hooks the game checks
   the bytes (or the module's PE timestamp) first and turns itself off if they do not match.
-- In the old ViGEmBus + AlphaRing fallback, never write AlphaRing's profiles or options and never change how the
-  virtual pads are created (that broke movement in v1; the pads must exist before MCC starts).
 
 ## Interface look
 
@@ -55,8 +53,7 @@ Internal notes for people working on Halo: Co Op Evolved. Players only need [REA
   instance opens as client while a host is running.
 - **Host mode**: receives each friend's controller over UDP 27960 and forwards it at once (and every 50 ms) to the
   game mod as `proto::Pads` on 127.0.0.1:27961; captures MCC's audio (Opus) and shows the panel. It also sends the
-  mod where to send video and the players' names, colours, skins and options (`VideoConfig`), and writes
-  `coopevolved-juego.ini` (`mandos=direct|vigem`) next to the installed mod.
+  mod where to send video and the players' names, colours, skins and options (`VideoConfig`).
 - **Game mod (`src/game`, built as `VERSION.dll`)**: sets up 4 local players and the network controllers
   (`local_players.cpp`), hooks `IDXGISwapChain::Present`, encodes each quadrant with NVENC and sends it to its
   player (the whole screen during cutscenes). It also draws name tags, armor colours, player 1 full screen (F6),
@@ -64,7 +61,8 @@ Internal notes for people working on Halo: Co Op Evolved. Players only need [REA
 - **Host F2 menu (`src/game/host_menu.cpp`)**: its own ImGui context, drawn last in the Present hook (after the
   video capture and player 1 full screen), so only the host's monitor shows it. Opens with F2 (game in the
   foreground, `GetAsyncKeyState`) or View/Back held 1 s on the host's real controller, read with
-  `xinput1_4.dll` because `XINPUT1_3` is hooked (only in direct mode: with ViGEmBus slot 0 can be a friend).
+  `xinput1_4.dll` because `XINPUT1_3` is hooked (its slot 0 is player 2's network pad). Only while the hooks are
+  in place (`local_players_own_input`).
   No window hook: mouse, keys and pad are polled and fed to ImGui (keyboard/gamepad navigation on; Esc is not
   used because it opens MCC's pause). While open, `hooked_key_state` zeroes player 1's input. Changes go to the
   panel as local messages `host_menu` (17, `HostMenu`) and `host_kick` (18); the panel saves them in
@@ -78,8 +76,7 @@ Internal notes for people working on Halo: Co Op Evolved. Players only need [REA
 
 ## What we know about MCC-Win64-Shipping.exe (Steam 1.3528)
 
-PE timestamp `0x68A0E5D7` (checked before hooking). Offsets are RVAs of the exe. They come from AlphaRing's
-1.3528 fork (wouter51, MIT; see THIRD-PARTY-NOTICES.md) and were checked against this build.
+PE timestamp `0x68A0E5D7` (checked before hooking). Offsets are RVAs of the exe, checked against this build.
 
 - **Input**: MCC reads controllers only through `XINPUT1_3.dll` (imports by ordinal 2 = XInputGetState and
   3 = XInputSetState). Hooking those two in that module is enough to give MCC controllers that do not exist:
@@ -95,14 +92,22 @@ PE timestamp `0x68A0E5D7` (checked before hooking). Offsets are RVAs of the exe.
   +0x40 check), +0x808 XInput slot, +0x91C XINPUT_STATE.
 - `+0x5A16AC` delta time from a QPC difference (prologue `40 53 48 83 EC 20 48 8B D9`);
   `+0x38A09C` get_index_by_xuid (prologue `48 8B C4 55 57 41 54 41 56 41 57`).
-- **Local players** (`local_players.cpp`, same idea as AlphaRing with its defaults): get_xbox_user_id answers
+- **Local players** (`local_players.cpp`): get_xbox_user_id answers
   "signed in" for indices 1..count-1 with fake xuids (and the friends' names), where count = J1 + friends up to the
   highest connected player number (4 if the host app is not running). MCC calls get_xbox_user_id **only when a
   mission is started from the menu** (a burst of ~40 calls), not during play nor on restart from the pause menu,
   so the count is fixed per mission (see *Joining a started mission* for the host's Reload Mission); get_key_state fills index 0 from the
   keyboard/mouse device and 1-3 from pad devices 0-2; profile and gamepad mapping are always player 1's;
-  get_index_by_xuid maps the fake xuids to 1-3. If `WTSAPI32.dll` (AlphaRing) is loaded from the game folder,
-  none of this is installed (only the XInput hook).
+  get_index_by_xuid maps the fake xuids to 1-3.
+- **Gamepad mapping** (`hooked_mapping`): MCC's `s_gamepad_mapping` (libmcc) is 0x42 bytes, one abstract button per
+  action (0xFF = none; LT 0, RT 1, d-pad 2-5, Start 6, Back 7, LS 8, RS 9, LB 10, RB 11, A 12, B 13, X 14, Y 15).
+  Players 2-4 get a copy of player 1's table with the actions the friends' client sends fixed (jump A, grenade
+  switch LB, action RB, reload X, weapon switch Y, melee B, flashlight d-pad up, throw LT, fire RT, crouch LS,
+  zoom RS, scores Back); any other action on those buttons is cleared. If a byte is above 15 the table is not the
+  expected one and player 1's is returned.
+- **Crash when closing MCC**: a task thread sends event `0x40F35C79` (`+0x2B3E50` → `+0x8AD5E0`) to the event
+  manager at `[MCC+0x4004230]` after it was destroyed, and `+0x8AD5E0` reads `[null+0x540]`. The mod hooks
+  `+0x8AD5E0` (prologue checked) and returns null when the manager is null.
 - **Subtitles** are drawn by MCC's interface, which is Unreal Engine (`UMCCSubtitlesWidget`,
   `UMCCSubtitlesViewModel`, `SubtitleManager`, `OnQueueSubtitles`). The texts come from
   `Data\UI\Localization\EN_Halo1.bin` (UTF-8, `cor&idCORTANA` + U+E900 + line; a sorted table of 32-bit hashes,
@@ -144,12 +149,16 @@ RVAs are relative to `halo1.dll`, which loads when Halo CE is opened from the MC
   skin clone (`skins_is_skin_body`): skins keep their own colours.
 - Local player count: `halo1.dll+0x1B7B910`.
 
-### 4-player patches (`local_players.cpp`, from AlphaRing)
+### 4-player patches (`local_players.cpp`)
 PE timestamp of halo1.dll 1.3528: `0x68A0E4CF`. Applied on every load of halo1.dll (it reloads when a mission
 starts), only if all three match the original bytes:
-- `+0x67492` `75 11` → `EB 18`: more than 2 local players.
-- `+0x427978` `77` → `EB`: pause with more players.
-- `+0x85428` `0F 84 15 01 00 00` → 6 × `90`: fixes the freeze when a level ends (AlphaRing issue #19).
+- `+0x67464` `80 3D B7 43 DD 02 00` → `EB 46` + 5 × `90`: more than 2 local players (skips the check that sends
+  MCC back to the menu when there are too many players).
+- `+0x42796E` `44 8B C2` → `EB 22 90`: the pause menu only looks at player 1 (MCC's menu only opens for the main
+  user).
+- `+0x85428` `0F 84 15 01 00 00` → 6 × `90`: fixes the freeze when a level ends with more than one local player.
+- `+0xAD0402` `75 17` → `EB 66` (in the respawn loop `+0xAD03C0`): skips the "in danger / seen by enemies" checks,
+  so a dead player comes back after the normal ~3 s timer (`+0xAC5184`, 0x5A ticks) even during combat.
 
 ### Split layout (`split_layout.h`)
 - `halo1.dll+0x1B7B910` (int16) = local players of the running mission. Seen in MCC: 2 players = full-width top
@@ -159,11 +168,13 @@ starts), only if all three match the original bytes:
 - Video per friend = their rectangle (J2 with 2 players is a full-width strip); friends not in the mission get the
   whole screen scaled down (VideoStatus.local_players → Pong.watching → notice in the client).
 
-### halo1.dll reloads
+### halo1.dll reloads (`halo1_load.cpp`)
 - halo1.dll is unloaded and loaded again every time a mission starts from the MCC menu, often at the same address.
-  Code patches and MinHook hooks vanish with it (MinHook still thinks they are on). `local_players.cpp` checks the
-  patch bytes every 20 ms; `skins.cpp` re-hooks (MH_RemoveHook + create again) when the tag lookup has its original
-  bytes again.
+  Code patches and MinHook hooks vanish with it (MinHook still thinks they are on).
+- `halo1_load.cpp` hooks `KernelBase!LoadLibraryExW` and, right after it returns halo1.dll, calls every subscriber
+  (`halo1_load_subscribe`: local_players, skins, subtitles, coop_follow). All halo1 patches and hooks are applied
+  only there. Polling threads that hooked on their own sometimes did it while the DLL was being unloaded
+  (MH_ERROR_NOT_EXECUTABLE, a freeze when leaving to the menu, skins turned off).
 
 ### Cutscenes (`cinematic.cpp`)
 - `halo1.dll+0x1B87A20` = 1 while a cutscene plays and 0 in gameplay; `+0x1B87A21` is its opposite. Found by
@@ -226,6 +237,45 @@ starts), only if all three match the original bytes:
 - Bodies placed by a mission's opening cutscene (a30, the drop pod) are created by another path, not `+0xAD4184`.
 - When an object is created the game sizes its per-node buffers for the model it has **at that moment** (offsets
   at object +0x1A4…+0x1AC: 0x260 = 19 nodes × 0x20 for Chief, 0x280 for a 20-node marine). They are never resized.
+
+### Players 3 and 4 in the original missions (`coop_follow.cpp`)
+The original scenarios have 2 player starts and their scripts only move players 1 and 2. When a map has 4 or more
+starts (scenario +0x354 block count) the module does nothing, so mods that already handle J3/J4 are left alone.
+J3 follows J1 and J4 follows J2 (J1 when there is no J2).
+- **HaloScript functions** (eval → engine; the engine one is hooked and only acts while the eval flag is set, because
+  the engine also calls it by itself): `object_teleport` +0xB196D0 → +0xC57B9C (ecx object, dx flag, r8b) then
+  +0xBA83EC; `unit_suspended` +0xB1B3FC → +0xB064B0 (ecx unit, dl); `unit_enter_vehicle` +0xB1ABF0 → +0xB062C4
+  (ecx unit, edx vehicle, r8 seat name; fails if the seat is taken or the unit has no animation for its label);
+  `unit_exit_vehicle` +0xB1AD84 → +0xB06EC8 (ecx unit). What a script does to J1/J2 is repeated for J3/J4; entering a
+  vehicle puts the follower in the seat beside (`k_seat_pairs`).
+- **Object data** (MCC = Halo PC − 0x44): +0x00 tag, +0x18 position (feet), +0x24 velocity, +0x30 forward, +0x3C up,
+  +0x5C body centre (always world coordinates, also when seated), +0xD8 parent vehicle handle, +0x2D0 seat index
+  (int16). Vehicle tag: +0x2E4 seat count, +0x2E8 seats (0x11C bytes each, label at +4).
+- **Pelican middle seats**: Chief's animations (`characters\cyborg\cyborg` antr, units block at +0x0C, 0x64 bytes
+  each, label at +0) only have `P-riderLF`/`P-riderRF`. `add_middle_seats` copies those entries as `P-riderLM`/`RM`
+  into a new block inside the 32-bit tag range (VirtualAlloc at tag data + 0x08000000…, 1 MB steps) and swaps the
+  pointer and count (list first, then pointer, then count). Checked every 2 s.
+- **First spawn**: J3/J4 spawn wherever the engine puts them. The game thread (`coop_follow_game_tick`, from
+  player 1's get_key_state hook) records J1's and J2's footsteps while on foot (a point every 0.4 m, last 24). The
+  follower is placed on the newest point 0.8–4 m from whoever walked there and 0.7 m from every other player
+  (its own leader's trail first, then the other's); until one exists it waits suspended. A fixed side offset put
+  J3 inside the a30 lifeboat wall.
+- If the leader is in a vehicle, the follower tries the seat beside once; if every seat is taken (b30: marines),
+  it is suspended and kept at the leader's centre − 0.5 z with zero velocity every tick ("hidden ride"), and
+  placed beside the leader when they get out. Script exits of J1/J2 also take J3/J4 out of the same vehicle.
+
+### Extra vehicles (`extra_vehicles.cpp`)
+- `object_placement_data_new` +0xB35EBC (rcx placement 0x8C bytes, edx tag, r8d owner −1) and `object_new` +0xB35F80
+  (rcx placement, returns the handle). Placement: +0x00 tag, +0x1C position, +0x38 forward, +0x44 up. Only from the
+  game thread.
+- Mission object names: scenario +0x204 (0x24-byte entries, name at +0); handle of each name in the array
+  `[halo1+0x2D9CDE8]`. The scenario tag name is checked against the current map (the map name changes before the
+  new tags are loaded).
+- *Halo* (a30), 4 players: the Warthog named `jeep` travels as Pelican cargo (parent at +0xD8). When the script exits
+  it, or its parent goes from the Pelican to none, a copy is made 3 s later 3.5 m to its side (+0.5 z).
+- *Two Betrayals* (c40), 3+ players: when `fly_away_2` appears (new handle), players − 2 copies are lined up along the
+  `fly_away_1` → `fly_away_2` step (2.2 m if the step looks wrong), +0.3 z. A new handle (mission restart) copies
+  again; a checkpoint revert brings the same handle back with its copies.
 
 ## Skins
 
@@ -297,6 +347,3 @@ Findings that shaped this:
 
 Ideas not done: bodies placed by opening cutscenes born with the skin (needs that creation path); other fixed
 variants (e.g. a marine face without helmet) work the same way as Johnson.
-
-## Other ideas (not started)
-- One window with host and client tabs instead of relaunching the exe.

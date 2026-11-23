@@ -87,10 +87,6 @@ ModState game_mod_state(const std::wstring& binaries_dir) {
     return read_file(installed) == read_file(bundled_dll()) ? ModState::installed : ModState::outdated;
 }
 
-bool game_alpharing_present(const std::wstring& binaries_dir) {
-    return !binaries_dir.empty() && exists(binaries_dir + L"\\WTSAPI32.dll");
-}
-
 bool game_install_mod(const std::wstring& binaries_dir, std::wstring& error) {
     std::wstring source = bundled_dll();
     if (!exists(source)) {

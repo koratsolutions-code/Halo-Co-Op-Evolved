@@ -36,7 +36,7 @@ enum class Type : uint8_t {
     player_options = 13,   // cliente -> host: color de armadura y skin (con cada ping)
     mouse_look = 14,       // cliente -> host: mira directa con mouse (giro y altura acumulados)
     aim = 15,              // launcher -> DLL (local): cuánto girar la cámara de J2-J4
-    pads = 16,             // launcher -> DLL (local): mandos de J2-J4 (sin ViGEmBus)
+    pads = 16,             // launcher -> DLL (local): mandos de J2-J4
     host_menu = 17,        // DLL -> launcher (local): el host cambió algo en su menú F2 dentro del juego
     host_kick = 18,        // DLL -> launcher (local): el host expulsa a un jugador desde el menú F2
 };
@@ -208,7 +208,7 @@ struct Aim {
     float yaw[3] = {}, pitch[3] = {};  // jugadores 2, 3, 4
 };
 
-// Modo sin ViGEmBus: el launcher manda el estado de los mandos de J2-J4 al DLL apenas cambia y cada 50 ms.
+// Mandos de J2-J4: el launcher manda su estado al DLL apenas cambia y cada 50 ms.
 struct Pads {
     Header header{k_magic, Type::pads};
     GamepadState pads[3];  // jugadores 2, 3, 4 (en cero si no hay nadie)

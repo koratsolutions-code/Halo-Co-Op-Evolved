@@ -409,11 +409,11 @@ void draw_ingame_panel(const NetStatus& status) {
                 "WASD move · Mouse aim · Left click shoot · Right click grenade\n"
                 "Space jump · E action (vehicles, pick up) · R reload · F/V melee · Q or wheel switch weapon\n"
                 "G switch grenade · Ctrl/C crouch · Z or middle click zoom\n"
-                "1-4 or arrows d-pad (flashlight, etc.) · Tab scoreboard · only the host can pause",
+                "1 or Up flashlight · 2-4 or other arrows d-pad · Tab scoreboard · only the host can pause",
                 "WASD moverse · Mouse apuntar · Clic izq. disparar · Clic der. granada\n"
                 "Espacio saltar · E acción (vehículos, recoger) · R recargar · F/V golpe · Q o rueda cambiar arma\n"
                 "G cambiar granada · Ctrl/C agacharse · Z o clic central zoom\n"
-                "1-4 o flechas cruceta (linterna, etc.) · Tab marcador · solo el host puede pausar"));
+                "1 o flecha arriba linterna · 2-4 o las otras flechas cruceta · Tab marcador · solo el host puede pausar"));
         }
     }
     ImGui::TextDisabled("%s", T("F1 stats · F2 this menu · F3 mute · F11 full screen",

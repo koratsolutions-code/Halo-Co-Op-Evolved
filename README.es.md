@@ -45,7 +45,7 @@ vienen en este repositorio.
 - Mando de Xbox, o teclado y mouse.
 - **No** necesitan Halo, Steam ni MCC.
 
-No hay que instalar nada más: ni AlphaRing ni drivers de mandos virtuales.
+No hay que instalar nada más: los 4 jugadores locales vienen integrados en el mod, sin drivers extra.
 
 ---
 
@@ -76,6 +76,20 @@ El jugador 1 (tú) juega con **teclado y mouse**.
   *"1 amigo(s) esperando entrar"* arriba en tu pantalla. Para que entre, abre el menú del host (**F2**) y presiona
   **Recargar misión**: la misión empieza otra vez desde el principio con todos los conectados. Reiniciar desde el
   menú de pausa de MCC deja los mismos jugadores. *Recargar misión* solo está disponible mientras alguien espera.
+
+### Jugadores 3 y 4 en la campaña
+Las misiones originales solo tienen lugar para 2 jugadores. Con 3 o 4 jugadores el mod se encarga del resto:
+- **Al empezar una misión:** el jugador 3 aparece junto al jugador 1 y el 4 junto al 2, en un lugar donde uno de
+  ellos acaba de estar (así nadie queda dentro de una pared). Si los jugadores 1 y 2 todavía no se movieron,
+  esperan un momento hasta que uno de ellos dé unos pasos.
+- **Pelican y otros vehículos:** cuando la misión sube a los jugadores 1 y 2 a un vehículo (por ejemplo el Pelican
+  del principio de *The Silent Cartographer*), los jugadores 3 y 4 se sientan en un asiento libre a su lado. Si no
+  hay asiento libre viajan escondidos con ellos y aparecen a su lado cuando se bajan.
+- **Movimientos del guion:** cuando la misión mueve o congela al jugador 1 o 2 (cinemáticas, teletransportes), el
+  jugador 3 o 4 lo sigue.
+- **Reaparecer:** un jugador muerto vuelve en unos 3 segundos, aunque haya combate.
+- **Vehículos extra:** en *Halo*, con 4 jugadores, aparece un segundo Warthog junto al que suelta el Pelican. En
+  *Two Betrayals* hay un Banshee extra por cada jugador después del segundo.
 
 ### Carpeta del juego
 Para encontrar la carpeta `mcc\binaries\win64` del juego: en Steam, clic derecho en
@@ -199,9 +213,6 @@ los FPS y lo de los nombres en `coopevolved-host.ini`, junto a `CoOpEvolved.exe`
 - **El juego no tiene los jugadores que debería:** la cantidad se fija al empezar la misión desde el menú de
   MCC (ver *Jugadores y quien llega tarde*). Revisa que el panel muestre en verde *4 jugadores: integrado* y que
   `VERSION.dll` esté instalado (punto *Mod del juego*). Solo funciona con MCC 1.3528 de Steam.
-- **AlphaRing sigue instalado** (de una versión anterior de Co Op Evolved): funciona igual, pero entonces
-  AlphaRing pone los jugadores (F4 → Players = 4 cada vez). Para usar los 4 jugadores integrados, borra
-  `WTSAPI32.dll` de la carpeta `mcc\binaries\win64` del juego.
 - **Video: el juego no responde:** espera unos 10 segundos después de abrir MCC. Si sigue, revisa que el panel
   muestre en verde *Mod del juego* y mira `coopevolved-juego.log` en la carpeta `mcc\binaries\win64`.
 - **No salen nombres sobre los jugadores:** revisa que *Mostrar nombres sobre los jugadores* esté activado y
@@ -209,8 +220,6 @@ los FPS y lo de los nombres en `coopevolved-host.ini`, junto a `CoOpEvolved.exe`
 
 ### Problemas conocidos con 4 jugadores
 - Con los gráficos remasterizados solo se ven los jugadores 1 y 2 → usa los gráficos clásicos (Tab).
-- En algunos niveles (*Assault on the Control Room*, *Keyes*) los jugadores 3 y 4 pueden aparecer fuera del
-  mapa.
 - Terminar un nivel con 4 jugadores congelaba el juego; el mod trae un arreglo, pero si igual pasa, guarda y
   reinicia la misión.
 
@@ -259,7 +268,11 @@ Para los jugadores 2, 3 y 4. **No** necesitas Halo, Steam ni MCC: el juego corre
 - Con **mando** no hace falta nada más (se recomienda un mando de Xbox).
 - Solo el host (jugador 1) puede pausar: el menú de pausa de MCC solo le responde a él.
 - Con **teclado y mouse** haz clic en el video para capturar el mouse. La lista completa de teclas está en
-  `CoOpEvolved/LEEME.txt` y en F2 → *Controles del teclado*.
+  `CoOpEvolved/LEEME.txt` y en F2 → *Controles del teclado*. Las teclas son las mismas del teclado de fábrica del
+  jugador 1 (R recarga, E es acción, 1 o flecha arriba es la linterna), sin importar qué configuración de control
+  eligió el host en MCC.
+- Con **mando**, los jugadores 2-4 usan la distribución estándar: A salta, B golpea, X recarga, Y cambia de arma,
+  RB acción, LB cambia de granada, LT granada, RT dispara, cruceta arriba linterna.
 - **Mira directa (soporte de mouse)** (teclado y mouse, en el menú o F2): el mouse gira tu cámara directo,
   como Halo en PC, en vez de mover el stick derecho del mando (sin zona muerta ni aceleración del stick). A su
   lado, *activa* significa que está funcionando; si el juego del host todavía no puede usarla, se usa el stick
@@ -311,10 +324,5 @@ La compilación también crea una carpeta `build/` con archivos temporales; pued
 ## Desinstalar
 
 Borra `VERSION.dll` (este mod), `coopevolved-juego.ini` y `coopevolved-juego.log` de la carpeta
-`mcc\binaries\win64` del juego (y `WTSAPI32.dll` si instalaste AlphaRing para una versión anterior).
+`mcc\binaries\win64` del juego.
 Después en Steam: clic derecho en MCC → Propiedades → Archivos instalados → **Verificar integridad**.
-
-## Créditos
-
-La pantalla dividida de 4 jugadores sigue a [AlphaRing](https://github.com/WinterSquire/AlphaRing) de
-WinterSquire (licencia MIT); ver [THIRD-PARTY-NOTICES.md](THIRD-PARTY-NOTICES.md).

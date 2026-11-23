@@ -1,8 +1,9 @@
 // Co Op Evolved dentro del juego (VERSION.dll en mcc\binaries\win64): captura los cuadrantes de J2-J4 y los manda
-// como video. También pone los mandos de J2-J4 que llegan por red y, sin AlphaRing, los 4 jugadores (local_players).
+// como video. También pone los mandos de J2-J4 que llegan por red y los 4 jugadores locales (local_players).
 
 #include "aim.h"
 #include "armor_colors.h"
+#include "coop_follow.h"
 #include "host_menu.h"
 #include "local_players.h"
 #include "log.h"
@@ -86,7 +87,7 @@ BOOL CALLBACK find_game_window(HWND hwnd, LPARAM found) {
 }
 
 DWORD WINAPI init_thread(LPVOID) {
-    // Esperamos a que el juego tenga ventana y unos segundos más: así AlphaRing y el overlay de Steam ya
+    // Esperamos a que el juego tenga ventana y unos segundos más: así el overlay de Steam y otros mods ya
     // instalaron sus propios hooks y no parcheamos el mismo código a la vez.
     HWND window = nullptr;
     while (!window) {
@@ -111,6 +112,7 @@ DWORD WINAPI init_thread(LPVOID) {
         log_write("No se pudo enganchar Present (%s): sin video", MH_StatusToString(status));
     skins_start();  // usa MinHook: después de MH_Initialize
     subtitles_start();
+    coop_follow_start();  // usa MinHook
     return 0;
 }
 

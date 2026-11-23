@@ -1,4 +1,6 @@
 #include "local_players.h"
+#include "coop_follow.h"
+#include "halo1_load.h"
 #include "log.h"
 #include "video.h"
 
@@ -9,7 +11,9 @@
 
 #include <atomic>
 #include <cmath>
+#include <cstdio>
 #include <cstring>
+
 #include <mutex>
 #include <string>
 #include <thread>
@@ -77,6 +81,12 @@ bool hook_xinput() {
 bool safe_read(uintptr_t address, void* out, size_t size) {
     SIZE_T read = 0;
     return ReadProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(address), out, size, &read) && read == size;
+}
+
+bool safe_write(uintptr_t address, const void* data, size_t size) {
+    SIZE_T written = 0;
+    return WriteProcessMemory(GetCurrentProcess(), reinterpret_cast<void*>(address), data, size, &written) &&
+           written == size;
 }
 
 template <typename T>
@@ -188,7 +198,10 @@ bool __fastcall hooked_user_id(void* manager, int64_t* id, wchar_t* name, int si
 void reload_if_requested();
 
 bool __fastcall hooked_key_state(void* manager, DWORD index, void* input) {
-    if (index == 0) reload_if_requested();  // menú F2 del host: "Recargar la misión"
+    if (index == 0) {
+        reload_if_requested();    // menú F2 del host: "Recargar la misión"
+        coop_follow_game_tick();  // J3/J4 que acaban de aparecer: junto a su compañero
+    }
     if (!input) return false;
     memset(input, 0, k_input_size);
     if (index >= DWORD(g_player_count)) return false;
@@ -205,7 +218,7 @@ bool __fastcall hooked_key_state(void* manager, DWORD index, void* input) {
         QueryPerformanceCounter(&now);
         auto* last = reinterpret_cast<LARGE_INTEGER*>(dm + k_dm_qpc);
         int64_t a = now.QuadPart - last->QuadPart, b = last->QuadPart - now.QuadPart;
-        delta = fminf(fmaxf(g_delta_time(a >= b ? b : a) * 1000.0f, 0.1f), 1000.0f);  // igual que AlphaRing
+        delta = fminf(fmaxf(g_delta_time(a >= b ? b : a) * 1000.0f, 0.1f), 1000.0f);  // ms entre lecturas, acotado
         *last = now;
     } else {
         auto* state = reinterpret_cast<XINPUT_STATE*>(device + k_dev_state);
@@ -220,9 +233,64 @@ bool __fastcall hooked_key_state(void* manager, DWORD index, void* input) {
     return result;
 }
 
-// Perfil y botones: los cuatro usan los de J1 (como "Use player1's profile" de AlphaRing).
+// Perfil: los cuatro usan el de J1 (los usuarios falsos de J2-J4 no tienen perfil propio en MCC).
 void* __fastcall hooked_profile(void* manager, int64_t) { return g_original_profile(manager, host_xuid(manager)); }
-void* __fastcall hooked_mapping(void* manager, int64_t) { return g_original_mapping(manager, host_xuid(manager)); }
+
+// Botones de J2-J4. MCC guarda, por acción, qué botón del mando la hace (s_gamepad_mapping de libmcc: 66 bytes, un
+// botón abstracto por acción; 0xFF = ninguno). Los de J1 son su configuración de control de MCC, que puede ser
+// cualquiera (por ejemplo X = linterna). J2-J4 juegan con el programa de los amigos, que convierte teclas en botones
+// fijos (R -> X, E -> RB, F -> B...: src/client/input.cpp): se parte de la tabla de J1 y se fijan las acciones que
+// usa ese programa, así R siempre recarga y E siempre es acción, como el teclado de J1.
+constexpr size_t k_mapping_size = 0x42;
+enum : uint8_t {  // botones abstractos (e_abstract_gamepad_button)
+    k_left_trigger = 0, k_right_trigger = 1, k_dpad_up = 2, k_select = 7, k_left_stick = 8, k_right_stick = 9,
+    k_left_bumper = 10, k_right_bumper = 11, k_button_a = 12, k_button_b = 13, k_button_x = 14, k_button_y = 15,
+};
+struct ActionButton {
+    uint8_t action;  // e_game_abstract_button
+    uint8_t button;
+};
+constexpr ActionButton k_friend_buttons[] = {
+    {0, k_button_a},          // saltar: Espacio
+    {1, k_left_bumper},       // cambiar granada: G
+    {2, k_right_bumper},      // acción (vehículos, recoger): E
+    {3, k_button_x},          // recargar: R
+    {4, k_button_y},          // cambiar arma: Q / rueda
+    {5, k_button_b},          // golpe: F / V
+    {6, k_dpad_up},           // linterna: 1 / flecha arriba
+    {7, k_left_trigger},      // lanzar granada: clic derecho
+    {8, k_right_trigger},     // disparar: clic izquierdo
+    {9, k_left_stick},        // agacharse: Ctrl / C
+    {10, k_right_stick},      // zoom: Z / clic central
+    {20, k_select},           // marcador: Tab
+    {64, k_dpad_up},          // linterna (alternativa)
+};
+uint8_t g_friend_mapping[k_mapping_size];
+
+void* __fastcall hooked_mapping(void* manager, int64_t xuid) {
+    void* host = g_original_mapping(manager, host_xuid(manager));
+    if (index_of(xuid) == 0 || !host) return host;  // J1: su propia configuración
+    uint8_t mapping[k_mapping_size];
+    if (!safe_read(reinterpret_cast<uintptr_t>(host), mapping, sizeof(mapping))) return host;
+    for (uint8_t button : mapping)
+        if (button > k_button_y && button != 0xFF) {  // no parece la tabla esperada: se deja la de J1
+            static bool logged = false;
+            if (!logged) log_write("Jugadores: la tabla de botones de MCC no es la esperada: J2-J4 usan la de J1");
+            logged = true;
+            return host;
+        }
+    for (const ActionButton& entry : k_friend_buttons) {
+        // Si ese botón hacía otra acción en la tabla de J1, se le quita (que R no recargue y prenda la linterna).
+        for (uint8_t& button : mapping)
+            if (button == entry.button) button = 0xFF;
+    }
+    for (const ActionButton& entry : k_friend_buttons) mapping[entry.action] = entry.button;
+    if (memcmp(mapping, g_friend_mapping, sizeof(mapping)) != 0) {
+        memcpy(g_friend_mapping, mapping, sizeof(mapping));
+        log_write("Jugadores: botones de J2-J4 iguales a las teclas del programa de los amigos");
+    }
+    return g_friend_mapping;
+}
 
 void __fastcall hooked_vibration(void*, DWORD index, XINPUT_VIBRATION* vibration) {
     if (index >= DWORD(g_player_count) || !vibration) return;
@@ -245,6 +313,30 @@ bool hook_at(uintptr_t target, void* detour, void** original, const char* name) 
     return status == MH_OK;
 }
 
+// Al cerrar MCC, un hilo de MCC todavía manda un aviso (evento 0x40F35C79, desde +0x2B3E50) a su
+// gestor de eventos ([MCC+0x4004230]) cuando ese gestor ya se borró: la función que lo recibe (+0x8AD5E0) lee
+// [nullptr+0x540] y MCC se cierra con el mensaje de error. Sin gestor el aviso no tiene a quién llegar: se ignora.
+constexpr uintptr_t k_post_event_rva = 0x8AD5E0;
+constexpr uint8_t k_post_event_bytes[] = {0x48, 0x8B, 0xC4, 0x48, 0x89, 0x58, 0x08, 0x48,
+                                          0x89, 0x68, 0x10, 0x48, 0x89, 0x70, 0x18, 0x57};
+using PostEventFn = void*(__fastcall*)(void*, uint32_t, uint32_t);
+PostEventFn g_post_event = nullptr;
+
+void* __fastcall hooked_post_event(void* manager, uint32_t event, uint32_t argument) {
+    if (!manager) return nullptr;
+    return g_post_event(manager, event, argument);
+}
+
+void hook_shutdown_event() {
+    uint8_t bytes[sizeof(k_post_event_bytes)];
+    if (!safe_read(g_mcc + k_post_event_rva, bytes, sizeof(bytes)) || memcmp(bytes, k_post_event_bytes, sizeof(bytes)) != 0) {
+        log_write("Jugadores: el código de avisos de MCC no es el esperado: puede fallar al cerrar");
+        return;
+    }
+    hook_at(g_mcc + k_post_event_rva, reinterpret_cast<void*>(&hooked_post_event),
+            reinterpret_cast<void**>(&g_post_event), "avisos al cerrar");
+}
+
 bool hook_mcc() {
     g_mcc = reinterpret_cast<uintptr_t>(GetModuleHandleW(nullptr));
     auto* dos = reinterpret_cast<IMAGE_DOS_HEADER*>(g_mcc);
@@ -262,6 +354,7 @@ bool hook_mcc() {
         return false;
     }
     g_delta_time = reinterpret_cast<decltype(g_delta_time)>(g_mcc + k_delta_time_rva);
+    hook_shutdown_event();
     // El gestor de juego se construye al arrancar MCC (después de cargar este DLL): esperar su tabla.
     uintptr_t table = 0;
     for (int tries = 0; tries < 600 && !(table && in_image(table)); ++tries) {
@@ -298,7 +391,7 @@ bool hook_mcc() {
               hook_at(functions[4], &hooked_mapping, reinterpret_cast<void**>(&g_original_mapping), "los botones") &&
               hook_at(g_mcc + k_index_by_xuid_rva, &hooked_index, reinterpret_cast<void**>(&g_original_index),
                       "el índice por xuid");
-    if (ok) log_write("Jugadores: MCC con hasta 4 jugadores locales (sin AlphaRing)");
+    if (ok) log_write("Jugadores: MCC con hasta 4 jugadores locales");
     return ok;
 }
 
@@ -306,21 +399,46 @@ bool hook_mcc() {
 struct Patch {
     const char* name;
     uintptr_t rva;
-    uint8_t original[6], patched[6];
+    uint8_t original[8], patched[8];
     size_t size;
 };
+// Instrucciones de halo1.dll que se cambian (cada una se comprueba antes con sus bytes originales):
+// - Más de 2 jugadores: la función que cuenta los usuarios al cargar la misión (halo1+0x66DF0), después de contarlos
+//   (+0x67464) compara la cantidad con 1, 2 o 4 según dos banderas del modo de juego (+0x2E3B822 y +0x2E3B823) y, si
+//   sobran, deja el código de salida 4 en +0x2E3B9B0 y levanta +0x2EA32E9: MCC vuelve al menú. Con 3 o 4 jugadores
+//   locales en la campaña eso pasa siempre, así que se salta directo a guardar la cantidad (+0x674AC):
+//   "cmp byte ptr [...],0" (7 bytes) -> "jmp +0x46" y relleno.
+// - Pausa solo para J1: el menú de pausa de MCC busca, entre los jugadores locales 0-3, el primero que pidió pausa
+//   (bucle en +0x427960, una entrada de 0x60 bytes por jugador desde +0x2EA2899). Solo sabe abrirse para el usuario
+//   principal, así que se mira solo el jugador 0: si él no la pidió, se sale del bucle con "nadie" (edx = -1):
+//   "mov r8d,edx" (+0x42796E) -> "jmp +0x22" (a +0x427992, donde se guarda el resultado).
+// - Paso al siguiente nivel: al ganar un nivel halo1 pone en 0 su bandera "nivel en
+//   curso" (+0x2E3B825) y le pasa a MCC la siguiente misión. Jugando solo MCC la pide y, al cargarla, la bandera vuelve
+//   a 1; con más de un jugador local MCC no responde, y como el bucle principal solo avanza la partida con la bandera
+//   en 1 (+0x85421), el juego se congela. Se quita esa condición para que el bucle avance siempre:
+//   "je +0x115" (+0x85428, 6 bytes) -> nops.
+// - Reaparecer en combate: en la campaña cooperativa un jugador muerto reaparece junto a un compañero ~3 s después
+//   (contador global de ticks, +0xAC5184), siempre que la función de reaparición (+0xAD03C0, un solo llamador) lo
+//   permita. Esa función rechaza si hay proyectiles peligrosos o unidades peligrosas cerca (motivo 1) o si enemigos
+//   ven a un jugador (motivo 2, "Waiting to respawn...teammate in combat"), salvo que la bandera 0x08 de
+//   jugadores+0x7E diga que no se revise. Se salta esa revisión como si la bandera estuviera puesta: "jne +0x17"
+//   (+0xAD0402) -> "jmp +0x66" (a +0xAD046A, donde elige al compañero; ahí se recargan todos los registros que usa).
+//   Sigue la revisión del motivo 3 (no aparecer junto a un compañero en el aire o en un vehículo en marcha). Las
+//   funciones de "peligro" no se tocan: también las usa el guardado de checkpoints.
 constexpr Patch k_halo1_patches[] = {
-    {"más de 2 jugadores", 0x67492, {0x75, 0x11}, {0xEB, 0x18}, 2},
-    {"pausa", 0x427978, {0x77}, {0xEB}, 1},
-    {"congelamiento al terminar el nivel", 0x85428, {0x0F, 0x84, 0x15, 0x01, 0x00, 0x00},
+    {"más de 2 jugadores", 0x67464, {0x80, 0x3D, 0xB7, 0x43, 0xDD, 0x02, 0x00},
+     {0xEB, 0x46, 0x90, 0x90, 0x90, 0x90, 0x90}, 7},
+    {"pausa solo para el jugador 1", 0x42796E, {0x44, 0x8B, 0xC2}, {0xEB, 0x22, 0x90}, 3},
+    {"paso al siguiente nivel", 0x85428, {0x0F, 0x84, 0x15, 0x01, 0x00, 0x00},
      {0x90, 0x90, 0x90, 0x90, 0x90, 0x90}, 6},
+    {"reaparecer en combate", 0xAD0402, {0x75, 0x17}, {0xEB, 0x66}, 2},
 };
 
 void patch_halo1(uintptr_t halo1) {
-    // Primero se comprueban todos: o se aplican los tres, o ninguno. Si ya están puestos, nada.
+    // Primero se comprueban todos: o se aplican todos, o ninguno. Si ya están puestos, nada.
     int missing = 0;
     for (const Patch& patch : k_halo1_patches) {
-        uint8_t bytes[6];
+        uint8_t bytes[8];
         if (!safe_read(halo1 + patch.rva, bytes, patch.size)) return;
         if (memcmp(bytes, patch.patched, patch.size) == 0) continue;  // ya puesto
         if (memcmp(bytes, patch.original, patch.size) != 0) {
@@ -410,6 +528,57 @@ int mission_players() {
     return halo1 ? read_as<int16_t>(halo1 + k_mission_players_rva, -1) : -1;
 }
 
+// ---- Paso a la siguiente misión con 2+ jugadores ----
+// halo1.dll guarda estados con nombre en un gestor (dsSTATE_MGR); uno es "IsMP" (¿partida multijugador?). Con 2+
+// jugadores locales queda en verdadero y, al terminar un nivel, el paso al siguiente toma el camino de multijugador:
+// MCC pone su pantalla de carga y no la quita. Por eso, cada vez que se lee "IsMP" se devuelve falso.
+// GetState (+0x18B150): rcx = gestor, edx = id del estado; devuelve un dato {uint32 valor; const tipo*}.
+// RegisterState (+0x5DB40): rcx = gestor, rdx = nombre, r8b = avisar al cambiar; devuelve el id (el mismo si ya existe).
+constexpr uintptr_t k_get_state_rva = 0x18B150, k_register_state_rva = 0x5DB40;
+constexpr uint8_t k_get_state_bytes[] = {0x48, 0x83, 0xEC, 0x28, 0x8B, 0xC2, 0x4C, 0x8B, 0xC9, 0x99};
+
+struct StateData {
+    uint32_t value;
+    const void* type;
+};
+using HaloGetStateFn = StateData*(__fastcall*)(void*, int);
+using RegisterStateFn = int(__fastcall*)(void*, const char*, bool);
+HaloGetStateFn g_original_halo_state = nullptr;
+std::atomic<void*> g_state_manager{nullptr};
+std::atomic<int> g_is_mp_id{-1};
+std::atomic<bool> g_is_mp_logged{false};
+
+StateData* __fastcall hooked_halo_state(void* manager, int id) {
+    StateData* result = g_original_halo_state(manager, id);
+    uintptr_t halo1 = g_halo1;
+    if (!halo1 || !result) return result;
+    if (manager != g_state_manager.load()) {  // gestor nuevo (otra carga de halo1.dll): se vuelve a pedir el id
+        g_is_mp_id = reinterpret_cast<RegisterStateFn>(halo1 + k_register_state_rva)(manager, "IsMP", true);
+        g_state_manager = manager;
+        g_is_mp_logged = false;
+    }
+    if (id == g_is_mp_id && result->value) {
+        if (!g_is_mp_logged.exchange(true))
+            log_write("Jugadores: Halo se creía en multijugador (IsMP = %u): se deja en falso", result->value);
+        result->value = 0;
+    }
+    return result;
+}
+
+void hook_get_state(uintptr_t halo1) {
+    uint8_t bytes[sizeof(k_get_state_bytes)];
+    if (!safe_read(halo1 + k_get_state_rva, bytes, sizeof(bytes)) ||
+        memcmp(bytes, k_get_state_bytes, sizeof(bytes)) != 0)
+        return;  // ya desviada (o no es el halo1.dll esperado)
+    g_state_manager = nullptr;
+    auto* target = reinterpret_cast<void*>(halo1 + k_get_state_rva);
+    MH_RemoveHook(target);
+    MH_STATUS status = MH_CreateHook(target, reinterpret_cast<void*>(&hooked_halo_state),
+                                     reinterpret_cast<void**>(&g_original_halo_state));
+    if (status == MH_OK) status = MH_EnableHook(target);
+    if (status != MH_OK) log_write("Jugadores: no se pudo desviar los estados de Halo (%s)", MH_StatusToString(status));
+}
+
 // Desde el hilo del juego.
 void reload_if_requested() {
     if (!g_reload_requested.exchange(false)) return;
@@ -420,44 +589,22 @@ void reload_if_requested() {
 }
 
 // halo1.dll se carga al elegir Halo CE en el menú y se vuelve a cargar al empezar cada misión (a veces en la misma
-// dirección): se miran los bytes cada 20 ms y se parchea cada carga antes de que empiece la misión.
+// dirección): se parchea cada carga apenas vuelve LoadLibraryExW, antes de que empiece la misión (ver halo1_load.h).
+void on_halo1_loaded(uintptr_t halo1) {
+    g_halo1 = halo1;
+    patch_halo1(halo1);
+    hook_load_level(halo1);
+    hook_get_state(halo1);
+}
+
+// Solo sigue la dirección (para leer): si halo1.dll se descargó, g_halo1 = 0.
 void watch_halo1() {
+    halo1_load_subscribe(&on_halo1_loaded);
     while (true) {
         uintptr_t halo1 = reinterpret_cast<uintptr_t>(GetModuleHandleW(L"halo1.dll"));
-        if (halo1 != g_halo1.exchange(halo1)) g_last_load.valid = false;
-        if (halo1) {
-            patch_halo1(halo1);
-            hook_load_level(halo1);
-        }
+        if (g_halo1.exchange(halo1) != halo1) g_last_load.valid = false;
         Sleep(20);
     }
-}
-
-bool alpharing_loaded() {
-    HMODULE wtsapi = GetModuleHandleW(L"WTSAPI32.dll");
-    if (!wtsapi) return false;
-    wchar_t path[MAX_PATH] = {}, exe[MAX_PATH] = {};
-    GetModuleFileNameW(wtsapi, path, MAX_PATH);
-    GetModuleFileNameW(nullptr, exe, MAX_PATH);
-    const wchar_t* slash = wcsrchr(exe, L'\\');
-    size_t folder = slash ? size_t(slash - exe) + 1 : 0;
-    return folder && _wcsnicmp(path, exe, folder) == 0;  // el de System32 es el de Windows
-}
-
-std::wstring game_ini() {
-    HMODULE self = nullptr;
-    GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
-                       reinterpret_cast<LPCWSTR>(&game_ini), &self);
-    wchar_t path[MAX_PATH] = {};
-    GetModuleFileNameW(self, path, MAX_PATH);
-    if (wchar_t* slash = wcsrchr(path, L'\\')) wcscpy_s(slash + 1, MAX_PATH - (slash + 1 - path), L"coopevolved-juego.ini");
-    return path;
-}
-
-bool direct_mode() {
-    wchar_t mode[16] = {};
-    GetPrivateProfileStringW(L"juego", L"mandos", L"direct", mode, 16, game_ini().c_str());
-    return _wcsicmp(mode, L"vigem") != 0;
 }
 
 bool is_mcc() {
@@ -498,18 +645,11 @@ void local_players_reload_mission() {
 
 void local_players_start() {
     if (!is_mcc()) return;
-    if (!direct_mode()) {
-        log_write("Jugadores: modo ViGEmBus + AlphaRing (coopevolved-juego.ini)");
-        return;
-    }
     MH_STATUS status = MH_Initialize();
     if (status != MH_OK && status != MH_ERROR_ALREADY_INITIALIZED) return;
+    halo1_load_start();  // lo antes posible: todos los desvíos de halo1.dll cuelgan de este aviso
     if (!hook_xinput()) return;
-    log_write("Jugadores: mandos de J2-J4 por red (sin ViGEmBus)");
-    if (alpharing_loaded()) {
-        log_write("Jugadores: AlphaRing está instalado: él pone los 4 jugadores");
-        return;
-    }
+    log_write("Jugadores: mandos de J2-J4 por red");
     std::thread([] {
         if (hook_mcc()) watch_halo1();
     }).detach();

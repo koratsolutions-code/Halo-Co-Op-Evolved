@@ -19,3 +19,4 @@ void halo1_players_start();                   // hilo que localiza las tablas tr
 bool halo1_players_read(Halo1Player out[4]);  // false si todavía no se encontraron las tablas
 uintptr_t halo1_player_biped(int player);     // datos del biped del jugador 0..3 en la copia viva; 0 si no tiene
 uintptr_t halo1_player_record(int player);    // registro del jugador 0..3 en la copia viva (0xC20 bytes); 0 si no hay
+uintptr_t halo1_object(uint32_t handle);      // datos de cualquier objeto (vehículo, biped...) por su handle; 0 si no
