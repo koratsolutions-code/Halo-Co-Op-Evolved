@@ -20,6 +20,10 @@ capturas/
 # Notas internas de desarrollo: solo locales
 /docs/
 
+# Capturas para publicar en Steam / Nexus: solo locales
+/screenshots/
+*.zip
+
 # La fuente de Halo no se distribuye: solo las imágenes que genera tools/make_ui_images.py
 *.ttf
 *.otf
