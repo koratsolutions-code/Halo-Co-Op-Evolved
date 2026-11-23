@@ -17,6 +17,9 @@ capturas/
 **/[Cc][Ll][Aa][Uu][Dd][Ee].local.md
 **/.claude/
 
+# Notas internas de desarrollo: solo locales
+/docs/
+
 # La fuente de Halo no se distribuye: solo las imágenes que genera tools/make_ui_images.py
 *.ttf
 *.otf

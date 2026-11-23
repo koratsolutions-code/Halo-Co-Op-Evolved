@@ -13,7 +13,7 @@
 // cuerpo de un jugador (halo1.dll+0xAD4184) Master Chief da la copia de su skin, y después el cuerpo queda con el
 // ID de esa copia. Por eso una skin elegida en plena partida se ve al reaparecer, y los cuerpos que crea una
 // cinemática al empezar una misión salen como Master Chief. Solo MCC Steam 1.3528: si el código no tiene los bytes
-// esperados, no se toca nada. Detalles en docs/DEVELOPMENT.md.
+// esperados, no se toca nada.
 void skins_start();
 
 // Bit i: la skin i de k_skins está en la misión cargada (0: ninguna misión).

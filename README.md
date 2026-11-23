@@ -1,4 +1,4 @@
-<h1 align="center"><img src="docs/logo.png" alt="Halo: Co Op Evolved" width="760"></h1>
+<h1 align="center"><img src="assets/logo.png" alt="Halo: Co Op Evolved" width="760"></h1>
 
 [Español](README.es.md) · **English**
 

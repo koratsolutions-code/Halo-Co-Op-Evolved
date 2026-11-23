@@ -8,7 +8,7 @@
 // "conectados"; el slot 3 es el mando físico del slot 0, por si el host juega con mando.
 //
 // 4 jugadores: MCC en PC solo tiene un usuario local, así que este DLL desvía funciones del gestor de juego de MCC
-// (usuarios conectados, controles por jugador, perfil, mapeo, vibración, índice por xuid; ver docs/DEVELOPMENT.md)
+// (usuarios conectados, controles por jugador, perfil, mapeo, vibración, índice por xuid)
 // y cambia tres instrucciones de halo1.dll (límite de 2 jugadores, pausa, congelamiento al terminar el nivel). Solo
 // MCC Steam 1.3528: se comprueba la marca de tiempo del exe y los bytes antes de tocar nada.
 void local_players_start();  // lo antes posible (hilo propio): MCC registra los mandos al arrancar
