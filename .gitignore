@@ -12,6 +12,11 @@ out/
 capturas/
 .venv/
 
+# Archivos de herramientas de asistencia: solo locales
+**/[Cc][Ll][Aa][Uu][Dd][Ee].md
+**/[Cc][Ll][Aa][Uu][Dd][Ee].local.md
+**/.claude/
+
 # La fuente de Halo no se distribuye: solo las imágenes que genera tools/make_ui_images.py
 *.ttf
 *.otf
