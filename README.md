@@ -15,18 +15,19 @@ It is a single program, `CoOpEvolved.exe`, for everyone: the host chooses **Host
 
 ## Download
 
-You do **not** need to build or install any programming tools: the ready-to-use files are already in
-this repository.
+**[Download the latest version](https://github.com/koratsolutions-code/Halo-Co-Op-Evolved/releases/latest)**: under *Assets* download `HaloCoOpEvolved-vX.Y.Z.zip`.
+You do **not** need to build or install any programming tools.
 
-1. At the top of this page press the green **Code** button → **Download ZIP**.
-2. Unzip it (right-click → *Extract All...*).
-3. Everyone (host and friends) uses the `CoOpEvolved/` folder. Copy it anywhere you like.
+1. Unzip it (right-click → *Extract All...*).
+2. Everyone (host and friends) uses the `CoOpEvolved/` folder. Copy it anywhere you like.
+3. There is no separate installer: on the host, `CoOpEvolved.exe` installs the mod into the game by itself.
 
 | File in `CoOpEvolved/` | What it is |
 |------------------------|------------|
 | `CoOpEvolved.exe` | The program: host panel or client, chosen at the top right |
 | `VERSION.dll` | The mod inside the game. Only the host needs it: the program installs it by itself |
 | `README.txt` / `LEEME.txt` | Short instructions |
+| `LICENSE.txt` / `THIRD-PARTY-NOTICES.txt` | Licences of Co Op Evolved and of the libraries it includes |
 
 ---
 
@@ -229,7 +230,7 @@ For players 2, 3 and 4. You do **not** need Halo, Steam or MCC: the game runs on
 1. **Radmin VPN:** install [Radmin VPN](https://www.radmin-vpn.com/) and join the host's network
    (*Network → Join an existing network*, with the network name and password the host gives you).
 2. **NVIDIA drivers:** update your NVIDIA GPU drivers (GeForce Experience / NVIDIA App, or nvidia.com).
-3. **The program:** download the repository (*Download*) and copy the `CoOpEvolved/` folder anywhere you
+3. **The program:** download the [latest version](https://github.com/koratsolutions-code/Halo-Co-Op-Evolved/releases/latest) (*Download*), unzip it and copy the `CoOpEvolved/` folder anywhere you
    like. Nothing else needs installing.
 
 ### Every time you play

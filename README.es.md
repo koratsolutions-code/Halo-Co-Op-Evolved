@@ -15,18 +15,19 @@ las pestañas de arriba a la derecha. Viene en **inglés** por defecto; cámbial
 
 ## Descarga
 
-**No** necesitas compilar ni instalar herramientas de programación: los archivos listos para usar ya
-vienen en este repositorio.
+**[Descarga la última versión](https://github.com/koratsolutions-code/Halo-Co-Op-Evolved/releases/latest)**: en *Assets* descarga `HaloCoOpEvolved-vX.Y.Z.zip`.
+**No** necesitas compilar ni instalar herramientas de programación.
 
-1. Arriba en esta página presiona el botón verde **Code** → **Download ZIP**.
-2. Descomprímelo (clic derecho → *Extraer todo...*).
-3. Todos (host y amigos) usan la carpeta `CoOpEvolved/`. Cópiala donde quieras.
+1. Descomprímelo (clic derecho → *Extraer todo...*).
+2. Todos (host y amigos) usan la carpeta `CoOpEvolved/`. Cópiala donde quieras.
+3. No hay instalador aparte: en el host, `CoOpEvolved.exe` instala el mod en el juego por sí solo.
 
 | Archivo en `CoOpEvolved/` | Qué es |
 |---------------------------|--------|
 | `CoOpEvolved.exe` | El programa: panel del host o cliente, se elige arriba a la derecha |
 | `VERSION.dll` | El mod dentro del juego. Solo lo necesita el host: el programa lo instala solo |
 | `README.txt` / `LEEME.txt` | Instrucciones cortas |
+| `LICENSE.txt` / `THIRD-PARTY-NOTICES.txt` | Licencias de Co Op Evolved y de las librerías que incluye |
 
 ---
 
@@ -234,7 +235,7 @@ Para los jugadores 2, 3 y 4. **No** necesitas Halo, Steam ni MCC: el juego corre
    (*Red → Unirse a una red existente*, con el nombre y la contraseña que te da el host).
 2. **Drivers de NVIDIA:** actualiza los drivers de tu GPU NVIDIA (GeForce Experience / NVIDIA App, o
    nvidia.com).
-3. **El programa:** descarga el repositorio (*Descarga*) y copia la carpeta `CoOpEvolved/` donde quieras. No
+3. **El programa:** descarga la [última versión](https://github.com/koratsolutions-code/Halo-Co-Op-Evolved/releases/latest) (*Descarga*), descomprímela y copia la carpeta `CoOpEvolved/` donde quieras. No
    hay que instalar nada más.
 
 ### Cada vez que juegues
