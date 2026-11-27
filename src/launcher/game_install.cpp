@@ -5,6 +5,7 @@
 
 #include <windows.h>
 
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <vector>
@@ -108,5 +109,36 @@ bool game_install_mod(const std::wstring& binaries_dir, std::wstring& error) {
         return false;
     }
     log_write("Mod instalado en la carpeta del juego");
+    return true;
+}
+
+// Un VERSION.dll de otro mod no se borra: el nuestro siempre trae el nombre de su log (en UTF-16).
+static bool is_our_dll(const std::vector<char>& data) {
+    static const char16_t k_marker[] = u"coopevolved-juego";
+    const char* marker = reinterpret_cast<const char*>(k_marker);
+    size_t size = sizeof(k_marker) - sizeof(char16_t);
+    return std::search(data.begin(), data.end(), marker, marker + size) != data.end();
+}
+
+bool game_remove_mod(const std::wstring& binaries_dir, std::wstring& error) {
+    std::wstring target = binaries_dir + L"\\VERSION.dll";
+    if (binaries_dir.empty() || !exists(target)) return true;
+    if (!is_our_dll(read_file(target))) {
+        error = T(L"The VERSION.dll in the game folder is not from Co Op Evolved (another mod?): it was not touched.",
+                  L"El VERSION.dll de la carpeta del juego no es de Co Op Evolved (¿otro mod?): no se tocó.");
+        return false;
+    }
+    if (!DeleteFileW(target.c_str())) {
+        DWORD code = GetLastError();
+        error = code == ERROR_SHARING_VIOLATION || code == ERROR_LOCK_VIOLATION || code == ERROR_ACCESS_DENIED
+            ? T(L"MCC is open: close it and try again.", L"MCC está abierto: ciérralo y vuelve a intentar.")
+            : std::wstring(T(L"Could not remove it (error ", L"No se pudo quitar (error ")) + std::to_wstring(code) + L").";
+        log_write("No se pudo quitar el mod del juego (error %lu)", code);
+        return false;
+    }
+    // Sus archivos al lado: la configuración y el log (que tiene nombres de jugadores).
+    DeleteFileW((binaries_dir + L"\\coopevolved-juego.ini").c_str());
+    DeleteFileW((binaries_dir + L"\\coopevolved-juego.log").c_str());
+    log_write("Mod quitado de la carpeta del juego");
     return true;
 }

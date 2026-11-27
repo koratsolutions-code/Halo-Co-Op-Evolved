@@ -206,6 +206,8 @@ how many control updates per second arrive (about 250 is normal) and the video t
 FPS and name settings in `coopevolved-host.ini`, next to `CoOpEvolved.exe`.
 
 ### Common problems
+- **Normal MCC does not start (error 0xc000007b, Easy Anti-Cheat "untrusted system file"):** the mod is still in
+  the game. Press **Remove mod** in the host panel with MCC closed (see *Playing normal MCC*).
 - **The game does not have the players it should:** the number is set when the mission starts from the MCC
   menu (see *Players and late arrivals*). Check that the panel shows a green *4 players: built in* dot and that
   `VERSION.dll` is installed (*Game mod* dot). It only works with MCC 1.3528 on Steam.
@@ -315,10 +317,17 @@ The build also creates a `build/` folder with temporary files; you can delete it
 
 ---
 
+## Playing normal MCC (with the anti-cheat)
+
+While the mod is in the game folder, MCC does not start with the anti-cheat on (error `0xc000007b` and an Easy
+Anti-Cheat "untrusted system file" notice). To play normal MCC or online matchmaking, close MCC and press
+**Remove mod** in the host panel. To play Co Op Evolved again press **Install mod**, or just open Co Op Evolved
+as host: it installs the mod by itself when MCC is closed.
+
 ## Uninstall
 
-Delete `VERSION.dll` (this mod), `coopevolved-juego.ini` and `coopevolved-juego.log` from the game's
-`mcc\binaries\win64` folder.
+Press **Remove mod** in the host panel (with MCC closed). It deletes `VERSION.dll`, `coopevolved-juego.ini` and
+`coopevolved-juego.log` from the game's `mcc\binaries\win64` folder; you can also delete them by hand.
 Then in Steam: right-click MCC → Properties → Installed Files → **Verify integrity**.
 Finally delete the `CoOpEvolved` folder: its `.ini` and `.log` files are the only other place where Co Op Evolved
 keeps anything (your settings, and the names and Radmin IPs of the players who connected). It writes nothing to

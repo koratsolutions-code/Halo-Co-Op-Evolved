@@ -13,7 +13,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 FONT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.environ['LOCALAPPDATA'], r'Microsoft\Windows\Fonts\Halo.ttf')
-LOGO = os.path.join(ROOT, 'docs', 'logo.png')
+LOGO = os.path.join(ROOT, 'assets', 'logo.png')
 
 # clave, inglés, español
 TEXTS = [
@@ -27,6 +27,7 @@ TEXTS = [
     ('copy', 'Copy', 'Copiar'),
     ('open_mcc', 'Open MCC', 'Abrir MCC'),
     ('install_mod', 'Install mod', 'Instalar mod'),
+    ('remove_mod', 'Remove mod', 'Quitar mod'),
     ('move', 'Move', 'Mover'),
     ('kick', 'Kick', 'Expulsar'),
     ('p1', 'P1', 'J1'),

@@ -395,24 +395,70 @@ void draw_connection_card() {
         ShellExecuteW(nullptr, L"open", k_mcc_steam_url, nullptr, nullptr, SW_SHOWNORMAL);
     }
     ImGui::EndDisabled();
-    if (!g_status.mcc_open && (g_status.mod == ModState::not_installed || g_status.mod == ModState::outdated)) {
-        ImGui::SameLine();
-        if (ui_halo_button("install_mod", ImVec2(230, 46), k_blue)) {
-            std::wstring error;
-            if (game_install_mod(g_binaries_dir, error))
-                MessageBoxW(g_window, T(L"Mod installed in the game.", L"Mod instalado en el juego."), k_title,
-                            MB_ICONINFORMATION);
-            else
-                MessageBoxW(g_window, error.c_str(), k_title, MB_ICONERROR);
+    // Instalar y quitar siempre a la vista; cada uno se apaga cuando no aplica o con MCC abierto (el archivo está
+    // en uso). Quitar sirve para jugar MCC normal: con el mod en la carpeta, el anticheat no deja abrir el juego
+    // (error 0xc000007b).
+    bool game_found = g_status.mod != ModState::game_not_found;
+    ImGui::SameLine();
+    ImGui::BeginDisabled(g_status.mcc_open || !game_found || g_status.mod == ModState::installed);
+    if (ui_halo_button("install_mod", ImVec2(230, 46), k_blue)) {
+        std::wstring error;
+        if (game_install_mod(g_binaries_dir, error)) {
+            g_status.mod = game_mod_state(g_binaries_dir);
+            MessageBoxW(g_window, T(L"Mod installed in the game.", L"Mod instalado en el juego."), k_title,
+                        MB_ICONINFORMATION);
+        } else {
+            MessageBoxW(g_window, error.c_str(), k_title, MB_ICONERROR);
         }
     }
+    ImGui::EndDisabled();
     ImGui::SameLine();
-    ImGui::SetCursorPosY(ImGui::GetCursorPosY() + 12);
-    ImGui::TextColored(k_muted, "%s",
-                       T("Choose \"without anti-cheat\"  ·  use classic graphics (Tab) and keep the game window active",
-                         "Elige \"sin anticheat\"  ·  usa gráficos clásicos (Tab) y deja activa la ventana del juego"));
+    ImGui::BeginDisabled(g_status.mcc_open || !game_found || g_status.mod == ModState::not_installed);
+    {
+        if (ui_halo_button("remove_mod", ImVec2(230, 46), k_red)) {
+            int answer = MessageBoxW(
+                g_window,
+                T(L"Remove the mod from the game?\n\nDo it to play normal MCC with the anti-cheat on (online "
+                  L"matchmaking): with the mod in the game folder, MCC does not start with the anti-cheat.\n\nTo "
+                  L"play Co Op Evolved again, press \"Install mod\" or open Co Op Evolved as host again: it "
+                  L"installs it by itself.",
+                  L"¿Quitar el mod del juego?\n\nHazlo para jugar MCC normal con el anticheat (partidas en línea): "
+                  L"con el mod en la carpeta del juego, MCC no abre con el anticheat.\n\nPara volver a jugar Co Op "
+                  L"Evolved, presiona \"Instalar mod\" o vuelve a abrir Co Op Evolved como host: lo instala solo."),
+                k_title, MB_YESNO | MB_ICONQUESTION);
+            if (answer == IDYES) {
+                std::wstring error;
+                if (game_remove_mod(g_binaries_dir, error)) {
+                    g_status.mod = game_mod_state(g_binaries_dir);
+                    MessageBoxW(g_window,
+                                T(L"Mod removed. You can now open MCC normally, with the anti-cheat.",
+                                  L"Mod quitado. Ya puedes abrir MCC normal, con el anticheat."),
+                                k_title, MB_ICONINFORMATION);
+                } else {
+                    MessageBoxW(g_window, error.c_str(), k_title, MB_ICONERROR);
+                }
+            }
+        }
+    }
+    ImGui::EndDisabled();
+    // Dos líneas cortas al lado de los botones (sin pisar el selector de FPS de la derecha).
     float combo_width = 170;
+    ImGui::SameLine();
+    float hint_x = ImGui::GetCursorPosX(), buttons_y = ImGui::GetCursorPosY();
+    ImGui::SetCursorPosY(buttons_y + 23 - ImGui::GetTextLineHeightWithSpacing());
+    ImGui::BeginGroup();
+    ImGui::PushTextWrapPos(ImGui::GetWindowContentRegionMax().x - combo_width - 12);
+    ImGui::TextColored(k_muted, "%s",
+                       T("With the mod: \"without anti-cheat\"  ·  classic graphics (Tab)",
+                         "Con el mod: \"sin anticheat\"  ·  gráficos clásicos (Tab)"));
+    ImGui::SetCursorPosX(hint_x);
+    ImGui::TextColored(k_orange, "%s",
+                       T("Normal MCC (with anti-cheat): close it and press Remove mod first",
+                         "MCC normal (con anticheat): ciérralo y presiona Quitar mod antes"));
+    ImGui::PopTextWrapPos();
+    ImGui::EndGroup();
     ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - combo_width);
+    ImGui::SetCursorPosY(buttons_y + (46 - ImGui::GetFrameHeight()) / 2);
     ImGui::SetNextItemWidth(combo_width);
     char preview[32];
     snprintf(preview, sizeof(preview), T("Video at %d FPS", "Video a %d FPS"), g_settings.fps);

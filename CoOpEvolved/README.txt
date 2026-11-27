@@ -29,6 +29,10 @@ You need: MCC 1.3528 on Steam, an NVIDIA GPU, Radmin VPN and about 10 Mbps of up
   6. Use classic graphics (Tab) and keep the game as the active window.
   You play with keyboard and mouse.
 
+  Normal MCC (with the anti-cheat) does not start while the mod is in the game (error
+  0xc000007b). Close MCC and press "Remove mod" in the panel. "Install mod" puts it back
+  (opening Co Op Evolved as host also installs it by itself).
+
   F2 in game (or hold View on the controller 1 s): menu over the game with your armor color,
   skin, F6, subtitles, host options, Kick and Reload Mission. Only you see it. F2 or B closes it.
   Armor colors only paint Master Chief: other skins keep their own colors.

@@ -211,6 +211,8 @@ desconecta (puede volver a conectarse). El panel guarda tu nickname, tu color de
 los FPS y lo de los nombres en `coopevolved-host.ini`, junto a `CoOpEvolved.exe`.
 
 ### Problemas comunes
+- **MCC normal no abre (error 0xc000007b, Easy Anti-Cheat "archivo de sistema no confiable"):** el mod sigue en
+  el juego. Presiona **Quitar mod** en el panel del host con MCC cerrado (ver *Jugar MCC normal*).
 - **El juego no tiene los jugadores que debería:** la cantidad se fija al empezar la misión desde el menú de
   MCC (ver *Jugadores y quien llega tarde*). Revisa que el panel muestre en verde *4 jugadores: integrado* y que
   `VERSION.dll` esté instalado (punto *Mod del juego*). Solo funciona con MCC 1.3528 de Steam.
@@ -322,10 +324,17 @@ La compilación también crea una carpeta `build/` con archivos temporales; pued
 
 ---
 
+## Jugar MCC normal (con el anticheat)
+
+Mientras el mod está en la carpeta del juego, MCC no abre con el anticheat (error `0xc000007b` y un aviso de Easy
+Anti-Cheat de "archivo de sistema no confiable"). Para jugar MCC normal o en línea, cierra MCC y presiona
+**Quitar mod** en el panel del host. Para volver a jugar Co Op Evolved presiona **Instalar mod**, o simplemente
+abre Co Op Evolved como host: instala el mod solo cuando MCC está cerrado.
+
 ## Desinstalar
 
-Borra `VERSION.dll` (este mod), `coopevolved-juego.ini` y `coopevolved-juego.log` de la carpeta
-`mcc\binaries\win64` del juego.
+Presiona **Quitar mod** en el panel del host (con MCC cerrado). Borra `VERSION.dll`, `coopevolved-juego.ini` y
+`coopevolved-juego.log` de la carpeta `mcc\binaries\win64` del juego; también puedes borrarlos a mano.
 Después en Steam: clic derecho en MCC → Propiedades → Archivos instalados → **Verificar integridad**.
 Por último borra la carpeta `CoOpEvolved`: sus archivos `.ini` y `.log` son el único otro lugar donde Co Op Evolved
 guarda algo (tu configuración, y los nombres e IPs de Radmin de los jugadores que se conectaron). No escribe nada
